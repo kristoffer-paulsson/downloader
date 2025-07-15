@@ -16,21 +16,14 @@ package org.example.downloader;
 
 import java.io.*;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.net.http.*;
+import java.nio.file.*;
 import java.util.Properties;
 
 public class DownloadPackagesList {
-    public static void main(String[] args) throws Exception {
+    public static void runWithConfig(String configPath) throws Exception {
         Properties config = new Properties();
-        try (InputStream configStream = DownloadPackagesList.class.getClassLoader().getResourceAsStream("config.properties")) {
-            if (configStream == null) {
-                System.err.println("Could not find config.properties in resources.");
-                return;
-            }
+        try (InputStream configStream = Files.newInputStream(Paths.get(configPath))) {
             config.load(configStream);
         }
 
