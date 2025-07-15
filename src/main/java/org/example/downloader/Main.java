@@ -15,8 +15,6 @@
 package org.example.downloader;
 
 import java.io.*;
-import java.nio.file.*;
-import java.util.Properties;
 import java.util.Scanner;
 
 public class Main {
@@ -41,7 +39,7 @@ public class Main {
                     setupConfig(configManager, scanner);
                     break;
                 case "2":
-                    DownloadPackagesList.runWithConfig(configManager);
+                    DebianPackagesListCache.downloadAndCachePackagesList(configManager);
                     break;
                 case "3":
                     System.out.println("Exiting.");
