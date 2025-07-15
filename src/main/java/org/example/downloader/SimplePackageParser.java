@@ -121,12 +121,9 @@ public class SimplePackageParser {
     }
 
     public static void main(String[] args) throws IOException {
-        Properties config = new Properties();
-        try (InputStream in = new FileInputStream("config.properties")) {
-            config.load(in);
-        }
-        String output = config.getProperty("output", "allpackages.txt");
-        String cache = config.getProperty("cache", "runtime-cache");
+        ConfigManager configManager = new ConfigManager("config.properties");
+        String output = configManager.get("output", "allpackages.txt");
+        String cache = configManager.get("cache", "runtime-cache");
         File file = new File(cache, output);
 
         List<Package> result = parseGzipPackages(file, 7);

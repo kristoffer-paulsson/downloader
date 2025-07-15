@@ -1,3 +1,17 @@
+/**
+ * Copyright (c) 2025 by Kristoffer Paulsson <kristoffer.paulsson@talenten.se>.
+ *
+ * This software is available under the terms of the MIT license. Parts are licensed
+ * under different terms if stated. The legal terms are attached to the LICENSE file
+ * and are made available on:
+ *
+ *      https://opensource.org/licenses/MIT
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Contributors:
+ *      Kristoffer Paulsson - initial implementation
+ */
 package org.example.downloader;
 
 import java.io.BufferedReader;
@@ -13,11 +27,11 @@ public class DebianDownloadUrlBuilder {
     private String version;
     private String distribution; // e.g., bookworm, sid
     private String component; // e.g., main, contrib, non-free
-    private String architecture; // e.g., amd64, arm64
+    private String architecture; // e.g., amd64, arm64, or all
     private String mirrorBaseUrl; // e.g., http://deb.debian.org/debian
     private static final Set<String> VALID_COMPONENTS = new HashSet<>(Arrays.asList("main", "contrib", "non-free", "non-free-firmware"));
     private static final Set<String> VALID_ARCHITECTURES = new HashSet<>(Arrays.asList(
-            "amd64", "arm64", "armel", "armhf", "i386", "mips64el", "mipsel", "ppc64el", "riscv64", "s390x"
+            "amd64", "arm64", "armel", "armhf", "i386", "mips64el", "mipsel", "ppc64el", "riscv64", "s390x", "all"
     ));
 
     // Constructor
@@ -86,12 +100,14 @@ public class DebianDownloadUrlBuilder {
         String normalizedArchitecture = architecture.trim().toLowerCase();
         String normalizedBaseUrl = mirrorBaseUrl.trim().endsWith("/") ? mirrorBaseUrl.trim() : mirrorBaseUrl.trim() + "/";
 
-        // Determine source initial (e.g., 'b' for bash, 'liba' for libapp)
+        // Determine source initial (e.g., '0' for 0ad-data, 'liba' for libapp)
         String sourceInitial = normalizedPackageName.startsWith("lib") ?
                 "lib" + normalizedPackageName.charAt(3) :
-                normalizedPackageName.charAt(0) + "";
+                normalizedPackageName.matches("^[0-9].*") ?
+                        normalizedPackageName.charAt(0) + "" :
+                        normalizedPackageName.charAt(0) + "";
         // Simplified: assumes package name matches source name
-        String sourceName = normalizedPackageName;
+        String sourceName = normalizedPackageName.startsWith("0ad-data-") ? "0ad-data" : normalizedPackageName;
 
         // Format: {baseUrl}/pool/{component}/{sourceInitial}/{sourceName}/{package}_{version}_{architecture}.deb
         return String.format("%spool/%s/%s/%s/%s_%s_%s.deb",
@@ -99,18 +115,14 @@ public class DebianDownloadUrlBuilder {
                 normalizedPackageName, normalizedVersion, normalizedArchitecture);
     }
 
-    // Fetch a mirror dynamically (simplified example; real-world would use netselect-apt or API)
+    // Fetch a mirror dynamically (simplified example)
     public static String fetchFastestMirror(String country, String distribution, String architecture) {
-        // Placeholder: In a real implementation, this could query https://www.debian.org/mirror/list
-        // or run netselect-apt/apt-smart programmatically
         try {
-            // Example: Fetch mirror list from Debian website (simplified)
             URL url = new URL("https://www.debian.org/mirror/list-full");
             BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.contains("http") && line.contains(country) && line.contains(architecture)) {
-                    // Extract HTTP mirror URL (simplified parsing)
                     if (line.contains("/debian/")) {
                         return line.split("/debian/")[0].replaceAll(".*(http[s]?://[^\"]+)", "$1");
                     }
@@ -120,46 +132,31 @@ public class DebianDownloadUrlBuilder {
         } catch (IOException e) {
             System.err.println("Error fetching mirror: " + e.getMessage());
         }
-        // Fallback to deb.debian.org
         return "http://deb.debian.org/debian";
     }
 
-    /**
-     * 0ad (0.0.26-3) Real-time strategy game of ancient warfare
-     * 0ad-data (0.0.26-1) Real-time strategy game of ancient warfare (data files)
-     * 0ad-data-common (0.0.26-1) Real-time strategy game of ancient warfare (common data files)
-     * */
+    // Example usage
     public static void main(String[] args) {
         try {
-            // Using builder with specific mirror
+            // Example for 0ad-data-common (architecture-independent)
             DebianDownloadUrlBuilder builder = new Builder()
                     .packageName("0ad")
                     .version("0.0.26-3")
                     .distribution("bookworm")
                     .component("main")
                     .architecture("amd64")
-                    .mirrorBaseUrl("http://ftp.us.debian.org/debian")
+                    .mirrorBaseUrl("http://deb.debian.org/debian")
                     .build();
             System.out.println("Download URL: " + builder.buildDownloadUrl());
 
-            DebianDownloadUrlBuilder builder = new Builder()
-                    .packageName("0ad")
-                    .version("0.0.26-3")
-                    .distribution("bookworm")
-                    .component("main")
-                    .architecture("amd64")
-                    .mirrorBaseUrl("http://ftp.us.debian.org/debian")
-                    .build();
-            System.out.println("Download URL: " + builder.buildDownloadUrl());
-
-            // Using dynamic mirror selection
-            String fastestMirror = fetchFastestMirror("us", "bookworm", "amd64");
+            // Example with dynamic mirror selection
+            String fastestMirror = fetchFastestMirror("us", "bookworm", "all");
             builder = new Builder()
                     .packageName("0ad-data-common")
                     .version("0.0.26-1")
                     .distribution("bookworm")
                     .component("main")
-                    .architecture("amd64")
+                    .architecture("all")
                     .mirrorBaseUrl(fastestMirror)
                     .build();
             System.out.println("Download URL with fastest mirror: " + builder.buildDownloadUrl());

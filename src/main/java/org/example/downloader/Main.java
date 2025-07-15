@@ -25,6 +25,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
         Scanner scanner = new Scanner(System.in);
+        ConfigManager configManager = new ConfigManager(configPath);
 
         while (true) {
             System.out.println("\nDebian Downloader CLI");
@@ -37,16 +38,16 @@ public class Main {
 
             switch (choice) {
                 case "1":
-                    setupConfig(configPath, scanner);
+                    setupConfig(configManager, scanner);
                     break;
                 case "2":
-                    DownloadPackagesList.runWithConfig(configPath);
+                    DownloadPackagesList.runWithConfig(configManager);
                     break;
                 case "3":
                     System.out.println("Exiting.");
                     return;
                 case "4":
-                    reviewConfig(configPath);
+                    reviewConfig(configManager);
                     break;
                 default:
                     System.out.println("Invalid option.");
@@ -54,39 +55,29 @@ public class Main {
         }
     }
 
-    private static void setupConfig(String configPath, Scanner scanner) throws IOException {
-        Properties config = new Properties();
-
+    private static void setupConfig(ConfigManager configManager, Scanner scanner) throws IOException {
         String defaultUrl = "https://packages.debian.org/stable/allpackages?format=txt.gz";
         String defaultOutput = "allpackages.txt.gz";
         String defaultCache = "runtime-cache";
 
         System.out.print("Enter download URL [" + defaultUrl + "]: ");
         String url = scanner.nextLine().trim();
-        config.setProperty("url", url.isEmpty() ? defaultUrl : url);
+        configManager.set("url", url.isEmpty() ? defaultUrl : url);
 
         System.out.print("Enter output file name [" + defaultOutput + "]: ");
         String output = scanner.nextLine().trim();
-        config.setProperty("output", output.isEmpty() ? defaultOutput : output);
+        configManager.set("output", output.isEmpty() ? defaultOutput : output);
 
         System.out.print("Enter cache directory [" + defaultCache + "]: ");
         String cache = scanner.nextLine().trim();
-        config.setProperty("cache", cache.isEmpty() ? defaultCache : cache);
+        configManager.set("cache", cache.isEmpty() ? defaultCache : cache);
 
-        try (OutputStream out = Files.newOutputStream(Paths.get(configPath))) {
-            config.store(out, "Debian Downloader Configuration");
-        }
-        System.out.println("Config saved to " + configPath);
+        configManager.save();
+        System.out.println("Config saved to " + configManager.getProperties());
     }
 
-    private static void reviewConfig(String configPath) {
-        Properties config = new Properties();
-        try (InputStream in = Files.newInputStream(Paths.get(configPath))) {
-            config.load(in);
-            System.out.println("\nCurrent config:");
-            config.forEach((k, v) -> System.out.println(k + " = " + v));
-        } catch (IOException e) {
-            System.out.println("Could not read config file: " + e.getMessage());
-        }
+    private static void reviewConfig(ConfigManager configManager) {
+        System.out.println("\nCurrent config:");
+        configManager.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
     }
 }

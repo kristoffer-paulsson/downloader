@@ -21,15 +21,10 @@ import java.nio.file.*;
 import java.util.Properties;
 
 public class DownloadPackagesList {
-    public static void runWithConfig(String configPath) throws Exception {
-        Properties config = new Properties();
-        try (InputStream configStream = Files.newInputStream(Paths.get(configPath))) {
-            config.load(configStream);
-        }
-
-        String url = config.getProperty("url");
-        String outputPath = config.getProperty("output");
-        String cacheDir = config.getProperty("cache");
+    public static void runWithConfig(ConfigManager configManager) throws Exception {
+        String url = configManager.get("url");
+        String outputPath = configManager.get("output");
+        String cacheDir = configManager.get("cache");
 
         if (url == null || outputPath == null || cacheDir == null) {
             System.err.println("Config file must contain 'url', 'output', and 'cache' properties.");
