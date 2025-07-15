@@ -18,7 +18,6 @@ import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
-import java.util.Properties;
 
 public class DownloadPackagesList {
     public static void runWithConfig(ConfigManager configManager) throws Exception {
