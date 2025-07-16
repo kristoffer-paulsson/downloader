@@ -23,12 +23,12 @@ import java.util.zip.GZIPInputStream;
 
 public class DebianPackagesListCache {
     private static final String BASE_URL = "http://deb.debian.org/debian/dists/%s/main/binary-%s/Packages.gz";
-    private static final String BASE_REOP = "dists/%s/main/binary-%s/Packages.gz";
+    private static final String BASE_REPO = "dists/%s/main/binary-%s/Packages.gz";
 
 
     public static void downloadAndCachePackagesList(ConfigManager configManager) throws Exception {
         String outputPath = configManager.get("output");
-        String cacheDir = configManager.get("cache");
+        String cacheDir = configManager.get("package_dir");
         String dist = configManager.get("distribution");
         String arch = configManager.get("architecture");
 
@@ -42,7 +42,8 @@ public class DebianPackagesListCache {
         Path cachePath = Path.of(cacheDir);
         Files.createDirectories(cachePath);
 
-        Path outputFile = cachePath.resolve(String.format("%s-%s.txt.gz", dist, arch));
+        Path outputFile = cachePath.resolve(String.format(BASE_REPO, dist, arch));
+        Files.createDirectories(outputFile.getParent());
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
@@ -60,11 +61,11 @@ public class DebianPackagesListCache {
     }
 
     public static List<DebianPackage> parseCachedPackagesList(ConfigManager configManager) {
-        String cache = configManager.get("cache", "runtime-cache");
+        String cache = configManager.get("package_dir", "runtime-cache");
         String dist = configManager.get("distribution");
         String arch = configManager.get("architecture");
 
-        String outputFile = String.format("%s-%s.txt.gz", dist, arch);
+        String outputFile = String.format(BASE_REPO, dist, arch);
         File file = new File(cache, outputFile);
 
         List<DebianPackage> packages = new ArrayList<>();
@@ -135,6 +136,7 @@ public class DebianPackagesListCache {
 
     public static void main(String[] args) throws Exception {
         ConfigManager configManager = new ConfigManager("config.properties");
+        downloadAndCachePackagesList(configManager);
         List<String> mirrors = DebianMirrorCache.loadCachedMirrors(false);
         Iterator<DebianPackage> result = parseCachedPackagesList(configManager).iterator();
 
