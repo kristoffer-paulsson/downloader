@@ -19,7 +19,6 @@ import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.regex.*;
 import java.util.zip.GZIPInputStream;
 
 public class DebianPackagesListCache {
@@ -134,8 +133,7 @@ public class DebianPackagesListCache {
 
     public static void main(String[] args) throws Exception {
         ConfigManager configManager = new ConfigManager("config.properties");
-        //downloadAndCachePackagesList(configManager);
-        List<String> mirrors = DebianMirrorCache.loadCachedMirrors();
+        List<String> mirrors = DebianMirrorCache.loadCachedMirrors(false);
         Iterator<DebianPackage> result = parseCachedPackagesList(configManager).iterator();
 
         while(result.hasNext()) {

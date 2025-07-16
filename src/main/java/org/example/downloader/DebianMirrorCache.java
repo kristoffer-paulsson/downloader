@@ -69,12 +69,16 @@ public class DebianMirrorCache {
         }
     }
 
-    public static List<String> loadCachedMirrors() {
+    public static List<String> loadCachedMirrors(Boolean downloadIfMissing) {
         Path cacheFile = Paths.get(CACHE_DIR, CACHE_FILE);
         List<String> mirrors = new ArrayList<>();
         if (!Files.exists(cacheFile)) {
-            System.err.println("Mirror cache file does not exist: " + cacheFile);
-            return mirrors;
+            if(downloadIfMissing) {
+                downloadAndCacheMirrors();
+            } else {
+                System.err.println("Mirror cache file does not exist: " + cacheFile);
+                return mirrors;
+            }
         }
         try (BufferedReader reader = Files.newBufferedReader(cacheFile, StandardCharsets.UTF_8)) {
             String line;
@@ -89,13 +93,16 @@ public class DebianMirrorCache {
         return mirrors;
     }
 
-    public static Iterator<String> loadCachedMirrorsIterator() {
-        return loadCachedMirrors().iterator();
+    private static List<String> mirrors = loadCachedMirrors(false);
+    private static long current;
+
+    public static String getNextMirror() {
+        current++;
+        return mirrors.get((int) (current / mirrors.size()));
     }
 
     public static void main(String[] args) {
-        downloadAndCacheMirrors();
-        Iterator<String> mirrors = loadCachedMirrorsIterator();
-        mirrors.forEachRemaining(System.out::println);
+        mirrors = loadCachedMirrors(true);
+        mirrors.forEach(System.out::println);
     }
 }
