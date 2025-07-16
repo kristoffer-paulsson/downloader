@@ -89,10 +89,13 @@ public class DebianMirrorCache {
         return mirrors;
     }
 
+    public static Iterator<String> loadCachedMirrorsIterator() {
+        return loadCachedMirrors().iterator();
+    }
+
     public static void main(String[] args) {
         downloadAndCacheMirrors();
-        List<String> mirrors = loadCachedMirrors();
-        System.out.println("Loaded " + mirrors.size() + " mirrors from cache.");
-        mirrors.forEach(System.out::println);
+        Iterator<String> mirrors = loadCachedMirrorsIterator();
+        mirrors.forEachRemaining(System.out::println);
     }
 }

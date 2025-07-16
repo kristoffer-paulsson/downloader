@@ -29,8 +29,8 @@ public class Main {
             System.out.println("\nDebian Downloader CLI");
             System.out.println("1. Setup config");
             System.out.println("2. Download packages list");
-            System.out.println("3. Exit");
-            System.out.println("4. Review config");
+            System.out.println("3. Review config");
+            System.out.println("4. Exit");
             System.out.print("Choose an option: ");
             String choice = scanner.nextLine();
 
@@ -42,11 +42,11 @@ public class Main {
                     DebianPackagesListCache.downloadAndCachePackagesList(configManager);
                     break;
                 case "3":
-                    System.out.println("Exiting.");
-                    return;
-                case "4":
                     reviewConfig(configManager);
                     break;
+                case "4":
+                    System.out.println("Exiting.");
+                    return;
                 default:
                     System.out.println("Invalid option.");
             }
@@ -57,6 +57,10 @@ public class Main {
         String defaultUrl = "https://packages.debian.org/stable/allpackages?format=txt.gz";
         String defaultOutput = "allpackages.txt.gz";
         String defaultCache = "runtime-cache";
+        String defaultPackage = "package-cache";
+        String defaultDistribution = DebianDistribution.BOOKWORM.getDist();
+        String defaultArchitecture = DebianArchitecture.AMD_64.getArch();
+
 
         System.out.print("Enter download URL [" + defaultUrl + "]: ");
         String url = scanner.nextLine().trim();
@@ -68,7 +72,19 @@ public class Main {
 
         System.out.print("Enter cache directory [" + defaultCache + "]: ");
         String cache = scanner.nextLine().trim();
-        configManager.set("cache", cache.isEmpty() ? defaultCache : cache);
+        configManager.set("cache_dir", cache.isEmpty() ? defaultCache : cache);
+
+        System.out.print("Enter package directory [" + defaultPackage + "]: ");
+        String pkg = scanner.nextLine().trim();
+        configManager.set("package_dir", cache.isEmpty() ? defaultPackage : pkg);
+
+        System.out.print("Enter distribution [" + defaultDistribution + "]: ");
+        String dist = scanner.nextLine().trim();
+        configManager.set("distribution", cache.isEmpty() ? defaultDistribution : dist);
+
+        System.out.print("Enter favored architecture [" + defaultArchitecture + "]: ");
+        String arch = scanner.nextLine().trim();
+        configManager.set("distribution", cache.isEmpty() ? defaultArchitecture : arch);
 
         configManager.save();
         System.out.println("Config saved to " + configManager.getProperties());

@@ -24,23 +24,6 @@ import java.util.zip.GZIPInputStream;
 
 public class DebianPackagesListCache {
 
-    public static class Package {
-        public final String name;
-        public final String version;
-        public final String description;
-
-        public Package(String name, String version, String description) {
-            this.name = name;
-            this.version = version;
-            this.description = description;
-        }
-
-        @Override
-        public String toString() {
-            return "Package{name='" + name + "', version='" + version + "', description='" + description + "'}";
-        }
-    }
-
     public static void downloadAndCachePackagesList(ConfigManager configManager) throws Exception {
         String url = configManager.get("url");
         String outputPath = configManager.get("output");
@@ -71,12 +54,12 @@ public class DebianPackagesListCache {
         System.out.println("Downloaded to " + outputFile);
     }
 
-    public static List<Package> parseCachedPackagesList(ConfigManager configManager, int startLine) {
+    public static List<DebianPackage> parseCachedPackagesList(ConfigManager configManager, int startLine) {
         String output = configManager.get("output", "allpackages.txt");
         String cache = configManager.get("cache", "runtime-cache");
         File file = new File(cache, output);
 
-        List<Package> packages = new ArrayList<>();
+        List<DebianPackage> packages = new ArrayList<>();
         Pattern pattern = Pattern.compile("^(\\S+)\\s+\\(([^)]+)\\)\\s+(.+)$");
 
         try (
@@ -101,7 +84,7 @@ public class DebianPackagesListCache {
                     String name = matcher.group(1);
                     String version = matcher.group(2);
                     String description = matcher.group(3);
-                    packages.add(new Package(name, version, description));
+                    packages.add(new DebianPackage(name, version, description));
                 } else {
                     System.err.println("Line " + currentLine + " does not match expected format: " + line);
                 }
@@ -113,10 +96,21 @@ public class DebianPackagesListCache {
         return packages;
     }
 
+    public static Iterator<DebianPackage> parseCachedPackagesIterator(ConfigManager configManager, int startLine) {
+        return parseCachedPackagesList(configManager,startLine).iterator();
+    }
+
     public static void main(String[] args) throws Exception {
         ConfigManager configManager = new ConfigManager("config.properties");
         downloadAndCachePackagesList(configManager);
-        List<Package> result = parseCachedPackagesList(configManager, 7);
-        result.forEach(System.out::println);
+        List<String> mirrors = DebianMirrorCache.loadCachedMirrors();
+        Iterator<DebianPackage> result = parseCachedPackagesIterator(configManager, 7);
+
+        while(result.hasNext()) {
+            DebianPackage pkg = result.next();
+            pkg.complement(DebianDistribution.BOOKWORM, DebianComponent.MAIN, DebianArchitecture.AMD_64);
+            System.out.println(pkg.buildDownloadUrl(mirrors.get(1)).buildDownloadUrl());
+            System.out.println(pkg.buildDownloadUrl(mirrors.get(1)).buildDownloadUrlAsAll());
+        }
     }
 }

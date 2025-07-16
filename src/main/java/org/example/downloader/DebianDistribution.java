@@ -23,7 +23,7 @@ public enum DebianDistribution {
         this.dist = distribution;
     }
 
-    String getComp() {
+    String getDist() {
         return this.dist;
     }
 }
