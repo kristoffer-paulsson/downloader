@@ -23,6 +23,8 @@ import java.util.zip.GZIPInputStream;
 
 public class DebianPackagesListCache {
     private static final String BASE_URL = "http://deb.debian.org/debian/dists/%s/main/binary-%s/Packages.gz";
+    private static final String BASE_REOP = "dists/%s/main/binary-%s/Packages.gz";
+
 
     public static void downloadAndCachePackagesList(ConfigManager configManager) throws Exception {
         String outputPath = configManager.get("output");

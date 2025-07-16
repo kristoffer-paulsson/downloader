@@ -43,4 +43,8 @@ public class DebianPackage {
     public String buildDownloadUrl(String baseUrl) {
         return String.format("%s/%s", baseUrl, filename);
     }
+
+    public String buildSavePath(ConfigManager configManager) {
+        return String.format("%s/%s", configManager.get("package_dir"), filename);
+    }
 }
