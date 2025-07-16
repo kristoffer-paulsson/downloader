@@ -18,7 +18,6 @@ import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.*;
 import java.util.zip.GZIPInputStream;
@@ -68,7 +67,6 @@ public class DebianPackagesListCache {
         File file = new File(cache, outputFile);
 
         List<DebianPackage> packages = new ArrayList<>();
-        Pattern pattern = Pattern.compile("^(\\S+)\\s+\\(([^)]+)\\)\\s+(.+)$");
 
         try (
                 InputStream fileStream = new FileInputStream(file);
@@ -81,7 +79,9 @@ public class DebianPackagesListCache {
 
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) {
-                    printPackagesToOutput(lines.toString(), dist);
+                    DebianPackage dpkg = buildDebianPackage(lines.toString(), dist);
+                    if(dpkg != null)
+                        packages.add(dpkg);
                     lines = new StringBuilder();
                 }
                 lines.append(line);
@@ -95,32 +95,31 @@ public class DebianPackagesListCache {
         return packages;
     }
 
-    private static void printPackagesToOutput(String packagesContent, String distribution) {
-        // Parse Packages file
+    private static DebianPackage buildDebianPackage(String packagesContent, String distribution) {
         String[] packageEntries = packagesContent.split("\n\n");
+
+        String packageName = null;
+        String version = null;
+        String filename = null;
+        String architecture = null;
+        String sha256digest = null;
+
         for (String entry : packageEntries) {
             entry += "\n";
             if (entry.trim().isEmpty()) continue;
 
-            String packageName = extractField(entry, "Package");
-            String version = extractField(entry, "Version");
-            String filename = extractField(entry, "Filename");
-            String architecture = extractField(entry, "Architecture");
-            String sha256digest = extractField(entry, "SHA256");
-            String md5sum = extractField(entry, "MD5sum");
+            packageName = (packageName == null) ? extractField(entry, "Package") : packageName;
+            version = (version == null) ? extractField(entry, "Version") : version;
+            filename = (filename == null) ? extractField(entry, "Filename") : filename;
+            architecture = (architecture == null) ? extractField(entry, "Architecture") : architecture;
+            sha256digest = (sha256digest == null) ? extractField(entry, "SHA256") : sha256digest;
 
-
-            if (packageName != null && version != null) {
-                System.out.println(packageName);
-                System.out.println(version);
-                System.out.println(architecture);
-                System.out.println(distribution);
-                System.out.println(filename);
-                System.out.println(sha256digest);
-                System.out.println("");
-
-            }
         }
+
+        if (packageName != null && version != null) {
+            return new DebianPackage(packageName, version, architecture, filename, sha256digest, distribution);
+        }
+        return null;
     }
 
     private static String extractField(String entry, String fieldName) {
@@ -129,21 +128,20 @@ public class DebianPackagesListCache {
         return matcher.find() ? matcher.group(1) : null;
     }
 
-    public static Iterator<DebianPackage> parseCachedPackagesIterator(ConfigManager configManager, int startLine) {
+    public static Iterator<DebianPackage> parseCachedPackagesIterator(ConfigManager configManager) {
         return parseCachedPackagesList(configManager).iterator();
     }
 
     public static void main(String[] args) throws Exception {
         ConfigManager configManager = new ConfigManager("config.properties");
         //downloadAndCachePackagesList(configManager);
-        //List<String> mirrors = DebianMirrorCache.loadCachedMirrors();
-        parseCachedPackagesList(configManager);
+        List<String> mirrors = DebianMirrorCache.loadCachedMirrors();
+        Iterator<DebianPackage> result = parseCachedPackagesList(configManager).iterator();
 
-        /*while(result.hasNext()) {
+        while(result.hasNext()) {
             DebianPackage pkg = result.next();
-            pkg.complement(DebianDistribution.BOOKWORM, DebianComponent.MAIN, DebianArchitecture.AMD_64);
-            System.out.println(pkg.buildDownloadUrl(mirrors.get(1)).buildDownloadUrl());
-            System.out.println(pkg.buildDownloadUrl(mirrors.get(1)).buildDownloadUrlAsAll());
-        }*/
+            String url = pkg.buildDownloadUrl(mirrors.get(1));
+            System.out.println(url);
+        }
     }
 }

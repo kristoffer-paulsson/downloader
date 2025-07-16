@@ -14,36 +14,33 @@
  */
 package org.example.downloader;
 
-import org.example.downloader.deb.DebianArchitecture;
-import org.example.downloader.deb.DebianComponent;
-import org.example.downloader.deb.DebianDistribution;
+
 
 public class DebianPackage {
     public final String packageName;
     public final String version;
-    public final String description;
+    public final String architecture;
+    public final String filename;
+    public final String sha256digest;
+    public final String distribution;
 
-    public DebianDistribution distribution;
-    public DebianComponent component;
-    public DebianArchitecture architecture;
-
-    public DebianPackage(String packageName, String version, String description) {
+    public DebianPackage(
+            String packageName,
+            String version,
+            String architecture,
+            String filename,
+            String sha256digest,
+            String distribution
+    ) {
         this.packageName = packageName;
         this.version = version;
-        this.description = description;
-    }
-
-    public void complement(DebianDistribution distribution, DebianComponent component, DebianArchitecture architecture) {
-        this.distribution = distribution;
-        this.component = component;
         this.architecture = architecture;
-    }
-    @Override
-    public String toString() {
-        return "DebianPackage{name='" + packageName + "', version='" + version + "', description='" + description + "'}";
+        this.filename = filename;
+        this.sha256digest = sha256digest;
+        this.distribution = distribution;
     }
 
-    public DebianDownloadUrl buildDownloadUrl(String baseUrl) {
-        return new DebianDownloadUrl(this, baseUrl);
+    public String buildDownloadUrl(String baseUrl) {
+        return String.format("%s/%s", baseUrl, filename);
     }
 }
