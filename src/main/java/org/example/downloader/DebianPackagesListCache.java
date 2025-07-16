@@ -14,34 +14,35 @@
  */
 package org.example.downloader;
 
-import org.example.downloader.deb.DebianArchitecture;
-import org.example.downloader.deb.DebianComponent;
-import org.example.downloader.deb.DebianDistribution;
-
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.*;
 import java.util.zip.GZIPInputStream;
 
 public class DebianPackagesListCache {
+    private static final String BASE_URL = "http://deb.debian.org/debian/dists/%s/main/binary-%s/Packages.gz";
 
     public static void downloadAndCachePackagesList(ConfigManager configManager) throws Exception {
-        String url = configManager.get("url");
         String outputPath = configManager.get("output");
         String cacheDir = configManager.get("cache");
+        String dist = configManager.get("distribution");
+        String arch = configManager.get("architecture");
 
-        if (url == null || outputPath == null || cacheDir == null) {
-            System.err.println("Config file must contain 'url', 'output', and 'cache' properties.");
+        if (dist == null || arch == null || outputPath == null || cacheDir == null) {
+            System.err.println("Config file must contain 'distribution', 'architecture', 'output', and 'cache' properties.");
             return;
         }
+
+        String url = String.format(BASE_URL, dist, arch);
 
         Path cachePath = Path.of(cacheDir);
         Files.createDirectories(cachePath);
 
-        Path outputFile = cachePath.resolve(outputPath);
+        Path outputFile = cachePath.resolve(String.format("%s-%s.txt.gz", dist, arch));
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
@@ -58,41 +59,35 @@ public class DebianPackagesListCache {
         System.out.println("Downloaded to " + outputFile);
     }
 
-    public static List<DebianPackage> parseCachedPackagesList(ConfigManager configManager, int startLine) {
-        String output = configManager.get("output", "allpackages.txt");
+    public static List<DebianPackage> parseCachedPackagesList(ConfigManager configManager) {
         String cache = configManager.get("cache", "runtime-cache");
-        File file = new File(cache, output);
+        String dist = configManager.get("distribution");
+        String arch = configManager.get("architecture");
+
+        String outputFile = String.format("%s-%s.txt.gz", dist, arch);
+        File file = new File(cache, outputFile);
 
         List<DebianPackage> packages = new ArrayList<>();
         Pattern pattern = Pattern.compile("^(\\S+)\\s+\\(([^)]+)\\)\\s+(.+)$");
 
         try (
-            InputStream fileStream = new FileInputStream(file);
-            InputStream gzipStream = file.getName().endsWith(".gz") ?
-                new GZIPInputStream(fileStream) : fileStream;
-            BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, java.nio.charset.StandardCharsets.UTF_8))
+                InputStream fileStream = new FileInputStream(file);
+                InputStream gzipStream = file.getName().endsWith(".gz") ?
+                        new GZIPInputStream(fileStream) : fileStream;
+                BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, java.nio.charset.StandardCharsets.UTF_8))
         ) {
             String line;
-            int currentLine = 0;
-
-            while (currentLine < startLine - 1 && (line = reader.readLine()) != null) {
-                currentLine++;
-            }
+            StringBuilder lines = new StringBuilder();
 
             while ((line = reader.readLine()) != null) {
-                currentLine++;
-                if (line.trim().isEmpty()) continue;
-
-                Matcher matcher = pattern.matcher(line);
-                if (matcher.matches()) {
-                    String name = matcher.group(1);
-                    String version = matcher.group(2);
-                    String description = matcher.group(3);
-                    packages.add(new DebianPackage(name, version, description));
-                } else {
-                    System.err.println("Line " + currentLine + " does not match expected format: " + line);
+                if (line.trim().isEmpty()) {
+                    printPackagesToOutput(lines.toString(), dist);
+                    lines = new StringBuilder();
                 }
+                lines.append(line);
+                lines.append("\n");
             }
+
         } catch (IOException e) {
             System.err.println("Error reading file: " + e.getMessage());
         }
@@ -100,21 +95,55 @@ public class DebianPackagesListCache {
         return packages;
     }
 
+    private static void printPackagesToOutput(String packagesContent, String distribution) {
+        // Parse Packages file
+        String[] packageEntries = packagesContent.split("\n\n");
+        for (String entry : packageEntries) {
+            entry += "\n";
+            if (entry.trim().isEmpty()) continue;
+
+            String packageName = extractField(entry, "Package");
+            String version = extractField(entry, "Version");
+            String filename = extractField(entry, "Filename");
+            String architecture = extractField(entry, "Architecture");
+            String sha256digest = extractField(entry, "SHA256");
+            String md5sum = extractField(entry, "MD5sum");
+
+
+            if (packageName != null && version != null) {
+                System.out.println(packageName);
+                System.out.println(version);
+                System.out.println(architecture);
+                System.out.println(distribution);
+                System.out.println(filename);
+                System.out.println(sha256digest);
+                System.out.println("");
+
+            }
+        }
+    }
+
+    private static String extractField(String entry, String fieldName) {
+        String regex = fieldName + ": (.*?)\n";
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(regex).matcher(entry);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
     public static Iterator<DebianPackage> parseCachedPackagesIterator(ConfigManager configManager, int startLine) {
-        return parseCachedPackagesList(configManager,startLine).iterator();
+        return parseCachedPackagesList(configManager).iterator();
     }
 
     public static void main(String[] args) throws Exception {
         ConfigManager configManager = new ConfigManager("config.properties");
-        downloadAndCachePackagesList(configManager);
-        List<String> mirrors = DebianMirrorCache.loadCachedMirrors();
-        Iterator<DebianPackage> result = parseCachedPackagesIterator(configManager, 7);
+        //downloadAndCachePackagesList(configManager);
+        //List<String> mirrors = DebianMirrorCache.loadCachedMirrors();
+        parseCachedPackagesList(configManager);
 
-        while(result.hasNext()) {
+        /*while(result.hasNext()) {
             DebianPackage pkg = result.next();
             pkg.complement(DebianDistribution.BOOKWORM, DebianComponent.MAIN, DebianArchitecture.AMD_64);
             System.out.println(pkg.buildDownloadUrl(mirrors.get(1)).buildDownloadUrl());
             System.out.println(pkg.buildDownloadUrl(mirrors.get(1)).buildDownloadUrlAsAll());
-        }
+        }*/
     }
 }

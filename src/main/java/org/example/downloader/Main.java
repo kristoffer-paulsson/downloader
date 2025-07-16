@@ -87,7 +87,7 @@ public class Main {
 
         System.out.print("Enter favored architecture [" + defaultArchitecture + "]: ");
         String arch = scanner.nextLine().trim();
-        configManager.set("distribution", cache.isEmpty() ? defaultArchitecture : arch);
+        configManager.set("architecture", cache.isEmpty() ? defaultArchitecture : arch);
 
         configManager.save();
         System.out.println("Config saved to " + configManager.getProperties());
