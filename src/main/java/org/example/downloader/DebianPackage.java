@@ -14,6 +14,10 @@
  */
 package org.example.downloader;
 
+import org.example.downloader.deb.DebianArchitecture;
+import org.example.downloader.deb.DebianComponent;
+import org.example.downloader.deb.DebianDistribution;
+
 public class DebianPackage {
     public final String packageName;
     public final String version;

@@ -15,6 +15,9 @@
 package org.example.downloader;
 
 
+import org.example.downloader.deb.DebianArchitecture;
+import org.example.downloader.deb.DebianComponent;
+
 import java.util.Arrays;
 
 public class DebianDownloadUrl {

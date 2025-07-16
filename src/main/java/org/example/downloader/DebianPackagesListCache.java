@@ -14,6 +14,10 @@
  */
 package org.example.downloader;
 
+import org.example.downloader.deb.DebianArchitecture;
+import org.example.downloader.deb.DebianComponent;
+import org.example.downloader.deb.DebianDistribution;
+
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;

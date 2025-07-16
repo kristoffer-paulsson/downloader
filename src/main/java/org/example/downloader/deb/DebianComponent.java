@@ -12,28 +12,21 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
-package org.example.downloader;
+package org.example.downloader.deb;
 
-public enum DebianArchitecture {
-    AMD_64("amd64"),
-    ARM_64("arm64"),
-    ARMEL("armel"),
-    ARMHF("armhf"),
-    I_386("i386"),
-    MIPS_64EL("mips64el"),
-    MIPS_EL("mipsel"),
-    PPC_64EL("ppc64el"),
-    RISC_V64("riscv64"),
-    S_390X("s390x"),
-    ALL("all");
+public enum DebianComponent {
+    MAIN("main"),
+    CONTRIB("contrib"),
+    NON_FREE("non-free"),
+    NON_FREE_FIRMWARE("non-free-firmware");
 
-    final String arch;
+    final String comp;
 
-    DebianArchitecture(String arch) {
-        this.arch = arch;
+    DebianComponent(String component) {
+        this.comp = component;
     }
 
-    String getArch() {
-        return this.arch;
+    String getComp() {
+        return this.comp;
     }
 }

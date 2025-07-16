@@ -12,18 +12,28 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
-package org.example.downloader;
+package org.example.downloader.deb;
 
-public enum DebianDistribution {
-    BOOKWORM("bookworm");
+public enum DebianArchitecture {
+    AMD_64("amd64"),
+    ARM_64("arm64"),
+    ARMEL("armel"),
+    ARMHF("armhf"),
+    I_386("i386"),
+    MIPS_64EL("mips64el"),
+    MIPS_EL("mipsel"),
+    PPC_64EL("ppc64el"),
+    RISC_V64("riscv64"),
+    S_390X("s390x"),
+    ALL("all");
 
-    final String dist;
+    final String arch;
 
-    DebianDistribution(String distribution) {
-        this.dist = distribution;
+    DebianArchitecture(String arch) {
+        this.arch = arch;
     }
 
-    String getDist() {
-        return this.dist;
+    public String getArch() {
+        return this.arch;
     }
 }

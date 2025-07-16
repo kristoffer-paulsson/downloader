@@ -12,21 +12,18 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
-package org.example.downloader;
+package org.example.downloader.deb;
 
-public enum DebianComponent {
-    MAIN("main"),
-    CONTRIB("contrib"),
-    NON_FREE("non-free"),
-    NON_FREE_FIRMWARE("non-free-firmware");
+public enum DebianDistribution {
+    BOOKWORM("bookworm");
 
-    final String comp;
+    final String dist;
 
-    DebianComponent(String component) {
-        this.comp = component;
+    DebianDistribution(String distribution) {
+        this.dist = distribution;
     }
 
-    String getComp() {
-        return this.comp;
+    public String getDist() {
+        return this.dist;
     }
 }
