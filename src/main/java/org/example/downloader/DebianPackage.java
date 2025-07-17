@@ -16,7 +16,8 @@ package org.example.downloader;
 
 public record DebianPackage(
         String packageName, String version, String architecture,
-        String filename, String sha256digest, String distribution
+        String filename, String size, String sha256digest,
+        String distribution
 ) {
 
     public String buildDownloadUrl(String baseUrl) {

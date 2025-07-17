@@ -105,6 +105,7 @@ public class DebianPackagesListCache {
         String filename = null;
         String architecture = null;
         String sha256digest = null;
+        String downloadSize = null;
 
         for (String entry : packageEntries) {
             entry += "\n";
@@ -115,11 +116,13 @@ public class DebianPackagesListCache {
             filename = (filename == null) ? extractField(entry, "Filename") : filename;
             architecture = (architecture == null) ? extractField(entry, "Architecture") : architecture;
             sha256digest = (sha256digest == null) ? extractField(entry, "SHA256") : sha256digest;
+            downloadSize = (downloadSize == null) ? extractField(entry, "Size") : downloadSize;
+
 
         }
 
         if (packageName != null && version != null) {
-            return new DebianPackage(packageName, version, architecture, filename, sha256digest, distribution);
+            return new DebianPackage(packageName, version, architecture, filename, downloadSize, sha256digest, distribution);
         }
         return null;
     }

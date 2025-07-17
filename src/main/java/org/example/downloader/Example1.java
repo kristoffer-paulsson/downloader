@@ -10,11 +10,11 @@ public class Example1 {
         List<DebianWorker> workers = new ArrayList<>();
         ConfigManager configManager = null;
         workers.add(new DebianWorker(
-                new DebianPackage("pkg1", "1.0", "amd64", "pkg1.deb", "sha256hash1", "stable"),
+                new DebianPackage("pkg1", "1.0", "amd64", "pkg1.deb", "100", "sha256hash1", "stable"),
                 configManager, "https://deb.debian.org/debian"
         ));
         workers.add(new DebianWorker(
-                new DebianPackage("pkg2", "1.0", "amd64", "pkg2.deb", "sha256hash2", "stable"),
+                new DebianPackage("pkg2", "1.0", "amd64", "pkg2.deb", "200", "sha256hash2", "stable"),
                 configManager, "https://deb.debian.org/debian"
         ));
         Iterator<DebianWorker> workerIterator = workers.iterator();
