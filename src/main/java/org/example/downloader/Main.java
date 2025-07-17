@@ -16,14 +16,37 @@ package org.example.downloader;
 
 import org.example.downloader.deb.DebianArchitecture;
 import org.example.downloader.deb.DebianDistribution;
+import org.example.downloader.exp.InteractiveStateUpdater;
 
 import java.io.*;
+import java.util.Iterator;
 import java.util.Scanner;
 
 public class Main {
     private static final String DEFAULT_CONFIG = "config.properties";
 
     public static void main(String[] args) throws Exception {
+        InversionOfControl ioc = new InversionOfControl();
+
+        String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
+        ioc.register(ConfigManager.class, () -> {
+            try {
+                return new ConfigManager(configPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        ioc.register(DebianPackagesListCache.class, () -> new DebianPackagesListCache(ioc.resolve(ConfigManager.class)));
+
+        ioc.register(Iterator.class, () -> ioc.resolve(DebianPackagesListCache.class).parseCachedPackagesList().iterator());
+
+        /*
+        Scanner scanner = new Scanner(System.in);
+        ConfigManager configManager = new ConfigManager(configPath);*/
+    }
+
+    public static void main2(String[] args) throws Exception {
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
         Scanner scanner = new Scanner(System.in);
         ConfigManager configManager = new ConfigManager(configPath);
@@ -42,7 +65,7 @@ public class Main {
                     setupConfig(configManager, scanner);
                     break;
                 case "2":
-                    DebianPackagesListCache.downloadAndCachePackagesList(configManager);
+                    //DebianPackagesListCache.downloadAndCachePackagesList(configManager);
                     break;
                 case "3":
                     reviewConfig(configManager);

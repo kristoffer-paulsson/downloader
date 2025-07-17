@@ -25,8 +25,14 @@ public class DebianPackagesListCache {
     private static final String BASE_URL = "http://deb.debian.org/debian/dists/%s/main/binary-%s/Packages.gz";
     private static final String BASE_REPO = "dists/%s/main/binary-%s/Packages.gz";
 
+    private ConfigManager configManager;
 
-    public static void downloadAndCachePackagesList(ConfigManager configManager) throws Exception {
+    DebianPackagesListCache(ConfigManager configManager) {
+        this.configManager = configManager;
+    }
+
+
+    public void downloadAndCachePackagesList() throws Exception {
         String outputPath = configManager.get("output");
         String cacheDir = configManager.get("package_dir");
         String dist = configManager.get("distribution");
@@ -60,7 +66,7 @@ public class DebianPackagesListCache {
         System.out.println("Downloaded to " + outputFile);
     }
 
-    public static List<DebianPackage> parseCachedPackagesList(ConfigManager configManager) {
+    public List<DebianPackage> parseCachedPackagesList() {
         String cache = configManager.get("package_dir", "runtime-cache");
         String dist = configManager.get("distribution");
         String arch = configManager.get("architecture");
@@ -133,7 +139,7 @@ public class DebianPackagesListCache {
         return matcher.find() ? matcher.group(1) : null;
     }
 
-    public static Iterator<DebianPackage> parseCachedPackagesIterator(ConfigManager configManager) {
+    /*public static Iterator<DebianPackage> parseCachedPackagesIterator(ConfigManager configManager) {
         return parseCachedPackagesList(configManager).iterator();
     }
 
@@ -148,5 +154,5 @@ public class DebianPackagesListCache {
             String url = pkg.buildDownloadUrl(mirrors.get(1));
             System.out.println(url);
         }
-    }
+    }*/
 }
