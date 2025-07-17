@@ -73,7 +73,7 @@ public abstract class Menu {
         while(isRunning) {
             displayMenu();
             int choice = readMenuChoice(options.size(), this::showMessageAndWait);
-            if (choice > 0 && choice <= options.size()) options.get(choice - 1);
+            if (choice > 0 && choice <= options.size()) options.get(choice - 1).executeCommand();
             if (choice == options.size()) isRunning = false;
         }
 

@@ -24,8 +24,8 @@ public class MainMenu extends Menu {
 
     @Override
     protected void setupMenu() {
-        registerOption("Setup config", option -> {});
-        registerOption("Review config", option -> {});
-        registerOption("Download packages list", option -> {});
+        registerOption("Setup config", option -> System.out.println("Doing " + option.title) );
+        registerOption("Review config", option -> System.out.println("Doing " + option.title));
+        registerOption("Download packages list", option -> System.out.println("Doing " + option.title));
     }
 }
