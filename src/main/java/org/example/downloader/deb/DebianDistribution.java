@@ -14,6 +14,9 @@
  */
 package org.example.downloader.deb;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 public enum DebianDistribution {
     BOOKWORM("bookworm");
 
@@ -25,5 +28,9 @@ public enum DebianDistribution {
 
     public String getDist() {
         return this.dist;
+    }
+
+    public static List<String> toStringList() {
+        return Stream.of(values()).map(DebianDistribution::getDist).toList();
     }
 }

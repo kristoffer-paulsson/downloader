@@ -19,6 +19,9 @@ import java.nio.file.*;
 import java.util.Properties;
 
 public class ConfigManager {
+    public static String DIST = "distribution";
+    public static String ARCH = "architecture";
+
     private final Path configPath;
     private final Properties properties = new Properties();
 

@@ -14,6 +14,9 @@
  */
 package org.example.downloader.deb;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 public enum DebianArchitecture {
     AMD_64("amd64"),
     ARM_64("arm64"),
@@ -35,5 +38,9 @@ public enum DebianArchitecture {
 
     public String getArch() {
         return this.arch;
+    }
+
+    public static List<String> toStringList() {
+        return Stream.of(values()).map(DebianArchitecture::getArch).toList();
     }
 }
