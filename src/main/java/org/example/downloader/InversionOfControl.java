@@ -14,8 +14,6 @@
  */
 package org.example.downloader;
 
-import org.example.downloader.exp.InteractiveStateUpdater;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;

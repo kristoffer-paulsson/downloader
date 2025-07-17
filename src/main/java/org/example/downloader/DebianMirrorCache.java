@@ -27,10 +27,28 @@ import static java.util.regex.Pattern.*;
 public class DebianMirrorCache {
 
     private static final String MIRROR_LIST_URL = "https://www.debian.org/mirror/list-full";
-    private static final String CACHE_DIR = "runtime-cache";
-    private static final String CACHE_FILE = "mirror.txt";
+    private final String CACHE_FILE = "mirror.txt";
 
-    public static void downloadAndCacheMirrors() {
+    private final List<String> mirrors;
+    private long current;
+
+    private final String cacheDir;
+
+    DebianMirrorCache(ConfigManager configManager) {
+        this.cacheDir = configManager.get("cache_dir");
+        this.mirrors = loadCachedMirrors(false);
+    }
+
+    public String getNextMirror() {
+        current++;
+        return mirrors.get((int) (current / mirrors.size()));
+    }
+
+    public int mirrorCount() {
+        return mirrors.size();
+    }
+
+    public void downloadAndCacheMirrors() {
         Set<String> mirrors = new HashSet<>();
         Pattern urlPattern = compile("(https?://[^\\s\"'>]+/debian/)");
 
@@ -50,7 +68,7 @@ public class DebianMirrorCache {
             return;
         }
 
-        Path cacheDir = Paths.get(CACHE_DIR);
+        Path cacheDir = Paths.get(this.cacheDir);
         try {
             Files.createDirectories(cacheDir);
         } catch (IOException e) {
@@ -69,8 +87,8 @@ public class DebianMirrorCache {
         }
     }
 
-    public static List<String> loadCachedMirrors(Boolean downloadIfMissing) {
-        Path cacheFile = Paths.get(CACHE_DIR, CACHE_FILE);
+    public List<String> loadCachedMirrors(Boolean downloadIfMissing) {
+        Path cacheFile = Paths.get(cacheDir, CACHE_FILE);
         List<String> mirrors = new ArrayList<>();
         if (!Files.exists(cacheFile)) {
             if(downloadIfMissing) {
@@ -91,18 +109,5 @@ public class DebianMirrorCache {
             System.err.println("Error reading mirror cache: " + e.getMessage());
         }
         return mirrors;
-    }
-
-    private static List<String> mirrors = loadCachedMirrors(false);
-    private static long current;
-
-    public static String getNextMirror() {
-        current++;
-        return mirrors.get((int) (current / mirrors.size()));
-    }
-
-    public static void main(String[] args) {
-        mirrors = loadCachedMirrors(true);
-        mirrors.forEach(System.out::println);
     }
 }

@@ -16,7 +16,6 @@ package org.example.downloader;
 
 import org.example.downloader.deb.DebianArchitecture;
 import org.example.downloader.deb.DebianDistribution;
-import org.example.downloader.exp.InteractiveStateUpdater;
 
 import java.io.*;
 import java.util.Iterator;
@@ -40,6 +39,9 @@ public class Main {
         ioc.register(DebianPackagesListCache.class, () -> new DebianPackagesListCache(ioc.resolve(ConfigManager.class)));
 
         ioc.register(Iterator.class, () -> ioc.resolve(DebianPackagesListCache.class).parseCachedPackagesList().iterator());
+
+        ioc.register(DebianMirrorCache.class, () -> new DebianMirrorCache(ioc.resolve(ConfigManager.class)));
+
 
         /*
         Scanner scanner = new Scanner(System.in);
