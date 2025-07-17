@@ -16,6 +16,7 @@ package org.example.downloader;
 
 import org.example.downloader.deb.DebianArchitecture;
 import org.example.downloader.deb.DebianDistribution;
+import org.example.downloader.ui.MainMenu;
 
 import java.io.*;
 import java.util.Iterator;
@@ -28,8 +29,10 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         initializeIoC(args);
-        DebianMirrorCache mirrorCahce = ioc.resolve(DebianMirrorCache.class);
-        if(mirrorCahce.mirrorCount() == 0) mirrorCahce.loadCachedMirrors(true);
+        MainMenu menu = new MainMenu(ioc);
+        menu.runMenu();
+        //DebianMirrorCache mirrorCahce = ioc.resolve(DebianMirrorCache.class);
+        //if(mirrorCahce.mirrorCount() == 0) mirrorCahce.loadCachedMirrors(true);
     }
 
     private static void initializeIoC(String[] args) {
