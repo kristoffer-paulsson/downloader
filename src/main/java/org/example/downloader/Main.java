@@ -24,8 +24,16 @@ import java.util.Scanner;
 public class Main {
     private static final String DEFAULT_CONFIG = "config.properties";
 
+    private static InversionOfControl ioc = null;
+
     public static void main(String[] args) throws Exception {
-        InversionOfControl ioc = new InversionOfControl();
+        initializeIoC(args);
+        DebianMirrorCache mirrorCahce = ioc.resolve(DebianMirrorCache.class);
+        if(mirrorCahce.mirrorCount() == 0) mirrorCahce.loadCachedMirrors(true);
+    }
+
+    private static void initializeIoC(String[] args) {
+        ioc = new InversionOfControl();
 
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
         ioc.register(ConfigManager.class, () -> {
@@ -41,11 +49,6 @@ public class Main {
         ioc.register(Iterator.class, () -> ioc.resolve(DebianPackagesListCache.class).parseCachedPackagesList().iterator());
 
         ioc.register(DebianMirrorCache.class, () -> new DebianMirrorCache(ioc.resolve(ConfigManager.class)));
-
-
-        /*
-        Scanner scanner = new Scanner(System.in);
-        ConfigManager configManager = new ConfigManager(configPath);*/
     }
 
     public static void main2(String[] args) throws Exception {

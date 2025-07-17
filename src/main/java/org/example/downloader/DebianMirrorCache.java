@@ -92,6 +92,7 @@ public class DebianMirrorCache {
         List<String> mirrors = new ArrayList<>();
         if (!Files.exists(cacheFile)) {
             if(downloadIfMissing) {
+                System.err.println("Downloads mirror cache: " + cacheFile);
                 downloadAndCacheMirrors();
             } else {
                 System.err.println("Mirror cache file does not exist: " + cacheFile);
