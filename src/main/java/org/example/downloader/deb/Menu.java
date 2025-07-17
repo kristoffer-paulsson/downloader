@@ -26,16 +26,58 @@ import java.util.function.Predicate;
  * A utility class containing reusable TUI routines for displaying menus,
  * handling user input, asking questions, collecting answers, and processing them.
  */
-public class Menu {
-    private final InversionOfControl ioc;
+public abstract class Menu {
+    protected final InversionOfControl ioc;
 
+    private final String name;
     private final Scanner scanner;
+    private final List<Option> options;
+
     private final List<Answer> answers; // Stores collected answers
 
-    public Menu(InversionOfControl ioc) {
+    public Menu(InversionOfControl ioc, String name) {
         this.ioc = ioc;
         this.scanner = new Scanner(System.in);
         this.answers = new ArrayList<>();
+
+        this.name = name;
+        this.options = new ArrayList<>();
+        setupMenu();
+        registerOption("Return", (option) -> {});
+    }
+
+    protected abstract void setupMenu();
+
+    public static class Option {
+        public final String title;
+        private final Consumer<Option> command;
+
+        public Option(String title, Consumer<Option> command) {
+            this.title = title;
+            this.command = command;
+        }
+
+        public void executeCommand() {
+            if(command == null) throw new IllegalStateException(String.format("No command for option %s", title));
+            else command.accept(this);
+        }
+    }
+
+    protected void registerOption(String title, Consumer<Option> execute) {
+        options.add(new Option(title, execute));
+    }
+
+    public void runMenu() {
+        boolean isRunning = true;
+
+        while(isRunning) {
+            displayMenu();
+            int choice = readMenuChoice(options.size(), this::showMessageAndWait);
+            if (choice > 0 && choice <= options.size()) options.get(choice - 1);
+            if (choice == options.size()) isRunning = false;
+        }
+
+        close();
     }
 
     /**
@@ -74,11 +116,17 @@ public class Menu {
 
     /**
      * Displays a menu with a title and a list of options.
-     *
-     * @param title   The title of the menu.
-     * @param options A list of menu options to display.
      */
-    public void displayMenu(String title, List<String> options) {
+    public void displayMenu() {
+        clearScreen();
+        System.out.println("=== " + name + " ===");
+        for (int i = 0; i < options.size(); i++) {
+            System.out.println((i + 1) + ". " + options.get(i).title);
+        }
+        System.out.print("Enter choice (1-" + options.size() + "): ");
+    }
+
+    public void displayMenu2(String title, List<String> options) {
         clearScreen();
         System.out.println("=== " + title + " ===");
         for (int i = 0; i < options.size(); i++) {
@@ -213,8 +261,7 @@ public class Menu {
     /**
      * Example usage of TUIRoutines with question-asking and answer-processing.
      */
-    public void runMenu() {
-        Menu tui = new Menu(new InversionOfControl());
+    public void runMenu2() {
         boolean running = true;
 
         // Define menu options
@@ -228,18 +275,18 @@ public class Menu {
         List<String> colorOptions = List.of("Red", "Blue", "Green");
 
         while (running) {
-            tui.displayMenu("Main Menu", mainMenuOptions);
-            int choice = tui.readMenuChoice(mainMenuOptions.size(), message -> tui.showMessageAndWait(message));
+            displayMenu2("Main Menu", mainMenuOptions);
+            int choice = readMenuChoice(mainMenuOptions.size(), message -> showMessageAndWait(message));
 
             switch (choice) {
                 case 1:
                     // Ask a free-text question with validation (e.g., non-empty)
-                    tui.askQuestion("What is your name?",
+                    askQuestion("What is your name?",
                             s -> !s.isEmpty(),
-                            message -> tui.showMessageAndWait(message));
+                            message -> showMessageAndWait(message));
 
                     // Ask a numeric question with validation (e.g., positive integer)
-                    tui.askQuestion("How old are you?",
+                    askQuestion("How old are you?",
                             s -> {
                                 try {
                                     return Integer.parseInt(s) > 0;
@@ -247,17 +294,17 @@ public class Menu {
                                     return false;
                                 }
                             },
-                            message -> tui.showMessageAndWait(message));
+                            message -> showMessageAndWait(message));
 
                     // Ask a multiple-choice question
-                    tui.askMultipleChoiceQuestion("What is your favorite color?",
+                    askMultipleChoiceQuestion("What is your favorite color?",
                             colorOptions,
-                            message -> tui.showMessageAndWait(message));
+                            message -> showMessageAndWait(message));
                     break;
 
                 case 2:
                     // Process collected answers
-                    tui.processAnswers(answer -> {
+                    processAnswers(answer -> {
                         // Example processing: could save to file, validate, etc.
                         System.out.println("Processing: " + answer.getQuestion() + " -> " + answer.getResponse());
                     });
@@ -275,6 +322,6 @@ public class Menu {
         }
 
         // Clean up
-        tui.close();
+        close();
     }
 }

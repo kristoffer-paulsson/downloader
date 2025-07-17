@@ -19,6 +19,13 @@ import org.example.downloader.deb.Menu;
 
 public class MainMenu extends Menu {
     public MainMenu(InversionOfControl ioc) {
-        super(ioc);
+        super(ioc, "Debian Downloader CLI");
+    }
+
+    @Override
+    protected void setupMenu() {
+        registerOption("Setup config", option -> {});
+        registerOption("Review config", option -> {});
+        registerOption("Download packages list", option -> {});
     }
 }
