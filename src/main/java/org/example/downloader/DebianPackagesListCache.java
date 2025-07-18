@@ -14,6 +14,8 @@
  */
 package org.example.downloader;
 
+import org.example.downloader.deb.DebianComponent;
+
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
@@ -22,8 +24,8 @@ import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 public class DebianPackagesListCache {
-    private static final String BASE_URL = "http://deb.debian.org/debian/dists/%s/main/binary-%s/Packages.gz";
-    private static final String BASE_REPO = "dists/%s/main/binary-%s/Packages.gz";
+    private static final String BASE_URL = "http://deb.debian.org/debian/dists/%s/%s/binary-%s/Packages.gz";
+    private static final String BASE_REPO = "dists/%s/%s/binary-%s/Packages.gz";
 
     private ConfigManager configManager;
 
@@ -33,7 +35,6 @@ public class DebianPackagesListCache {
 
 
     public void downloadAndCachePackagesList() throws Exception {
-        String outputPath = configManager.get("output");
         String cacheDir = configManager.get("package_dir");
         String dist = configManager.get("distribution");
         String arch = configManager.get("architecture");
@@ -43,30 +44,36 @@ public class DebianPackagesListCache {
             return;
         }
 
-        String url = String.format(BASE_URL, dist, arch);
+        Iterator<String> comps = DebianComponent.toStringList().iterator();
 
-        Path cachePath = Path.of(cacheDir);
-        Files.createDirectories(cachePath);
+        while (comps.hasNext()) {
+            String comp = comps.next();
 
-        Path outputFile = cachePath.resolve(String.format(BASE_REPO, dist, arch));
-        Files.createDirectories(outputFile.getParent());
+            String url = String.format(BASE_URL, dist, comp, arch);
 
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .build();
+            Path cachePath = Path.of(cacheDir);
+            Files.createDirectories(cachePath);
 
-        HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            Path outputFile = cachePath.resolve(String.format(BASE_REPO, dist, comp, arch));
+            Files.createDirectories(outputFile.getParent());
 
-        try (InputStream in = response.body();
-             FileOutputStream out = new FileOutputStream(outputFile.toFile())) {
-            in.transferTo(out);
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .build();
+
+            HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+            try (InputStream in = response.body();
+                 FileOutputStream out = new FileOutputStream(outputFile.toFile())) {
+                in.transferTo(out);
+            }
+
+            System.out.println("Downloaded to " + outputFile);
         }
-
-        System.out.println("Downloaded to " + outputFile);
     }
 
-    public List<DebianPackage> parseCachedPackagesList() {
+    public List<DebianPackage> parseCachedPackagesList(DebianComponent component) {
         String cache = configManager.get("package_dir", "runtime-cache");
         String dist = configManager.get("distribution");
         String arch = configManager.get("architecture");

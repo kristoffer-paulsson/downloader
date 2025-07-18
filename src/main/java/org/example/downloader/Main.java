@@ -15,6 +15,7 @@
 package org.example.downloader;
 
 import org.example.downloader.deb.DebianArchitecture;
+import org.example.downloader.deb.DebianComponent;
 import org.example.downloader.deb.DebianDistribution;
 import org.example.downloader.ui.MainMenu;
 
@@ -49,7 +50,7 @@ public class Main {
 
         ioc.register(DebianPackagesListCache.class, () -> new DebianPackagesListCache(ioc.resolve(ConfigManager.class)));
 
-        ioc.register(Iterator.class, () -> ioc.resolve(DebianPackagesListCache.class).parseCachedPackagesList().iterator());
+        ioc.register(Iterator.class, () -> ioc.resolve(DebianPackagesListCache.class).parseCachedPackagesList(DebianComponent.MAIN).iterator());
 
         ioc.register(DebianMirrorCache.class, () -> new DebianMirrorCache(ioc.resolve(ConfigManager.class)));
 

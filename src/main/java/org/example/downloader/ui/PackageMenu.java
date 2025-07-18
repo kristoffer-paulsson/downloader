@@ -15,6 +15,7 @@
 package org.example.downloader.ui;
 
 import org.example.downloader.*;
+import org.example.downloader.deb.DebianComponent;
 import org.example.downloader.deb.Menu;
 
 import java.util.Iterator;
@@ -57,7 +58,7 @@ public class PackageMenu extends Menu {
         DebianPackagesListCache packageCache = ioc.resolve(DebianPackagesListCache.class);
         long totalDownloadSize = 0;
         int packageCount = 0;
-        Iterator<DebianPackage> packages = packageCache.parseCachedPackagesList().iterator();
+        Iterator<DebianPackage> packages = packageCache.parseCachedPackagesList(DebianComponent.MAIN).iterator();
 
         while(packages.hasNext()) {
             DebianPackage pkg = packages.next();
