@@ -18,7 +18,14 @@ import org.example.downloader.*;
 import org.example.downloader.deb.DebianComponent;
 import org.example.downloader.deb.Menu;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.zip.GZIPInputStream;
 
 public class PackageMenu extends Menu {
     public PackageMenu(InversionOfControl ioc) {
@@ -55,19 +62,49 @@ public class PackageMenu extends Menu {
         System.out.println("\n=== Package list statistics ===");
         System.out.println("Parsing and counting packages, wait...");
 
-        DebianPackagesListCache packageCache = ioc.resolve(DebianPackagesListCache.class);
-        long totalDownloadSize = 0;
-        int packageCount = 0;
-        Iterator<DebianPackage> packages = packageCache.parseCachedPackagesList(DebianComponent.MAIN).iterator();
+        Iterator<DebianComponent> comps = Arrays.stream(DebianComponent.values()).iterator();
 
-        while(packages.hasNext()) {
-            DebianPackage pkg = packages.next();
-            packageCount++;
-            totalDownloadSize += Long.parseLong(pkg.size());
+        while (comps.hasNext()) {
+            statistics(comps.next());
         }
 
-        System.out.println("Total packages: " + packageCount);
-        System.out.println(String.format("Total download size: %s", totalDownloadSize));
         showMessageAndWait(" ");
+    }
+
+    private void statistics(DebianComponent component) {
+        DebianPackagesListCache packageCache = ioc.resolve(DebianPackagesListCache.class);
+        Path filePath = packageCache.repositoryPath(component);
+
+        long totalSize = 0;
+        int packageCount = 0;
+
+        try (FileInputStream fis = new FileInputStream(filePath.toFile());
+             GZIPInputStream gzis = new GZIPInputStream(fis);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(gzis))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("Size: ")) {
+                    try {
+                        // Extract the size value after "Size: "
+                        String sizeStr = line.substring(6).trim();
+                        long size = Long.parseLong(sizeStr);
+                        totalSize += size;
+                        packageCount++;
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid size format in line: " + line);
+                    }
+                }
+            }
+
+            System.out.println("Total size of repository '" + component.getComp() + "' with all " + packageCount + " packages: " + totalSize + " bytes " + sizeToGbString(totalSize));
+
+        } catch (IOException e) {
+            System.err.println("Error reading file: " + e.getMessage());
+        }
+    }
+
+    private String sizeToGbString(long totalSize) {
+        return String.format("(%.2f GB)", totalSize / (1024.0 * 1024.0 * 1024.0));
     }
 }

@@ -33,6 +33,15 @@ public class DebianPackagesListCache {
         this.configManager = configManager;
     }
 
+    public Path repositoryPath(DebianComponent component) {
+        String cacheDir = configManager.get("package_dir");
+        String dist = configManager.get("distribution");
+        String arch = configManager.get("architecture");
+
+        Path cachePath = Path.of(cacheDir);
+        return cachePath.resolve(String.format(BASE_REPO, dist, component.getComp(), arch));
+    }
+
 
     public void downloadAndCachePackagesList() throws Exception {
         String cacheDir = configManager.get("package_dir");
@@ -78,7 +87,7 @@ public class DebianPackagesListCache {
         String dist = configManager.get("distribution");
         String arch = configManager.get("architecture");
 
-        String outputFile = String.format(BASE_REPO, dist, arch);
+        String outputFile = String.format(BASE_REPO, dist, component, arch);
         File file = new File(cache, outputFile);
 
         List<DebianPackage> packages = new ArrayList<>();

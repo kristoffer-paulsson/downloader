@@ -14,9 +14,7 @@
  */
 package org.example.downloader;
 
-import org.example.downloader.deb.DebianArchitecture;
 import org.example.downloader.deb.DebianComponent;
-import org.example.downloader.deb.DebianDistribution;
 import org.example.downloader.ui.MainMenu;
 
 import java.io.*;

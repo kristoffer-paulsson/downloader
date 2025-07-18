@@ -29,7 +29,7 @@ public enum DebianComponent {
         this.comp = component;
     }
 
-    String getComp() {
+    public String getComp() {
         return this.comp;
     }
 
