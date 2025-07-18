@@ -21,6 +21,9 @@ import org.example.downloader.deb.DebianDistribution;
 import org.example.downloader.deb.Form;
 
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -56,6 +59,29 @@ public class ConfigForm extends Form {
                 configManager.get(ConfigManager.ARCH),
                 System.out::println
         ));
+
+        registerQuestion(() -> askQuestion(
+                "Enter cache directory",
+                configManager.get(ConfigManager.DIR_CACHE, "runtime-cache"),
+                this::validatePath,
+                System.out::println
+        ));
+
+        registerQuestion(() -> askQuestion(
+                "Enter package directory",
+                configManager.get(ConfigManager.DIR_PKG, "package-cache"),
+                this::validatePath,
+                System.out::println
+        ));
+    }
+
+    private boolean validatePath(String p) {
+        try {
+            Path path = Paths.get(p);
+            return true;
+        } catch (InvalidPathException e) {
+            return false;
+        }
     }
 
     @Override
@@ -65,6 +91,8 @@ public class ConfigForm extends Form {
 
         configManager.set(ConfigManager.DIST, answers.get(0).getResponse());
         configManager.set(ConfigManager.ARCH, answers.get(1).getResponse());
+        configManager.set(ConfigManager.DIR_CACHE, answers.get(2).getResponse());
+        configManager.set(ConfigManager.DIR_PKG, answers.get(3).getResponse());
 
         try {
             configManager.save();

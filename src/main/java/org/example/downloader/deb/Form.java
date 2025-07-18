@@ -156,11 +156,22 @@ public abstract class Form {
      * @param onInvalid  A callback to handle invalid input.
      * @return True if the answer was valid and collected, false otherwise.
      */
-    public boolean askQuestion(String question, Predicate<String> validator, Consumer<String> onInvalid) {
+    public boolean askQuestion(String question, String standard, Predicate<String> validator, Consumer<String> onInvalid) {
         clearScreen();
+
+        boolean standardOption = standard != null && !standard.isEmpty();
+
         System.out.println("=== Question ===");
-        System.out.print(question + ": ");
+        if(standardOption)
+            System.out.print(question + " [" + standard + "]: ");
+        else
+                System.out.print(question + ": ");
         String answer = scanner.nextLine().trim();
+
+        if(answer.isEmpty() && standardOption) {
+            answer = standard;
+            System.out.println("Default option [" + standard + "] chosen.");
+        }
 
         if (validator == null || validator.test(answer)) {
             answers.add(new Answer(question, answer));
@@ -197,6 +208,7 @@ public abstract class Form {
 
         if(standardOption != -1) {
             choice = standardOption;
+            System.out.println("Default option [" + standard + "] chosen.");
         }
 
         if (choice != -1) {
@@ -271,12 +283,12 @@ public abstract class Form {
             switch (choice) {
                 case 1:
                     // Ask a free-text question with validation (e.g., non-empty)
-                    askQuestion("What is your name?",
+                    askQuestion("What is your name?", null,
                             s -> !s.isEmpty(),
                             message -> showMessageAndWait(message));
 
                     // Ask a numeric question with validation (e.g., positive integer)
-                    askQuestion("How old are you?",
+                    askQuestion("How old are you?", null,
                             s -> {
                                 try {
                                     return Integer.parseInt(s) > 0;
