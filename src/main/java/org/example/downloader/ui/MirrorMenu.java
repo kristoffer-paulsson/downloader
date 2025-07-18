@@ -18,8 +18,8 @@ import org.example.downloader.ConfigManager;
 import org.example.downloader.InversionOfControl;
 import org.example.downloader.deb.Menu;
 
-public class MainMenu extends Menu {
-    public MainMenu(InversionOfControl ioc) {
+public class MirrorMenu extends Menu {
+    public MirrorMenu(InversionOfControl ioc) {
         super(ioc, "Debian Downloader CLI");
     }
 

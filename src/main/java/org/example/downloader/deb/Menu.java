@@ -126,8 +126,8 @@ public abstract class Menu {
      * @param message The message to display.
      */
     public void showMessageAndWait(String message) {
-        System.out.println(message);
-        System.out.print("Press Enter to continue...");
+        if(message != null && !message.isEmpty()) System.out.println(message);
+        System.out.println("Press Enter to continue...");
         scanner.nextLine();
     }
 
