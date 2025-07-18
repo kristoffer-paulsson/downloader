@@ -98,16 +98,6 @@ public abstract class Form {
         System.out.flush();
     }
 
-
-    public void displayMenu2(String title, List<String> options) {
-        clearScreen();
-        System.out.println("=== " + title + " ===");
-        for (int i = 0; i < options.size(); i++) {
-            System.out.println((i + 1) + ". " + options.get(i));
-        }
-        System.out.print("Enter choice (1-" + options.size() + "): ");
-    }
-
     /**
      * Reads and validates user input for a menu with the given number of options.
      *
@@ -219,25 +209,6 @@ public abstract class Form {
     }
 
     /**
-     * Processes collected answers using a provided consumer.
-     *
-     * @param processor A consumer to process each answer.
-     */
-    public void processAnswers(Consumer<Answer> processor) {
-        clearScreen();
-        System.out.println("=== Processing Answers ===");
-        if (answers.isEmpty()) {
-            System.out.println("No answers collected.");
-        } else {
-            answers.forEach(answer -> {
-                processor.accept(answer);
-                System.out.println(answer);
-            });
-        }
-        showMessageAndWait("Processing complete.");
-    }
-
-    /**
      * Returns the list of collected answers.
      *
      * @return The list of answers.
@@ -258,73 +229,5 @@ public abstract class Form {
      */
     public void close() {
 
-    }
-
-    /**
-     * Example usage of TUIRoutines with question-asking and answer-processing.
-     */
-    public void runMenu2() {
-        boolean running = true;
-
-        // Define menu options
-        List<String> mainMenuOptions = List.of(
-                "Answer Questions",
-                "Process Answers",
-                "Exit"
-        );
-
-        // Define multiple-choice question options
-        List<String> colorOptions = List.of("Red", "Blue", "Green");
-
-        while (running) {
-            displayMenu2("Main Menu", mainMenuOptions);
-            int choice = readMenuChoice(mainMenuOptions.size(), -1,  message -> showMessageAndWait(message));
-
-            switch (choice) {
-                case 1:
-                    // Ask a free-text question with validation (e.g., non-empty)
-                    askQuestion("What is your name?", null,
-                            s -> !s.isEmpty(),
-                            message -> showMessageAndWait(message));
-
-                    // Ask a numeric question with validation (e.g., positive integer)
-                    askQuestion("How old are you?", null,
-                            s -> {
-                                try {
-                                    return Integer.parseInt(s) > 0;
-                                } catch (NumberFormatException e) {
-                                    return false;
-                                }
-                            },
-                            message -> showMessageAndWait(message));
-
-                    // Ask a multiple-choice question
-                    askMultipleChoiceQuestion("What is your favorite color?",
-                            colorOptions,
-                            null,
-                            message -> showMessageAndWait(message));
-                    break;
-
-                case 2:
-                    // Process collected answers
-                    processAnswers(answer -> {
-                        // Example processing: could save to file, validate, etc.
-                        System.out.println("Processing: " + answer.getQuestion() + " -> " + answer.getResponse());
-                    });
-                    break;
-
-                case 3:
-                    System.out.println("Exiting...");
-                    running = false;
-                    break;
-
-                default:
-                    // Invalid input handled by readMenuChoice
-                    break;
-            }
-        }
-
-        // Clean up
-        close();
     }
 }
