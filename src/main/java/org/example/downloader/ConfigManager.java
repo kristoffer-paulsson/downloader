@@ -21,6 +21,7 @@ import java.util.Properties;
 public class ConfigManager {
     public static String DIST = "distribution";
     public static String ARCH = "architecture";
+    public static String COMP = "component";
     public static String DIR_CACHE = "cache_dir";
     public static String DIR_PKG = "package_dir";
 

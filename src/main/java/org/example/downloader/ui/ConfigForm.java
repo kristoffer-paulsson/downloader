@@ -17,6 +17,7 @@ package org.example.downloader.ui;
 import org.example.downloader.ConfigManager;
 import org.example.downloader.InversionOfControl;
 import org.example.downloader.deb.DebianArchitecture;
+import org.example.downloader.deb.DebianComponent;
 import org.example.downloader.deb.DebianDistribution;
 import org.example.downloader.deb.Form;
 
@@ -60,6 +61,13 @@ public class ConfigForm extends Form {
                 System.out::println
         ));
 
+        registerQuestion(() -> askMultipleChoiceQuestion(
+                "Enter component",
+                DebianComponent.toStringList(),
+                configManager.get(ConfigManager.COMP),
+                System.out::println
+        ));
+
         registerQuestion(() -> askQuestion(
                 "Enter cache directory",
                 configManager.get(ConfigManager.DIR_CACHE, "runtime-cache"),
@@ -91,8 +99,9 @@ public class ConfigForm extends Form {
 
         configManager.set(ConfigManager.DIST, answers.get(0).getResponse());
         configManager.set(ConfigManager.ARCH, answers.get(1).getResponse());
-        configManager.set(ConfigManager.DIR_CACHE, answers.get(2).getResponse());
-        configManager.set(ConfigManager.DIR_PKG, answers.get(3).getResponse());
+        configManager.set(ConfigManager.COMP, answers.get(2).getResponse());
+        configManager.set(ConfigManager.DIR_CACHE, answers.get(3).getResponse());
+        configManager.set(ConfigManager.DIR_PKG, answers.get(4).getResponse());
 
         try {
             configManager.save();

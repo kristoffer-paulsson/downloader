@@ -53,5 +53,6 @@ public class MirrorMenu extends Menu {
         DebianMirrorCache mirrorCache = ioc.resolve(DebianMirrorCache.class);
         mirrorCache.loadCachedMirrors(false);
         System.out.println("Currently " + mirrorCache.mirrorCount() + " mirrors are available.");
+        showMessageAndWait(" ");
     }
 }

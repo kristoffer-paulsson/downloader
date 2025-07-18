@@ -27,4 +27,8 @@ public record DebianPackage(
     public String buildSavePath(ConfigManager configManager) {
         return String.format("%s/%s", configManager.get("package_dir"), filename);
     }
+
+    public int getSize() {
+        return Integer.parseInt(size);
+    }
 }

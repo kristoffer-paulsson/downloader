@@ -38,8 +38,8 @@ public class DebianPackagesListCache {
         String dist = configManager.get("distribution");
         String arch = configManager.get("architecture");
 
-        if (dist == null || arch == null || outputPath == null || cacheDir == null) {
-            System.err.println("Config file must contain 'distribution', 'architecture', 'output', and 'cache' properties.");
+        if (dist == null || arch == null || cacheDir == null) {
+            System.err.println("Config file must contain 'distribution', 'architecture', and 'cache' properties.");
             return;
         }
 
@@ -123,8 +123,6 @@ public class DebianPackagesListCache {
             architecture = (architecture == null) ? extractField(entry, "Architecture") : architecture;
             sha256digest = (sha256digest == null) ? extractField(entry, "SHA256") : sha256digest;
             downloadSize = (downloadSize == null) ? extractField(entry, "Size") : downloadSize;
-
-
         }
 
         if (packageName != null && version != null) {

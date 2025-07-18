@@ -14,6 +14,9 @@
  */
 package org.example.downloader.deb;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 public enum DebianComponent {
     MAIN("main"),
     CONTRIB("contrib"),
@@ -29,4 +32,9 @@ public enum DebianComponent {
     String getComp() {
         return this.comp;
     }
+
+    public static List<String> toStringList() {
+        return Stream.of(values()).map(DebianComponent::getComp).toList();
+    }
+
 }
