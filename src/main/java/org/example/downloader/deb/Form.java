@@ -38,7 +38,7 @@ public abstract class Form {
 
     public Form(InversionOfControl ioc, String name) {
         this.ioc = ioc;
-        this.scanner = new Scanner(System.in);
+        this.scanner = ioc.resolve(Scanner.class);
         this.questions = new ArrayList<>();
         this.answers = new ArrayList<>();
 
@@ -115,19 +115,25 @@ public abstract class Form {
      * @param onInvalid  A callback to handle invalid input.
      * @return The user's choice (1-based index) or -1 if invalid.
      */
-    public int readMenuChoice(int maxOptions, Consumer<String> onInvalid) {
+    public int readMenuChoice(int maxOptions, int standard, Consumer<String> onInvalid) {
         String input = scanner.nextLine().trim();
-        try {
-            int choice = Integer.parseInt(input);
+        int choice = -1;
+
+        if(input.trim().isEmpty() && standard >= 1 && standard <= maxOptions) {
+            return standard;
+        } else {
+            try {
+                choice = Integer.parseInt(input);
+            } catch (NumberFormatException e) {
+                onInvalid.accept("Invalid input! Please enter a number.");
+                return -1;
+            }
             if (choice >= 1 && choice <= maxOptions) {
                 return choice;
             } else {
                 onInvalid.accept("Choice must be between 1 and " + maxOptions + "!");
                 return -1;
             }
-        } catch (NumberFormatException e) {
-            onInvalid.accept("Invalid input! Please enter a number.");
-            return -1;
         }
     }
 
@@ -180,14 +186,14 @@ public abstract class Form {
         for (int i = 0; i < options.size(); i++) {
             String option = options.get(i);
             if(option.equals(standard)) {
-                standardOption = i;
-                System.out.print((i + 1) + ". " + option + " [default]");
+                standardOption = i+1;
+                System.out.println((i + 1) + ". " + option + " [default]");
             } else
                 System.out.println((i + 1) + ". " + option);
         }
         System.out.print("Select an option (1-" + options.size() + "): ");
 
-        int choice = readMenuChoice(options.size(), onInvalid);
+        int choice = readMenuChoice(options.size(), standardOption, onInvalid);
 
         if(standardOption != -1) {
             choice = standardOption;
@@ -239,7 +245,7 @@ public abstract class Form {
      * Closes the scanner to free resources.
      */
     public void close() {
-        scanner.close();
+
     }
 
     /**
@@ -260,7 +266,7 @@ public abstract class Form {
 
         while (running) {
             displayMenu2("Main Menu", mainMenuOptions);
-            int choice = readMenuChoice(mainMenuOptions.size(), message -> showMessageAndWait(message));
+            int choice = readMenuChoice(mainMenuOptions.size(), -1,  message -> showMessageAndWait(message));
 
             switch (choice) {
                 case 1:
@@ -283,6 +289,7 @@ public abstract class Form {
                     // Ask a multiple-choice question
                     askMultipleChoiceQuestion("What is your favorite color?",
                             colorOptions,
+                            null,
                             message -> showMessageAndWait(message));
                     break;
 

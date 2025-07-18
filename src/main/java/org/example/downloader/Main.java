@@ -52,6 +52,9 @@ public class Main {
         ioc.register(Iterator.class, () -> ioc.resolve(DebianPackagesListCache.class).parseCachedPackagesList().iterator());
 
         ioc.register(DebianMirrorCache.class, () -> new DebianMirrorCache(ioc.resolve(ConfigManager.class)));
+
+        ioc.register(Scanner.class, () -> new Scanner(System.in));
+
     }
 
     public static void main2(String[] args) throws Exception {

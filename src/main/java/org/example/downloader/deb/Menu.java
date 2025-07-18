@@ -37,7 +37,7 @@ public abstract class Menu {
 
     public Menu(InversionOfControl ioc, String name) {
         this.ioc = ioc;
-        this.scanner = new Scanner(System.in);
+        this.scanner = ioc.resolve(Scanner.class);
         this.answers = new ArrayList<>();
 
         this.name = name;
@@ -255,7 +255,6 @@ public abstract class Menu {
      * Closes the scanner to free resources.
      */
     public void close() {
-        scanner.close();
     }
 
     /**

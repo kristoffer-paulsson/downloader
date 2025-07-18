@@ -68,6 +68,8 @@ public class ConfigForm extends Form {
 
         try {
             configManager.save();
+            configManager.reload();
+            System.out.println("Saved and reloaded new configuration.");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
