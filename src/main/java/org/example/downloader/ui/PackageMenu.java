@@ -29,18 +29,18 @@ import java.util.zip.GZIPInputStream;
 
 public class PackageMenu extends Menu {
     public PackageMenu(InversionOfControl ioc) {
-        super(ioc, "Packages list");
+        super(ioc, "Package lists");
     }
 
     @Override
     protected void setupMenu() {
-        registerOption("Download packages list", option -> downloadList());
-        registerOption("Package list stats", option -> packageStatistics());
+        registerOption("Download packages lists", option -> downloadList());
+        registerOption("Package lists stats", option -> packageStatistics());
     }
 
     private void downloadList() {
         ConfigManager configManager = ioc.resolve(ConfigManager.class);
-        System.out.println("\n=== Download packages list ===");
+        System.out.println("\n=== Download package lists ===");
 
         String dirPackage = configManager.get(ConfigManager.DIR_PKG);
 
@@ -59,8 +59,8 @@ public class PackageMenu extends Menu {
     }
 
     private void packageStatistics() {
-        System.out.println("\n=== Package list statistics ===");
-        System.out.println("Parsing and counting packages, wait...");
+        System.out.println("\n=== Package lists statistics ===");
+        System.out.println("Parsing and counting packages, wait...\n");
 
         Iterator<DebianComponent> comps = Arrays.stream(DebianComponent.values()).iterator();
 
