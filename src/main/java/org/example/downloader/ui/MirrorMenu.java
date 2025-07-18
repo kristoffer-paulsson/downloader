@@ -15,24 +15,43 @@
 package org.example.downloader.ui;
 
 import org.example.downloader.ConfigManager;
+import org.example.downloader.DebianMirrorCache;
 import org.example.downloader.InversionOfControl;
 import org.example.downloader.deb.Menu;
 
 public class MirrorMenu extends Menu {
     public MirrorMenu(InversionOfControl ioc) {
-        super(ioc, "Debian Downloader CLI");
+        super(ioc, "Mirror websites");
     }
 
     @Override
     protected void setupMenu() {
-        registerOption("Setup config", option -> new ConfigForm(ioc).runForm());
-        registerOption("Review config", option -> reviewConfig(ioc.resolve(ConfigManager.class)));
-        registerOption("Download packages list", option -> System.out.println("Doing " + option.title));
+        registerOption("Download mirrors", option -> downloadMirrors());
+        registerOption("Mirror stats", option -> mirrorStatistics());
     }
 
-    private void reviewConfig(ConfigManager configManager) {
-        System.out.println("\n=== Current config ===");
-        configManager.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
-        showMessageAndWait(" ");
+    private void downloadMirrors() {
+        ConfigManager configManager = ioc.resolve(ConfigManager.class);
+        System.out.println("\n=== Download mirrors ===");
+
+        String dirCache = configManager.get(ConfigManager.DIR_CACHE);
+
+        if(dirCache == null || dirCache.isEmpty()) {
+            System.out.println("Cache directory is not set in configuration, failed!");
+        } else {
+            System.out.println("Downloading/refreshing mirror list from internet.");
+            DebianMirrorCache mirrorCache = ioc.resolve(DebianMirrorCache.class);
+            mirrorCache.downloadAndCacheMirrors();
+            mirrorCache.loadCachedMirrors(false);
+            System.out.println("Currently " + mirrorCache.mirrorCount() + " mirrors are available.");
+        }
+    }
+
+    private void mirrorStatistics() {
+        ConfigManager configManager = ioc.resolve(ConfigManager.class);
+        System.out.println("\n=== Mirror statistics ===");
+        DebianMirrorCache mirrorCache = ioc.resolve(DebianMirrorCache.class);
+        mirrorCache.loadCachedMirrors(false);
+        System.out.println("Currently " + mirrorCache.mirrorCount() + " mirrors are available.");
     }
 }

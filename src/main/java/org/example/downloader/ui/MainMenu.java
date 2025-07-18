@@ -27,6 +27,8 @@ public class MainMenu extends Menu {
     protected void setupMenu() {
         registerOption("Setup config", option -> new ConfigForm(ioc).runForm());
         registerOption("Review config", option -> reviewConfig(ioc.resolve(ConfigManager.class)));
+        registerOption("Mirror websites", option -> new MirrorMenu(ioc).runMenu());
+
         registerOption("Download packages list", option -> System.out.println("Doing " + option.title));
     }
 

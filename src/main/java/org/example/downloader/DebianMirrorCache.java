@@ -29,14 +29,14 @@ public class DebianMirrorCache {
     private static final String MIRROR_LIST_URL = "https://www.debian.org/mirror/list-full";
     private final String CACHE_FILE = "mirror.txt";
 
-    private final List<String> mirrors;
+    private List<String> mirrors;
     private long current;
 
     private final String cacheDir;
 
     DebianMirrorCache(ConfigManager configManager) {
         this.cacheDir = configManager.get("cache_dir");
-        this.mirrors = loadCachedMirrors(false);
+        loadCachedMirrors(false);
     }
 
     public String getNextMirror() {
@@ -87,7 +87,7 @@ public class DebianMirrorCache {
         }
     }
 
-    public List<String> loadCachedMirrors(Boolean downloadIfMissing) {
+    public void loadCachedMirrors(Boolean downloadIfMissing) {
         Path cacheFile = Paths.get(cacheDir, CACHE_FILE);
         List<String> mirrors = new ArrayList<>();
         if (!Files.exists(cacheFile)) {
@@ -96,7 +96,7 @@ public class DebianMirrorCache {
                 downloadAndCacheMirrors();
             } else {
                 System.err.println("Mirror cache file does not exist: " + cacheFile);
-                return mirrors;
+                this.mirrors = mirrors;
             }
         }
         try (BufferedReader reader = Files.newBufferedReader(cacheFile, StandardCharsets.UTF_8)) {
@@ -109,6 +109,6 @@ public class DebianMirrorCache {
         } catch (IOException e) {
             System.err.println("Error reading mirror cache: " + e.getMessage());
         }
-        return mirrors;
+        this.mirrors = mirrors;
     }
 }
