@@ -25,6 +25,9 @@ public class ConfigManager {
     public static String DIR_CACHE = "cache_dir";
     public static String DIR_PKG = "package_dir";
 
+    public static String CHUNKS = "chunk_partitions";
+    public static String PIECE = "chunk_piece";
+
     private final Path configPath;
     private final Properties properties = new Properties();
 

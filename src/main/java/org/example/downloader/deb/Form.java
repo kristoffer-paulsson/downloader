@@ -196,7 +196,7 @@ public abstract class Form {
 
         int choice = readMenuChoice(options.size(), standardOption, onInvalid);
 
-        if(standardOption != -1) {
+        if(standardOption != -1 && choice == -1) {
             choice = standardOption;
             System.out.println("Default option [" + standard + "] chosen.");
         }

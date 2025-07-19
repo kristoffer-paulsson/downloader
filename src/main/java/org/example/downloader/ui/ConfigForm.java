@@ -103,6 +103,9 @@ public class ConfigForm extends Form {
         configManager.set(ConfigManager.DIR_CACHE, answers.get(3).getResponse());
         configManager.set(ConfigManager.DIR_PKG, answers.get(4).getResponse());
 
+        configManager.set(ConfigManager.CHUNKS, configManager.get(ConfigManager.CHUNKS, "1"));
+        configManager.set(ConfigManager.PIECE, configManager.get(ConfigManager.PIECE, "1"));
+
         try {
             configManager.save();
             configManager.reload();

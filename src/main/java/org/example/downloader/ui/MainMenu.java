@@ -27,6 +27,7 @@ public class MainMenu extends Menu {
     protected void setupMenu() {
         registerOption("Setup config", option -> new ConfigForm(ioc).runForm());
         registerOption("Review config", option -> reviewConfig(ioc.resolve(ConfigManager.class)));
+        registerOption("Setup chunks", option -> new ChunkForm(ioc).runForm());
         registerOption("Mirror websites", option -> new MirrorMenu(ioc).runMenu());
         registerOption("Package lists", option -> new PackageMenu(ioc).runMenu());
     }
