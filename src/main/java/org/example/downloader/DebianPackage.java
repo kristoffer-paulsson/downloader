@@ -16,7 +16,7 @@ package org.example.downloader;
 
 public record DebianPackage(
         String packageName, String version, String architecture,
-        String filename, String size, String sha256digest,
+        String filename, long size, String sha256digest,
         String distribution
 ) {
 
@@ -28,7 +28,7 @@ public record DebianPackage(
         return String.format("%s/%s", configManager.get("package_dir"), filename);
     }
 
-    public int getSize() {
-        return Integer.parseInt(size);
+    public long getSize() {
+        return size;
     }
 }

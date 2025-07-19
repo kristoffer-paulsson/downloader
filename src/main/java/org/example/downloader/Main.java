@@ -48,7 +48,7 @@ public class Main {
 
         ioc.register(DebianPackagesListCache.class, () -> new DebianPackagesListCache(ioc.resolve(ConfigManager.class)));
 
-        ioc.register(Iterator.class, () -> ioc.resolve(DebianPackagesListCache.class).parseCachedPackagesList(DebianComponent.MAIN).iterator());
+        ioc.register(DebianPackageChunkSplitter.class, () -> new DebianPackageChunkSplitter(ioc));
 
         ioc.register(DebianMirrorCache.class, () -> new DebianMirrorCache(ioc.resolve(ConfigManager.class)));
 

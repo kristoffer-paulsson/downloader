@@ -141,9 +141,9 @@ public class DebianPackagesListCache {
             downloadSize = (downloadSize == null) ? extractField(entry, "Size") : downloadSize;
         }
 
-        if (packageName != null && version != null) {
-            return new DebianPackage(packageName, version, architecture, filename, downloadSize, sha256digest, distribution);
-        }
+        //if (packageName != null && version != null) {
+        //    return new DebianPackage(packageName, version, architecture, filename, (long) downloadSize, sha256digest, distribution);
+       //}
         return null;
     }
 

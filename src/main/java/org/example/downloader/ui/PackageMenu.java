@@ -36,6 +36,7 @@ public class PackageMenu extends Menu {
     protected void setupMenu() {
         registerOption("Download packages lists", option -> downloadList());
         registerOption("Package lists stats", option -> packageStatistics());
+        registerOption("Package chunk stat", option -> chunkStatistics());
     }
 
     private void downloadList() {
@@ -61,6 +62,19 @@ public class PackageMenu extends Menu {
     private void packageStatistics() {
         System.out.println("\n=== Package lists statistics ===");
         System.out.println("Parsing and counting packages, wait...\n");
+
+        Iterator<DebianComponent> comps = Arrays.stream(DebianComponent.values()).iterator();
+
+        while (comps.hasNext()) {
+            statistics(comps.next());
+        }
+
+        showMessageAndWait(" ");
+    }
+
+    private void chunkStatistics() {
+        System.out.println("\n=== Package chunk statistics ===");
+        System.out.println("Parsing and counting package chunk, wait...\n");
 
         Iterator<DebianComponent> comps = Arrays.stream(DebianComponent.values()).iterator();
 
