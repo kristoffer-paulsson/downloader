@@ -23,7 +23,7 @@ public class DebianWorkerExecutor {
     private final List<DebianWorker> activeWorkers;
     private final List<DebianWorker> pausedWorkers;
     private final Set<DebianWorker> allWorkers;
-    private final Iterator<DebianWorker> workerIterator;
+    private final DebianWorkerIterator workerIterator;
     private final AtomicBoolean isRunning;
     private final AtomicBoolean isPaused;
     private static final int MAX_CONCURRENT_WORKERS = 8;
@@ -32,7 +32,7 @@ public class DebianWorkerExecutor {
      * Constructor that initializes the executor with an iterator of DebianWorker instances.
      * @param workerIterator Iterator providing DebianWorker instances
      */
-    public DebianWorkerExecutor(Iterator<DebianWorker> workerIterator) {
+    public DebianWorkerExecutor(DebianWorkerIterator workerIterator) {
         this.executorService = Executors.newFixedThreadPool(MAX_CONCURRENT_WORKERS);
         this.activeWorkers = Collections.synchronizedList(new ArrayList<>());
         this.pausedWorkers = Collections.synchronizedList(new ArrayList<>());
