@@ -17,10 +17,10 @@ package org.example.downloader;
 import java.util.List;
 
 public class ChunkSplit {
-    long startIndex;
-    long endIndex;
-    int chunkNum;
-    List<DebianPackage> packages;
+    public final long startIndex;
+    public final long endIndex;
+    public final int chunkNum;
+    public final List<DebianPackage> packages;
 
     ChunkSplit(List<DebianPackage> packages, int chunkNum, long startIndex, long endIndex) {
         this.startIndex = startIndex;

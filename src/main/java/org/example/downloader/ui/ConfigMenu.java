@@ -15,19 +15,20 @@
 package org.example.downloader.ui;
 
 import org.example.downloader.ConfigManager;
+import org.example.downloader.DebianMirrorCache;
 import org.example.downloader.InversionOfControl;
 import org.example.downloader.deb.Menu;
 
-public class MainMenu extends Menu {
-    public MainMenu(InversionOfControl ioc) {
-        super(ioc, "Debian Downloader CLI");
+public class ConfigMenu extends Menu {
+    public ConfigMenu(InversionOfControl ioc) {
+        super(ioc, "Configuration menu");
     }
 
     @Override
     protected void setupMenu() {
-        registerOption("Configuration", option -> new ConfigMenu(ioc).runMenu());
-        registerOption("Mirror websites", option -> new MirrorMenu(ioc).runMenu());
-        registerOption("Package lists", option -> new PackageMenu(ioc).runMenu());
+        registerOption("Setup config", option -> new ConfigForm(ioc).runForm());
+        registerOption("Setup chunks", option -> new ChunkForm(ioc).runForm());
+        registerOption("Review config", option -> reviewConfig(ioc.resolve(ConfigManager.class)));
     }
 
     private void reviewConfig(ConfigManager configManager) {

@@ -18,14 +18,11 @@ import org.example.downloader.*;
 import org.example.downloader.deb.DebianComponent;
 import org.example.downloader.deb.Menu;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.zip.GZIPInputStream;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PackageMenu extends Menu {
     public PackageMenu(InversionOfControl ioc) {
@@ -63,10 +60,20 @@ public class PackageMenu extends Menu {
         System.out.println("\n=== Package lists statistics ===");
         System.out.println("Parsing and counting packages, wait...\n");
 
+        DebianPackageChunkSplitter chunkSplitter = ioc.resolve(DebianPackageChunkSplitter.class);
         Iterator<DebianComponent> comps = Arrays.stream(DebianComponent.values()).iterator();
 
         while (comps.hasNext()) {
-            statistics(comps.next());
+            DebianComponent comp = comps.next();
+            AtomicLong totalSize = new AtomicLong();
+            AtomicInteger packageCount = new AtomicInteger();
+            List<ChunkSplit> chunks = chunkSplitter.loadAndParseAndChunkSplitPackages(comp);
+            chunks.forEach(c -> c.packages.forEach(p -> {
+                totalSize.addAndGet(p.getSize());
+                packageCount.getAndIncrement();
+            }));
+
+            System.out.println("Total size of repository '" + comp.getComp() + "' with all " + packageCount + " packages: " + totalSize + " bytes " + sizeToGbString(totalSize.get()));
         }
 
         showMessageAndWait(" ");
@@ -74,48 +81,27 @@ public class PackageMenu extends Menu {
 
     private void chunkStatistics() {
         System.out.println("\n=== Package chunk statistics ===");
-        System.out.println("Parsing and counting package chunk, wait...\n");
+        ConfigManager configManager = ioc.resolve(ConfigManager.class);
+        int chunkNum = Integer.parseInt(configManager.get(ConfigManager.PIECE));
+        System.out.println("Parsing and counting package for chunk " + chunkNum + ", wait...\n");
 
+        DebianPackageChunkSplitter chunkSplitter = ioc.resolve(DebianPackageChunkSplitter.class);
         Iterator<DebianComponent> comps = Arrays.stream(DebianComponent.values()).iterator();
 
         while (comps.hasNext()) {
-            statistics(comps.next());
+            DebianComponent comp = comps.next();
+            AtomicLong totalSize = new AtomicLong();
+            AtomicInteger packageCount = new AtomicInteger();
+            ChunkSplit chunk = chunkSplitter.loadAndParseAndChunkSplitPackages(comp).get(chunkNum);
+            chunk.packages.forEach(p -> {
+                totalSize.addAndGet(p.getSize());
+                packageCount.getAndIncrement();
+            });
+
+            System.out.println("Total size of chunk '" + comp.getComp() + "' with all " + packageCount + " packages: " + totalSize + " bytes " + sizeToGbString(totalSize.get()));
         }
 
         showMessageAndWait(" ");
-    }
-
-    private void statistics(DebianComponent component) {
-        DebianPackagesListCache packageCache = ioc.resolve(DebianPackagesListCache.class);
-        Path filePath = packageCache.repositoryPath(component);
-
-        long totalSize = 0;
-        int packageCount = 0;
-
-        try (FileInputStream fis = new FileInputStream(filePath.toFile());
-             GZIPInputStream gzis = new GZIPInputStream(fis);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(gzis))) {
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("Size: ")) {
-                    try {
-                        // Extract the size value after "Size: "
-                        String sizeStr = line.substring(6).trim();
-                        long size = Long.parseLong(sizeStr);
-                        totalSize += size;
-                        packageCount++;
-                    } catch (NumberFormatException e) {
-                        System.err.println("Invalid size format in line: " + line);
-                    }
-                }
-            }
-
-            System.out.println("Total size of repository '" + component.getComp() + "' with all " + packageCount + " packages: " + totalSize + " bytes " + sizeToGbString(totalSize));
-
-        } catch (IOException e) {
-            System.err.println("Error reading file: " + e.getMessage());
-        }
     }
 
     private String sizeToGbString(long totalSize) {

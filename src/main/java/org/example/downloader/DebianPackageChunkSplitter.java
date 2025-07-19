@@ -29,7 +29,7 @@ public class DebianPackageChunkSplitter {
     private final ConfigManager configManager;
     private final String distribution;
 
-    private final Map<DebianComponent, List<DebianPackage>> packages = Map.of();
+    private final Map<DebianComponent, ChunkSplit> chunks = Map.of();
 
     DebianPackageChunkSplitter(InversionOfControl ioc) {
         this.ioc = ioc;
@@ -155,23 +155,27 @@ public class DebianPackageChunkSplitter {
     }
 
     public DebianWorkerIterator workerIterator(DebianComponent comp) {
-        if(!packages.containsKey(comp)) {
-            packages.put(comp, loadAndParseAndChunkSplitPackages(comp).get(Integer.parseInt(configManager.get(ConfigManager.PIECE))).packages);
+        if(!chunks.containsKey(comp)) {
+            chunks.put(comp, loadAndParseAndChunkSplitPackages(comp).get(Integer.parseInt(configManager.get(ConfigManager.PIECE))));
         }
 
-        return new DebianWorkerIterator(ioc, packages.get(comp));
+        return new DebianWorkerIterator(ioc, chunks.get(comp).packages);
     }
 
     public DebianWorkerIterator jointWorkerIterator() {
-        Arrays.stream(DebianComponent.values()).iterator().forEachRemaining(c -> {
-            if(!packages.containsKey(c)) {
-                packages.put(c, loadAndParseAndChunkSplitPackages(c).get(Integer.parseInt(configManager.get(ConfigManager.PIECE))).packages);
-            }
-        });
+        loadParseAndChunkAllComponents();
 
         List<DebianPackage> all = new ArrayList<>(List.of());
-        packages.forEach((c, d) -> all.addAll(d));
+        chunks.forEach((c, d) -> all.addAll(d.packages));
         return new DebianWorkerIterator(ioc, all);
+    }
+
+    public void loadParseAndChunkAllComponents() {
+        Arrays.stream(DebianComponent.values()).iterator().forEachRemaining(c -> {
+            if(!chunks.containsKey(c)) {
+                chunks.put(c, loadAndParseAndChunkSplitPackages(c).get(Integer.parseInt(configManager.get(ConfigManager.PIECE))));
+            }
+        });
     }
 
     public void printStats() {
