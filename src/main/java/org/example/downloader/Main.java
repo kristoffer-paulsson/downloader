@@ -67,7 +67,11 @@ public class Main {
     private static void cleanup() {
         if (ioc != null) {
             ioc.resolve(DebianWorkerExecutor.class).shutdown();
-            ioc.resolve(DownloadLogger.class).rotateLogFile(true);
+            try {
+                ioc.resolve(DownloadLogger.class).rotateLogFile(true);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
