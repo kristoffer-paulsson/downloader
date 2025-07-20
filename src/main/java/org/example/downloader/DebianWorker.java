@@ -34,6 +34,10 @@ public class DebianWorker implements Runnable {
     private final AtomicBoolean isRunning;
     private final AtomicBoolean isPaused;
     private volatile boolean isCompleted;
+    private volatile float progress = 0.0f;
+    private volatile float speed = 0.0f;
+    private volatile long bytesDownloaded = 0;
+    private volatile float timeUsed = 0;
     private static final int BUFFER_SIZE = 8192;
     private static final int CONNECT_TIMEOUT = 10000; // 10 seconds
     private static final int READ_TIMEOUT = 30000; // 30 seconds
@@ -45,6 +49,62 @@ public class DebianWorker implements Runnable {
         this.isRunning = new AtomicBoolean(false);
         this.isPaused = new AtomicBoolean(false);
         this.isCompleted = false;
+    }
+
+    /**
+     * Gets the current download progress as a percentage.
+     * @return Progress as a float between 0.0 and 1.0
+     */
+    public float getProgress() {
+        return progress;
+    }
+
+    /**
+     * Gets the current download speed in bytes per second.
+     * @return Speed as a float
+     */
+    public float getSpeed() {
+        return speed;
+    }
+
+    /**
+     * Gets the Debian package being downloaded.
+     * @return The DebianPackage instance
+     */
+    public DebianPackage getDebianPackage() {
+        return debianPackage;
+    }
+
+    /**
+     * Gets the base URL used for downloading the package.
+     * @return The base URL as a String
+     */
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    /**
+     * Gets the total time used for the download in seconds.
+     * @return Time used as a float
+     */
+    public float getTimeUsed() {
+        return timeUsed;
+    }
+
+    /**
+     * Gets the number of bytes downloaded so far.
+     * @return Number of bytes downloaded
+     */
+    public long getBytesDownloaded() {
+        return bytesDownloaded;
+    }
+
+    /**
+     * Gets the average download speed in bytes per second.
+     * @return Average speed as a float
+     */
+    public float getAverageSpeed() {
+        return bytesDownloaded / (timeUsed > 0 ? timeUsed : 1); // Avoid division by zero
     }
 
     /**
@@ -63,8 +123,6 @@ public class DebianWorker implements Runnable {
             Path saveFile = Paths.get(savePath);
             Files.createDirectories(saveFile.getParent());
 
-            System.out.println("Starting download for " + debianPackage.packageName() + " from " + downloadUrl + " to " + savePath);
-
             // Check for existing partial download
             long downloadedSize = 0;
             if (Files.exists(saveFile)) {
@@ -81,7 +139,9 @@ public class DebianWorker implements Runnable {
                     return;
                 }
 
-                System.out.println("Resuming download for " + debianPackage.packageName() + " at " + downloadedSize + " bytes");
+                System.out.println("Resuming download for " + debianPackage.packageName() + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
+            } else {
+                System.out.println("Starting download for " + debianPackage.packageName() + " from " + downloadUrl + " to " + savePath);
             }
 
             URL url = new URL(downloadUrl);
@@ -111,6 +171,11 @@ public class DebianWorker implements Runnable {
                     while ((bytesRead = inputStream.read(buffer)) != -1 && isRunning.get() && !isPaused.get()) {
                         outputFile.write(buffer, 0, bytesRead);
                         downloadedSize += bytesRead;
+                        bytesDownloaded += bytesRead;
+                        progress = (float) downloadedSize / totalSize;
+                        float currentTimeSlice = System.currentTimeMillis() - connection.getLastModified();
+                        timeUsed += currentTimeSlice / 1000.0f; // Convert to seconds
+                        speed = bytesRead / (currentTimeSlice) / 1000.0f); // Speed in bytes/sec
                     }
 
                     // Check if download was paused
@@ -136,7 +201,7 @@ public class DebianWorker implements Runnable {
                 connection.disconnect();
             }
         } catch (SocketTimeoutException e) {
-            System.err.println("Download timed out for " + debianPackage.packageName() + ": " + e.getMessage());
+            System.err.println("Download timed out for " + debianPackage.packageName() + " for mirror " + baseUrl + ": " + e.getMessage());
             // Partial file is not deleted to allow resumption later
             // Implement bad mirror handling if needed
         } catch (IOException e) {
