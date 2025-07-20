@@ -21,14 +21,12 @@ import java.util.logging.Logger;
 
 public class DebianWorkerIterator implements Iterator<DebianWorker> {
     private final Iterator<DebianPackage> packages;
-    private final ConfigManager configManager;
-    private final DownloadLogger logger;
+    private final InversionOfControl ioc;
     private final DebianMirrorCache mirrorCache;
 
 
     DebianWorkerIterator(InversionOfControl ioc, List<DebianPackage> packages) {
-        this.configManager = ioc.resolve(ConfigManager.class);
-        this.logger = ioc.resolve(DownloadLogger.class);
+        this.ioc = ioc;
         this.mirrorCache = ioc.resolve(DebianMirrorCache.class);
         this.packages = packages.iterator();
     }
@@ -43,7 +41,7 @@ public class DebianWorkerIterator implements Iterator<DebianWorker> {
         if (!hasNext()) {
             throw new NoSuchElementException("No more items in the package");
         }
-        return new DebianWorker(packages.next(), configManager, mirrorCache.getNextMirror(), logger);
+        return new DebianWorker(packages.next(), ioc);
     }
 
     @Override

@@ -28,15 +28,19 @@ public class DebianMirrorCache {
 
     private static final String MIRROR_LIST_URL = "https://www.debian.org/mirror/list-full";
     private final String CACHE_FILE = "mirror.txt";
+    private final String BAD_MIRRORS_FILE = "bad-mirrors.txt";
 
     private List<String> mirrors;
+    private List<String> badMirrors;
     private long current;
 
     private final String cacheDir;
 
     DebianMirrorCache(ConfigManager configManager) {
         this.cacheDir = configManager.get("cache_dir");
+        this.badMirrors = new ArrayList<>();
         loadCachedMirrors(false);
+        loadBadMirrors();
     }
 
     public String getNextMirror() {
@@ -110,5 +114,49 @@ public class DebianMirrorCache {
             System.err.println("Error reading mirror cache: " + e.getMessage());
         }
         this.mirrors = mirrors;
+        loadBadMirrors();
+    }
+
+    private void loadBadMirrors() {
+        Path badMirrorsFile = Paths.get(cacheDir, BAD_MIRRORS_FILE);
+        badMirrors = new ArrayList<>();
+        if (!Files.exists(badMirrorsFile)) {
+            return;
+        }
+        try (BufferedReader reader = Files.newBufferedReader(badMirrorsFile, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String badMirror = line.trim();
+                if (!badMirror.isEmpty()) {
+                    badMirrors.add(badMirror);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading bad mirrors file: " + e.getMessage());
+        }
+        // Remove bad mirrors from mirrors list
+        if (mirrors != null && !badMirrors.isEmpty()) {
+            mirrors.removeAll(badMirrors);
+        }
+    }
+
+    public void reportBadMirror(String mirror) {
+        if (mirrors.remove(mirror)) {
+            badMirrors.add(mirror);
+            saveBadMirror(mirror);
+        }
+    }
+
+    private void saveBadMirror(String mirror) {
+        Path badMirrorsFile = Paths.get(cacheDir, BAD_MIRRORS_FILE);
+        try {
+            Files.createDirectories(Paths.get(cacheDir));
+            try (BufferedWriter writer = Files.newBufferedWriter(badMirrorsFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+                writer.write(mirror);
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.err.println("Error writing bad mirror: " + e.getMessage());
+        }
     }
 }

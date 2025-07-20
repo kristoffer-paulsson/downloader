@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 
 public class DebianWorker implements Runnable {
     private final DebianPackage debianPackage;
+    private final InversionOfControl ioc;
     private final ConfigManager configManager;
     private final Logger logger;
     private final String baseUrl;
@@ -45,11 +46,12 @@ public class DebianWorker implements Runnable {
     private static final int CONNECT_TIMEOUT = 10000;
     private static final int READ_TIMEOUT = 30000;
 
-    public DebianWorker(DebianPackage debianPackage, ConfigManager configManager, String baseUrl, DownloadLogger logger) {
+    public DebianWorker(DebianPackage debianPackage, InversionOfControl ioc) {
         this.debianPackage = debianPackage;
-        this.configManager = configManager;
-        this.logger = logger.getLogger();
-        this.baseUrl = baseUrl;
+        this.ioc = ioc;
+        this.configManager = ioc.resolve(ConfigManager.class);
+        this.logger = ioc.resolve(DownloadLogger.class).getLogger();
+        this.baseUrl = ioc.resolve(DebianMirrorCache.class).getNextMirror();
         this.isRunning = new AtomicBoolean(false);
         this.isPaused = new AtomicBoolean(false);
         this.isCompleted = false;
@@ -140,8 +142,10 @@ public class DebianWorker implements Runnable {
                 connection.disconnect();
             }
         } catch (SocketTimeoutException e) {
+            ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
             logger.warning("Download timed out for " + debianPackage.packageName() + " for mirror " + baseUrl + ": " + e.getMessage());
         } catch (IOException e) {
+            ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
             logger.severe("Download failed for " + debianPackage.packageName() + ": " + e.getMessage());
         } finally {
             isRunning.set(false);
