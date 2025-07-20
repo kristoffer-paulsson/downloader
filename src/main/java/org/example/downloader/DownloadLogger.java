@@ -48,7 +48,7 @@ public class DownloadLogger {
     }
 
     public void rotateLogFile(boolean force) throws IOException {
-        if (Files.exists(logFile) && Files.size(logFile) > maxFileSize || force) {
+        if (Files.exists(logFile) && (Files.size(logFile) > maxFileSize || force)) {
             String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
             Path rotatedFile = logFile.getParent().resolve("downloader-" + timestamp + ".log");
             Files.move(logFile, rotatedFile, StandardCopyOption.REPLACE_EXISTING);

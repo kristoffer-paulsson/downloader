@@ -51,7 +51,7 @@ public class Main {
     }
 
     private void setIdleExecutor() {
-        this.executor = new DebianWorkerExecutor(new DebianWorkerIterator(ioc, List.of()));
+        this.executor = new DebianWorkerExecutor(new DebianWorkerIterator(ioc, List.of()), ioc.resolve(DownloadLogger.class));
     }
 
     public void setExecutor(DebianWorkerIterator iterator, WorkerTask task) {
@@ -60,13 +60,13 @@ public class Main {
         }
         this.task = WorkerTask.DOWNLOAD;
 
-        this.executor = new DebianWorkerExecutor(iterator);
+        this.executor = new DebianWorkerExecutor(iterator, ioc.resolve(DownloadLogger.class));
         this.executor.start();
     }
 
     private static void cleanup() {
         if (ioc != null) {
-            ioc.resolve(DebianWorkerExecutor.class).shutdown();
+            ioc.resolve(Main.class).executor.shutdown();
             try {
                 ioc.resolve(DownloadLogger.class).rotateLogFile(true);
             } catch (IOException e) {

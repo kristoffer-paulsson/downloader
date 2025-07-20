@@ -12,11 +12,13 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
+// File: src/main/java/org/example/downloader/DebianWorkerExecutor.java
 package org.example.downloader;
 
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 public class DebianWorkerExecutor {
     private final ExecutorService executorService;
@@ -24,15 +26,13 @@ public class DebianWorkerExecutor {
     private final List<DebianWorker> pausedWorkers;
     private final Set<DebianWorker> allWorkers;
     private final DebianWorkerIterator workerIterator;
+    private final Logger logger;
     private final AtomicBoolean isRunning;
     private final AtomicBoolean isPaused;
     private static final int MAX_CONCURRENT_WORKERS = 8;
 
-    /**
-     * Constructor that initializes the executor with an iterator of DebianWorker instances.
-     * @param workerIterator Iterator providing DebianWorker instances
-     */
-    public DebianWorkerExecutor(DebianWorkerIterator workerIterator) {
+    public DebianWorkerExecutor(DebianWorkerIterator workerIterator, DownloadLogger logger) {
+        this.logger = logger.getLogger();
         this.executorService = Executors.newFixedThreadPool(MAX_CONCURRENT_WORKERS);
         this.activeWorkers = Collections.synchronizedList(new ArrayList<>());
         this.pausedWorkers = Collections.synchronizedList(new ArrayList<>());
@@ -42,20 +42,16 @@ public class DebianWorkerExecutor {
         this.isPaused = new AtomicBoolean(false);
     }
 
-    /**
-     * Starts the executor, processing workers from the iterator up to the concurrency limit.
-     */
     public void start() {
         if (!isRunning.compareAndSet(false, true)) {
-            System.out.println("Executor already running");
+            logger.warning("Executor already running");
             return;
         }
         if (isPaused.get()) {
-            System.out.println("Executor is paused; call resume() instead");
+            logger.info("Executor is paused; call resume() instead");
             return;
         }
 
-        // Submit any previously paused workers
         synchronized (pausedWorkers) {
             for (DebianWorker worker : pausedWorkers) {
                 if (!worker.isCompleted() && !worker.isDownloading()) {
@@ -65,19 +61,15 @@ public class DebianWorkerExecutor {
             pausedWorkers.clear();
         }
 
-        // Submit new workers from the iterator
         submitNewWorkers();
     }
 
-    /**
-     * Resumes paused downloads and continues processing new workers.
-     */
     public void resume() {
         if (!isRunning.get()) {
             isRunning.set(true);
         }
         if (!isPaused.compareAndSet(true, false)) {
-            System.out.println("Executor is not paused");
+            logger.info("Executor is not paused");
             return;
         }
 
@@ -91,17 +83,13 @@ public class DebianWorkerExecutor {
             pausedWorkers.clear();
         }
 
-        // Submit new workers from the iterator
         submitNewWorkers();
-        System.out.println("Executor resumed");
+        logger.info("Executor resumed");
     }
 
-    /**
-     * Pauses all active downloads.
-     */
     public void pause() {
         if (!isRunning.get()) {
-            System.out.println("Executor is not running");
+            logger.info("Executor is not running");
             return;
         }
         if (isPaused.compareAndSet(false, true)) {
@@ -114,22 +102,18 @@ public class DebianWorkerExecutor {
                 }
                 activeWorkers.clear();
             }
-            System.out.println("Executor paused");
+            logger.info("Executor paused");
         }
     }
 
-    /**
-     * Shuts down the executor gracefully, allowing running downloads to complete.
-     */
     public void shutdown() {
         if (!isRunning.get()) {
-            System.out.println("Executor is already shut down");
+            logger.info("Executor is already shut down");
             return;
         }
         isRunning.set(false);
         isPaused.set(false);
 
-        // Pause all active downloads to preserve partial files
         synchronized (activeWorkers) {
             for (DebianWorker worker : activeWorkers) {
                 if (worker.isDownloading()) {
@@ -140,7 +124,6 @@ public class DebianWorkerExecutor {
             activeWorkers.clear();
         }
 
-        // Shut down the executor service
         executorService.shutdown();
         try {
             if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
@@ -149,13 +132,11 @@ public class DebianWorkerExecutor {
         } catch (InterruptedException e) {
             executorService.shutdownNow();
             Thread.currentThread().interrupt();
+            logger.severe("Executor shutdown interrupted: " + e.getMessage());
         }
-        System.out.println("Executor shut down");
+        logger.info("Executor shut down");
     }
 
-    /**
-     * Submits new workers from the iterator up to the concurrency limit.
-     */
     private void submitNewWorkers() {
         synchronized (activeWorkers) {
             while (activeWorkers.size() < MAX_CONCURRENT_WORKERS && workerIterator.hasNext() && isRunning.get() && !isPaused.get()) {
@@ -166,15 +147,9 @@ public class DebianWorkerExecutor {
                 }
             }
         }
-
-        // Check if all downloads are complete
         checkCompletion();
     }
 
-    /**
-     * Submits a single worker to the executor service.
-     * @param worker The DebianWorker to submit
-     */
     private void submitWorker(DebianWorker worker) {
         if (!worker.isCompleted()) {
             executorService.submit(() -> {
@@ -182,9 +157,8 @@ public class DebianWorkerExecutor {
                 synchronized (activeWorkers) {
                     activeWorkers.remove(worker);
                     if (!worker.isPaused()) {
-                        pausedWorkers.remove(worker); // Remove from paused if completed
+                        pausedWorkers.remove(worker);
                     }
-                    // Submit new workers if available
                     submitNewWorkers();
                 }
             });
@@ -192,45 +166,27 @@ public class DebianWorkerExecutor {
         }
     }
 
-    /**
-     * Checks if all downloads are complete and shuts down if no more work remains.
-     */
     private void checkCompletion() {
         synchronized (activeWorkers) {
             if (activeWorkers.isEmpty() && pausedWorkers.isEmpty() && !workerIterator.hasNext() && isRunning.get()) {
+                logger.info("All downloads complete, shutting down executor.");
                 shutdown();
             }
         }
     }
 
-    /**
-     * Checks if the executor is running.
-     * @return true if running, false otherwise
-     */
     public boolean isRunning() {
         return isRunning.get();
     }
 
-    /**
-     * Checks if the executor is paused.
-     * @return true if paused, false otherwise
-     */
     public boolean isPaused() {
         return isPaused.get();
     }
 
-    /**
-     * Gets the number of active workers.
-     * @return Number of currently running workers
-     */
     public int getActiveWorkerCount() {
         return activeWorkers.size();
     }
 
-    /**
-     * Gets the number of paused workers.
-     * @return Number of paused workers
-     */
     public int getPausedWorkerCount() {
         return pausedWorkers.size();
     }
