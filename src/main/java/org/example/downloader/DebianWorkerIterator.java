@@ -17,15 +17,18 @@ package org.example.downloader;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.logging.Logger;
 
 public class DebianWorkerIterator implements Iterator<DebianWorker> {
     private final Iterator<DebianPackage> packages;
     private final ConfigManager configManager;
+    private final DownloadLogger logger;
     private final DebianMirrorCache mirrorCache;
 
 
     DebianWorkerIterator(InversionOfControl ioc, List<DebianPackage> packages) {
         this.configManager = ioc.resolve(ConfigManager.class);
+        this.logger = ioc.resolve(DownloadLogger.class);
         this.mirrorCache = ioc.resolve(DebianMirrorCache.class);
         this.packages = packages.iterator();
     }
@@ -40,7 +43,7 @@ public class DebianWorkerIterator implements Iterator<DebianWorker> {
         if (!hasNext()) {
             throw new NoSuchElementException("No more items in the package");
         }
-        return new DebianWorker(packages.next(), configManager, mirrorCache.getNextMirror());
+        return new DebianWorker(packages.next(), configManager, mirrorCache.getNextMirror(), logger);
     }
 
     @Override

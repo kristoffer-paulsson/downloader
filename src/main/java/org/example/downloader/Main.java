@@ -27,8 +27,11 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         initializeIoC(args);
+
         MainMenu menu = new MainMenu(ioc);
         menu.runMenu();
+
+        cleanup();
     }
 
     private WorkerTask task = WorkerTask.IDLE;
@@ -61,6 +64,13 @@ public class Main {
         this.executor.start();
     }
 
+    private static void cleanup() {
+        if (ioc != null) {
+            ioc.resolve(DebianWorkerExecutor.class).shutdown();
+            ioc.resolve(DownloadLogger.class).rotateLogFile(true);
+        }
+    }
+
     private static void initializeIoC(String[] args) {
         ioc = new InversionOfControl();
 
@@ -68,6 +78,14 @@ public class Main {
         ioc.register(ConfigManager.class, () -> {
             try {
                 return new ConfigManager(configPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        ioc.register(DownloadLogger.class, () -> {
+            try {
+                return new DownloadLogger(ioc.resolve(ConfigManager.class));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

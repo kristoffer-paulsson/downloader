@@ -26,10 +26,13 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DebianWorker implements Runnable {
     private final DebianPackage debianPackage;
     private final ConfigManager configManager;
+    private final Logger logger;
     private final String baseUrl;
     private final AtomicBoolean isRunning;
     private final AtomicBoolean isPaused;
@@ -39,81 +42,23 @@ public class DebianWorker implements Runnable {
     private volatile long bytesDownloaded = 0;
     private volatile float timeUsed = 0;
     private static final int BUFFER_SIZE = 8192;
-    private static final int CONNECT_TIMEOUT = 10000; // 10 seconds
-    private static final int READ_TIMEOUT = 30000; // 30 seconds
+    private static final int CONNECT_TIMEOUT = 10000;
+    private static final int READ_TIMEOUT = 30000;
 
-    public DebianWorker(DebianPackage debianPackage, ConfigManager configManager, String baseUrl) {
+    public DebianWorker(DebianPackage debianPackage, ConfigManager configManager, String baseUrl, DownloadLogger logger) {
         this.debianPackage = debianPackage;
         this.configManager = configManager;
+        this.logger = logger.getLogger();
         this.baseUrl = baseUrl;
         this.isRunning = new AtomicBoolean(false);
         this.isPaused = new AtomicBoolean(false);
         this.isCompleted = false;
     }
 
-    /**
-     * Gets the current download progress as a percentage.
-     * @return Progress as a float between 0.0 and 1.0
-     */
-    public float getProgress() {
-        return progress;
-    }
-
-    /**
-     * Gets the current download speed in bytes per second.
-     * @return Speed as a float
-     */
-    public float getSpeed() {
-        return speed;
-    }
-
-    /**
-     * Gets the Debian package being downloaded.
-     * @return The DebianPackage instance
-     */
-    public DebianPackage getDebianPackage() {
-        return debianPackage;
-    }
-
-    /**
-     * Gets the base URL used for downloading the package.
-     * @return The base URL as a String
-     */
-    public String getBaseUrl() {
-        return baseUrl;
-    }
-
-    /**
-     * Gets the total time used for the download in seconds.
-     * @return Time used as a float
-     */
-    public float getTimeUsed() {
-        return timeUsed;
-    }
-
-    /**
-     * Gets the number of bytes downloaded so far.
-     * @return Number of bytes downloaded
-     */
-    public long getBytesDownloaded() {
-        return bytesDownloaded;
-    }
-
-    /**
-     * Gets the average download speed in bytes per second.
-     * @return Average speed as a float
-     */
-    public float getAverageSpeed() {
-        return bytesDownloaded / (timeUsed > 0 ? timeUsed : 1); // Avoid division by zero
-    }
-
-    /**
-     * Implements the Runnable interface to download the Debian package in a separate thread.
-     */
     @Override
     public void run() {
         if (!isRunning.compareAndSet(false, true)) {
-            System.err.println("Download already in progress for " + debianPackage.packageName());
+            logger.warning("Download already in progress for " + debianPackage.packageName());
             return;
         }
 
@@ -123,7 +68,6 @@ public class DebianWorker implements Runnable {
             Path saveFile = Paths.get(savePath);
             Files.createDirectories(saveFile.getParent());
 
-            // Check for existing partial download
             long downloadedSize = 0;
             if (Files.exists(saveFile)) {
                 downloadedSize = Files.size(saveFile);
@@ -132,22 +76,21 @@ public class DebianWorker implements Runnable {
                     isCompleted = true;
                     if(!verifyDigest(savePath)) {
                         Files.deleteIfExists(saveFile);
-                        System.err.println("SHA256 digest verification failed for " + debianPackage.packageName() + ", file may be corrupted. Deleted partial file.");
+                        logger.warning("SHA256 digest verification failed for " + debianPackage.packageName() + ", file may be corrupted. Deleted partial file.");
                     } else {
-                        System.out.println("Skipping download for " + debianPackage.packageName() + " as it is already fully downloaded and SHA256 digest verified.");
+                        logger.info("Skipping download for " + debianPackage.packageName() + " as it is already fully downloaded and SHA256 digest verified.");
                     }
                     return;
                 }
 
-                System.out.println("Resuming download for " + debianPackage.packageName() + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
+                logger.info("Resuming download for " + debianPackage.packageName() + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
             } else {
-                System.out.println("Starting download for " + debianPackage.packageName() + " from " + downloadUrl + " to " + savePath);
+                logger.info("Starting download for " + debianPackage.packageName() + " from " + downloadUrl + " to " + savePath);
             }
 
             URL url = new URL(downloadUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             try {
-                // Configure for partial download
                 if (downloadedSize > 0) {
                     connection.setRequestProperty("Range", "bytes=" + downloadedSize + "-");
                 }
@@ -159,12 +102,11 @@ public class DebianWorker implements Runnable {
                     throw new IOException("HTTP error code: " + responseCode + " for " + debianPackage.packageName() + " at " + downloadUrl);
                 }
 
-                // Get total file size
                 long totalSize = connection.getContentLengthLong() + downloadedSize;
 
                 try (InputStream inputStream = connection.getInputStream();
                      RandomAccessFile outputFile = new RandomAccessFile(savePath, "rw")) {
-                    outputFile.seek(downloadedSize); // Resume from last position
+                    outputFile.seek(downloadedSize);
 
                     byte[] buffer = new byte[BUFFER_SIZE];
                     int bytesRead;
@@ -174,51 +116,38 @@ public class DebianWorker implements Runnable {
                         bytesDownloaded += bytesRead;
                         progress = (float) downloadedSize / totalSize;
                         float currentTimeSlice = System.currentTimeMillis() - connection.getLastModified();
-                        timeUsed += currentTimeSlice / 1000.0f; // Convert to seconds
-                        speed = bytesRead / (currentTimeSlice) / 1000.0f); // Speed in bytes/sec
+                        timeUsed += currentTimeSlice / 1000.0f;
+                        speed = bytesRead / (currentTimeSlice / 1000.0f);
                     }
 
-                    // Check if download was paused
                     if (isPaused.get()) {
-                        System.out.println("Download paused for " + debianPackage.packageName() + " at " + downloadedSize + " bytes");
+                        logger.info("Download paused for " + debianPackage.packageName() + " at " + downloadedSize + " bytes");
                         return;
                     }
 
-                    // Verify download completion
                     if (downloadedSize != totalSize) {
                         throw new IOException("Download incomplete: expected " + totalSize + " bytes, got " + downloadedSize);
                     }
 
-                    // Verify SHA256 digest
                     if (!verifyDigest(savePath)) {
                         throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName());
                     }
 
                     isCompleted = true;
-                    System.out.println("Download completed for " + debianPackage.packageName());
+                    logger.info("Download completed for " + debianPackage.packageName());
                 }
             } finally {
                 connection.disconnect();
             }
         } catch (SocketTimeoutException e) {
-            System.err.println("Download timed out for " + debianPackage.packageName() + " for mirror " + baseUrl + ": " + e.getMessage());
-            // Partial file is not deleted to allow resumption later
-            // Implement bad mirror handling if needed
+            logger.warning("Download timed out for " + debianPackage.packageName() + " for mirror " + baseUrl + ": " + e.getMessage());
         } catch (IOException e) {
-            System.err.println("Download failed for " + debianPackage.packageName() + ": " + e.getMessage());
-            e.printStackTrace();
-            // Partial file is not deleted to allow resumption later
+            logger.severe("Download failed for " + debianPackage.packageName() + ": " + e.getMessage());
         } finally {
             isRunning.set(false);
         }
     }
 
-    /**
-     * Verifies the SHA256 digest of the downloaded file.
-     * @param filePath Path to the downloaded file
-     * @return true if digest matches, false otherwise
-     * @throws IOException If an I/O error occurs
-     */
     public boolean verifyDigest(String filePath) throws IOException {
         try {
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
@@ -235,50 +164,37 @@ public class DebianWorker implements Runnable {
             String computedDigest = bytesToHex(computedHash);
             return computedDigest.equalsIgnoreCase(debianPackage.sha256digest());
         } catch (NoSuchAlgorithmException e) {
+            logger.severe("SHA-256 algorithm not available: " + e.getMessage());
             throw new IOException("SHA-256 algorithm not available", e);
         }
     }
 
-    /**
-     * Pauses the current download without deleting the partial file.
-     */
     public void pauseDownload() {
         if (isRunning.get() && !isPaused.get()) {
             isPaused.set(true);
-            System.out.println("Pausing download for " + debianPackage.packageName());
+            logger.info("Pausing download for " + debianPackage.packageName());
         }
     }
 
-    /**
-     * Resumes a paused download by starting a new thread.
-     */
     public void resumeDownload() {
         if (isPaused.get() && !isRunning.get() && !isCompleted) {
             isPaused.set(false);
             Thread thread = new Thread(this);
             thread.start();
-            System.out.println("Resuming download for " + debianPackage.packageName());
+            logger.info("Resuming download for " + debianPackage.packageName());
         } else if (isCompleted) {
-            System.out.println("Download already completed for " + debianPackage.packageName());
+            logger.info("Download already completed for " + debianPackage.packageName());
         } else if (isRunning.get()) {
-            System.out.println("Download already in progress for " + debianPackage.packageName());
+            logger.warning("Download already in progress for " + debianPackage.packageName());
         }
     }
 
-    /**
-     * Stops the download and keeps the partial file for later resumption.
-     */
     public void stopDownload() {
         isRunning.set(false);
-        isPaused.set(true); // Treat stop as a pause to preserve partial file
-        System.out.println("Download stopped for " + debianPackage.packageName());
+        isPaused.set(true);
+        logger.info("Download stopped for " + debianPackage.packageName());
     }
 
-    /**
-     * Converts a byte array to hexadecimal string.
-     * @param bytes The byte array to convert
-     * @return Hexadecimal string representation
-     */
     private static String bytesToHex(byte[] bytes) {
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {
@@ -291,40 +207,22 @@ public class DebianWorker implements Runnable {
         return hexString.toString();
     }
 
-    /**
-     * Checks if a download is currently in progress.
-     * @return true if downloading, false otherwise
-     */
-    public boolean isDownloading() {
-        return isRunning.get() && !isPaused.get();
-    }
-
-    /**
-     * Checks if the download is paused.
-     * @return true if paused, false otherwise
-     */
-    public boolean isPaused() {
-        return isPaused.get();
-    }
-
-    /**
-     * Checks if the download is completed.
-     * @return true if completed, false otherwise
-     */
-    public boolean isCompleted() {
-        return isCompleted;
-    }
-
-    /**
-     * Gets the current size of the downloaded file.
-     * @return The size in bytes, or 0 if the file doesn't exist
-     */
+    public float getProgress() { return progress; }
+    public float getSpeed() { return speed; }
+    public DebianPackage getDebianPackage() { return debianPackage; }
+    public String getBaseUrl() { return baseUrl; }
+    public float getTimeUsed() { return timeUsed; }
+    public long getBytesDownloaded() { return bytesDownloaded; }
+    public float getAverageSpeed() { return bytesDownloaded / (timeUsed > 0 ? timeUsed : 1); }
+    public boolean isDownloading() { return isRunning.get() && !isPaused.get(); }
+    public boolean isPaused() { return isPaused.get(); }
+    public boolean isCompleted() { return isCompleted; }
     public long getDownloadedSize() {
         try {
             Path saveFile = Paths.get(debianPackage.buildSavePath(configManager));
             return Files.exists(saveFile) ? Files.size(saveFile) : 0;
         } catch (IOException e) {
-            System.err.println("Error checking downloaded size for " + debianPackage.packageName());
+            logger.warning("Error checking downloaded size for " + debianPackage.packageName());
             return 0;
         }
     }
