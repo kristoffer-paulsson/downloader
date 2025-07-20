@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public enum DebianDistribution {
+    JESSIE("jessie"),
+    STRETCH("stretch"),
+    BUSTER("buster"),
+    BULLSEYE("bullseye"),
     BOOKWORM("bookworm");
 
     final String dist;

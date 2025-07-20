@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,7 +71,6 @@ public class DebianWorker implements Runnable {
                 downloadedSize = Files.size(saveFile);
 
                 if(downloadedSize >= debianPackage.getSize()) {
-                    System.out.println("File already fully downloaded, skipping: " + savePath);
                     isCompleted = true;
                     if(!verifyDigest(savePath)) {
                         Files.deleteIfExists(saveFile);
@@ -135,6 +135,10 @@ public class DebianWorker implements Runnable {
             } finally {
                 connection.disconnect();
             }
+        } catch (SocketTimeoutException e) {
+            System.err.println("Download timed out for " + debianPackage.packageName() + ": " + e.getMessage());
+            // Partial file is not deleted to allow resumption later
+            // Implement bad mirror handling if needed
         } catch (IOException e) {
             System.err.println("Download failed for " + debianPackage.packageName() + ": " + e.getMessage());
             e.printStackTrace();
