@@ -29,7 +29,7 @@ public class DebianPackageChunkSplitter {
     private final ConfigManager configManager;
     private final String distribution;
 
-    private final Map<DebianComponent, ChunkSplit> chunks = Map.of();
+    private final Map<DebianComponent, ChunkSplit> chunks = new HashMap<>();
 
     DebianPackageChunkSplitter(InversionOfControl ioc) {
         this.ioc = ioc;
@@ -167,11 +167,12 @@ public class DebianPackageChunkSplitter {
 
         List<DebianPackage> all = new ArrayList<>(List.of());
         chunks.forEach((c, d) -> all.addAll(d.packages));
+        System.out.println(all.size() + " packages in total from all components for joint worker iterator.");
         return new DebianWorkerIterator(ioc, all);
     }
 
     public void loadParseAndChunkAllComponents() {
-        Arrays.stream(DebianComponent.values()).iterator().forEachRemaining(c -> {
+        Arrays.stream(DebianComponent.values()).toList().forEach(c -> {
             if(!chunks.containsKey(c)) {
                 chunks.put(c, loadAndParseAndChunkSplitPackages(c).get(Integer.parseInt(configManager.get(ConfigManager.PIECE))));
             }

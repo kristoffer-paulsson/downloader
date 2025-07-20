@@ -41,7 +41,7 @@ public class DebianMirrorCache {
 
     public String getNextMirror() {
         current++;
-        return mirrors.get((int) (current / mirrors.size()));
+        return mirrors.get((int) (current % mirrors.size()));
     }
 
     public int mirrorCount() {

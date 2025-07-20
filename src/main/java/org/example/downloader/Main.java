@@ -55,8 +55,10 @@ public class Main {
         if(task != WorkerTask.IDLE) {
             executor.shutdown();
         }
-        this.executor = new DebianWorkerExecutor(iterator);
         this.task = WorkerTask.DOWNLOAD;
+
+        this.executor = new DebianWorkerExecutor(iterator);
+        this.executor.start();
     }
 
     private static void initializeIoC(String[] args) {

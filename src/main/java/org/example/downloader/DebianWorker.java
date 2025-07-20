@@ -1,20 +1,22 @@
 /**
  * Copyright (c) 2025 by Kristoffer Paulsson <kristoffer.paulsson@talenten.se>.
- *
+ * <p>
  * This software is available under the terms of the MIT license. Parts are licensed
  * under different terms if stated. The legal terms are attached to the LICENSE file
  * and are made available on:
- *
- *      https://opensource.org/licenses/MIT
- *
+ * <p>
+ * https://opensource.org/licenses/MIT
+ * <p>
  * SPDX-License-Identifier: MIT
- *
+ * <p>
  * Contributors:
- *      Kristoffer Paulsson - initial implementation
+ * Kristoffer Paulsson - initial implementation
  */
 package org.example.downloader;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
@@ -60,10 +62,26 @@ public class DebianWorker implements Runnable {
             Path saveFile = Paths.get(savePath);
             Files.createDirectories(saveFile.getParent());
 
+            System.out.println("Starting download for " + debianPackage.packageName() + " from " + downloadUrl + " to " + savePath);
+
             // Check for existing partial download
             long downloadedSize = 0;
             if (Files.exists(saveFile)) {
                 downloadedSize = Files.size(saveFile);
+
+                if(downloadedSize >= debianPackage.getSize()) {
+                    System.out.println("File already fully downloaded, skipping: " + savePath);
+                    isCompleted = true;
+                    if(!verifyDigest(savePath)) {
+                        Files.deleteIfExists(saveFile);
+                        System.err.println("SHA256 digest verification failed for " + debianPackage.packageName() + ", file may be corrupted. Deleted partial file.");
+                    } else {
+                        System.out.println("Skipping download for " + debianPackage.packageName() + " as it is already fully downloaded and SHA256 digest verified.");
+                    }
+                    return;
+                }
+
+                System.out.println("Resuming download for " + debianPackage.packageName() + " at " + downloadedSize + " bytes");
             }
 
             URL url = new URL(downloadUrl);
@@ -78,7 +96,7 @@ public class DebianWorker implements Runnable {
 
                 int responseCode = connection.getResponseCode();
                 if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
-                    throw new IOException("HTTP error code: " + responseCode);
+                    throw new IOException("HTTP error code: " + responseCode + " for " + debianPackage.packageName() + " at " + downloadUrl);
                 }
 
                 // Get total file size
