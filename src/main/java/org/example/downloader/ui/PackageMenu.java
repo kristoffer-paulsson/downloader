@@ -83,7 +83,7 @@ public class PackageMenu extends Menu {
         System.out.println("\n=== Package chunk statistics ===");
         ConfigManager configManager = ioc.resolve(ConfigManager.class);
         int chunkNum = Integer.parseInt(configManager.get(ConfigManager.PIECE));
-        System.out.println("Parsing and counting package for chunk " + chunkNum + ", wait...\n");
+        System.out.println("Parsing and counting packages for chunk " + chunkNum + ", wait...\n");
 
         DebianPackageChunkSplitter chunkSplitter = ioc.resolve(DebianPackageChunkSplitter.class);
         Iterator<DebianComponent> comps = Arrays.stream(DebianComponent.values()).iterator();
@@ -92,7 +92,7 @@ public class PackageMenu extends Menu {
             DebianComponent comp = comps.next();
             AtomicLong totalSize = new AtomicLong();
             AtomicInteger packageCount = new AtomicInteger();
-            ChunkSplit chunk = chunkSplitter.loadAndParseAndChunkSplitPackages(comp).get(chunkNum);
+            ChunkSplit chunk = chunkSplitter.loadAndParseAndChunkSplitPackages(comp).get(chunkNum-1);
             chunk.packages.forEach(p -> {
                 totalSize.addAndGet(p.getSize());
                 packageCount.getAndIncrement();

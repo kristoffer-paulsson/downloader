@@ -14,11 +14,10 @@
  */
 package org.example.downloader;
 
-import org.example.downloader.deb.DebianComponent;
+import org.example.downloader.deb.WorkerTask;
 import org.example.downloader.ui.MainMenu;
-
 import java.io.*;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -30,8 +29,34 @@ public class Main {
         initializeIoC(args);
         MainMenu menu = new MainMenu(ioc);
         menu.runMenu();
-        //DebianMirrorCache mirrorCahce = ioc.resolve(DebianMirrorCache.class);
-        //if(mirrorCahce.mirrorCount() == 0) mirrorCahce.loadCachedMirrors(true);
+    }
+
+    private WorkerTask task = WorkerTask.IDLE;
+
+    private DebianWorkerExecutor executor;
+
+    Main() {
+        setIdleExecutor();
+    }
+
+    public WorkerTask getTask() {
+        return task;
+    }
+
+    public DebianWorkerExecutor getExecutor() {
+        return executor;
+    }
+
+    private void setIdleExecutor() {
+        this.executor = new DebianWorkerExecutor(new DebianWorkerIterator(ioc, List.of()));
+    }
+
+    public void setExecutor(DebianWorkerIterator iterator, WorkerTask task) {
+        if(task != WorkerTask.IDLE) {
+            executor.shutdown();
+        }
+        this.executor = new DebianWorkerExecutor(iterator);
+        this.task = WorkerTask.DOWNLOAD;
     }
 
     private static void initializeIoC(String[] args) {
@@ -45,6 +70,8 @@ public class Main {
                 throw new RuntimeException(e);
             }
         });
+
+        ioc.register(Main.class, Main::new);
 
         ioc.register(DebianPackagesListCache.class, () -> new DebianPackagesListCache(ioc.resolve(ConfigManager.class)));
 

@@ -18,8 +18,8 @@ import org.example.downloader.ConfigManager;
 import org.example.downloader.InversionOfControl;
 import org.example.downloader.deb.Menu;
 
-public class MainMenu extends Menu {
-    public MainMenu(InversionOfControl ioc) {
+public class MonitoringMenu extends Menu {
+    public MonitoringMenu(InversionOfControl ioc) {
         super(ioc, "Debian Downloader CLI");
     }
 
@@ -28,7 +28,11 @@ public class MainMenu extends Menu {
         registerOption("Configuration", option -> new ConfigMenu(ioc).runMenu());
         registerOption("Mirror websites", option -> new MirrorMenu(ioc).runMenu());
         registerOption("Package lists", option -> new PackageMenu(ioc).runMenu());
-        registerOption("Workers", option -> new WorkerMenu(ioc).runMenu());
-        registerOption("Monitoring", option -> new MonitoringMenu(ioc).runMenu());
+    }
+
+    private void reviewConfig(ConfigManager configManager) {
+        System.out.println("\n=== Current config ===");
+        configManager.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
+        showMessageAndWait(" ");
     }
 }
