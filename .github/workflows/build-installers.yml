@@ -10,8 +10,10 @@ jobs:
         with:
           java-version: '23'
           distribution: 'temurin'
+      - name: Debug Input Directory
+        run: ls -l target/jpackage-input || echo "Directory not found"
       - name: Build macOS Installer
-        run: mvn clean package -Pjpackage-macos
+        run: mvn clean package -Pjpackage-macos -X
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -28,9 +30,11 @@ jobs:
           java-version: '23'
           distribution: 'temurin'
       - name: Install Debian Tools
-        run: sudo apt-get update && sudo apt-get install -y fakeroot dpkg-deb
+        run: sudo apt-get update && sudo apt-get install -y fakeroot dpkg binutils libc6-dev
+      - name: Debug Input Directory
+        run: ls -l target/jpackage-input || echo "Directory not found"
       - name: Build Linux DEB Installer
-        run: mvn clean package -Pjpackage-linux-deb
+        run: mvn clean package -Pjpackage-linux-deb -X
       - name: Upload Linux DEB Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -48,8 +52,10 @@ jobs:
           distribution: 'temurin'
       - name: Install RPM Tools
         run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Debug Input Directory
+        run: ls -l target/jpackage-input || echo "Directory not found"
       - name: Build Linux RPM Installer
-        run: mvn clean package -Pjpackage-linux-rpm
+        run: mvn clean package -Pjpackage-linux-rpm -X
       - name: Upload Linux RPM Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -65,10 +71,18 @@ jobs:
         with:
           java-version: '23'
           distribution: 'temurin'
-      - name: Install WiX Toolset
-        run: choco install wixtoolset --version 3.11.2
+      - name: Add WiX to PATH
+        run: echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" >> $GITHUB_PATH
+        shell: bash
+      - name: Verify WiX Tools
+        run: candle.exe -v
+        shell: cmd
+      - name: Debug Input Directory
+        run: dir target\jpackage-input
+        shell: cmd
       - name: Build Windows MSI Installer
-        run: mvn clean package -Pjpackage-windows-msi
+        run: mvn clean package -Pjpackage-windows-msi -X
+        shell: cmd
       - name: Upload Windows MSI Artifact
         uses: actions/upload-artifact@v4
         with:
