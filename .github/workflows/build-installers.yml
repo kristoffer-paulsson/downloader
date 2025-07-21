@@ -77,6 +77,12 @@ jobs:
       - name: Verify WiX Tools
         run: candle.exe -v
         shell: cmd
+      - name: Create Input Directory
+        run: mkdir target\jpackage-input
+        shell: cmd
+      - name: Debug Compilation Output
+        run: dir target
+        shell: cmd
       - name: Debug Input Directory
         run: dir target\jpackage-input
         shell: cmd
