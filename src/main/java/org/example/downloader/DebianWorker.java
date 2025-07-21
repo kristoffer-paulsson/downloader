@@ -60,7 +60,7 @@ public class DebianWorker implements Runnable {
     @Override
     public void run() {
         if (!isRunning.compareAndSet(false, true)) {
-            logger.warning("Download already in progress for " + debianPackage.packageName());
+            logger.warning("Download already in progress for " + debianPackage.packageName);
             return;
         }
 
@@ -78,16 +78,16 @@ public class DebianWorker implements Runnable {
                     isCompleted = true;
                     if(!verifyDigest(savePath)) {
                         Files.deleteIfExists(saveFile);
-                        logger.warning("SHA256 digest verification failed for " + debianPackage.packageName() + ", file may be corrupted. Deleted partial file.");
+                        logger.warning("SHA256 digest verification failed for " + debianPackage.packageName + ", file may be corrupted. Deleted partial file.");
                     } else {
-                        logger.info("Skipping download for " + debianPackage.packageName() + " as it is already fully downloaded and SHA256 digest verified.");
+                        logger.info("Skipping download for " + debianPackage.packageName + " as it is already fully downloaded and SHA256 digest verified.");
                     }
                     return;
                 }
 
-                logger.info("Resuming download for " + debianPackage.packageName() + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
+                logger.info("Resuming download for " + debianPackage.packageName + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
             } else {
-                logger.info("Starting download for " + debianPackage.packageName() + " from " + downloadUrl + " to " + savePath);
+                logger.info("Starting download for " + debianPackage.packageName + " from " + downloadUrl + " to " + savePath);
             }
 
             URL url = new URL(downloadUrl);
@@ -101,7 +101,7 @@ public class DebianWorker implements Runnable {
 
                 int responseCode = connection.getResponseCode();
                 if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
-                    throw new IOException("HTTP error code: " + responseCode + " for " + debianPackage.packageName() + " at " + downloadUrl);
+                    throw new IOException("HTTP error code: " + responseCode + " for " + debianPackage.packageName + " at " + downloadUrl);
                 }
 
                 long totalSize = connection.getContentLengthLong() + downloadedSize;
@@ -123,7 +123,7 @@ public class DebianWorker implements Runnable {
                     }
 
                     if (isPaused.get()) {
-                        logger.info("Download paused for " + debianPackage.packageName() + " at " + downloadedSize + " bytes");
+                        logger.info("Download paused for " + debianPackage.packageName + " at " + downloadedSize + " bytes");
                         return;
                     }
 
@@ -132,21 +132,21 @@ public class DebianWorker implements Runnable {
                     }
 
                     if (!verifyDigest(savePath)) {
-                        throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName());
+                        throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName);
                     }
 
                     isCompleted = true;
-                    logger.info("Download completed for " + debianPackage.packageName());
+                    logger.info("Download completed for " + debianPackage.packageName);
                 }
             } finally {
                 connection.disconnect();
             }
         } catch (SocketTimeoutException e) {
             ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
-            logger.warning("Download timed out for " + debianPackage.packageName() + " for mirror " + baseUrl + ": " + e.getMessage());
+            logger.warning("Download timed out for " + debianPackage.packageName + " for mirror " + baseUrl + ": " + e.getMessage());
         } catch (IOException e) {
             ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
-            logger.severe("Download failed for " + debianPackage.packageName() + ": " + e.getMessage());
+            logger.severe("Download failed for " + debianPackage.packageName + ": " + e.getMessage());
         } finally {
             isRunning.set(false);
         }
@@ -166,7 +166,7 @@ public class DebianWorker implements Runnable {
 
             byte[] computedHash = sha256.digest();
             String computedDigest = bytesToHex(computedHash);
-            return computedDigest.equalsIgnoreCase(debianPackage.sha256digest());
+            return computedDigest.equalsIgnoreCase(debianPackage.sha256digest);
         } catch (NoSuchAlgorithmException e) {
             logger.severe("SHA-256 algorithm not available: " + e.getMessage());
             throw new IOException("SHA-256 algorithm not available", e);
@@ -176,7 +176,7 @@ public class DebianWorker implements Runnable {
     public void pauseDownload() {
         if (isRunning.get() && !isPaused.get()) {
             isPaused.set(true);
-            logger.info("Pausing download for " + debianPackage.packageName());
+            logger.info("Pausing download for " + debianPackage.packageName);
         }
     }
 
@@ -185,18 +185,18 @@ public class DebianWorker implements Runnable {
             isPaused.set(false);
             Thread thread = new Thread(this);
             thread.start();
-            logger.info("Resuming download for " + debianPackage.packageName());
+            logger.info("Resuming download for " + debianPackage.packageName);
         } else if (isCompleted) {
-            logger.info("Download already completed for " + debianPackage.packageName());
+            logger.info("Download already completed for " + debianPackage.packageName);
         } else if (isRunning.get()) {
-            logger.warning("Download already in progress for " + debianPackage.packageName());
+            logger.warning("Download already in progress for " + debianPackage.packageName);
         }
     }
 
     public void stopDownload() {
         isRunning.set(false);
         isPaused.set(true);
-        logger.info("Download stopped for " + debianPackage.packageName());
+        logger.info("Download stopped for " + debianPackage.packageName);
     }
 
     private static String bytesToHex(byte[] bytes) {
@@ -226,7 +226,7 @@ public class DebianWorker implements Runnable {
             Path saveFile = Paths.get(debianPackage.buildSavePath(configManager));
             return Files.exists(saveFile) ? Files.size(saveFile) : 0;
         } catch (IOException e) {
-            logger.warning("Error checking downloaded size for " + debianPackage.packageName());
+            logger.warning("Error checking downloaded size for " + debianPackage.packageName);
             return 0;
         }
     }

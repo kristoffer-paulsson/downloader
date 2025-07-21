@@ -14,6 +14,8 @@
  */
 package org.example.downloader.deb;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -34,7 +36,10 @@ public enum DebianComponent {
     }
 
     public static List<String> toStringList() {
-        return Stream.of(values()).map(DebianComponent::getComp).toList();
+        List<String> compList = new ArrayList<>();
+        Arrays.stream(values()).iterator().forEachRemaining(genericArch -> {
+            compList.add(genericArch.getComp());
+        });
+        return compList;
     }
-
 }

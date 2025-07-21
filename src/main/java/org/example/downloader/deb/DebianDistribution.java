@@ -14,6 +14,8 @@
  */
 package org.example.downloader.deb;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -35,6 +37,10 @@ public enum DebianDistribution {
     }
 
     public static List<String> toStringList() {
-        return Stream.of(values()).map(DebianDistribution::getDist).toList();
+        List<String> distList = new ArrayList<>();
+        Arrays.stream(values()).iterator().forEachRemaining(genericArch -> {
+            distList.add(genericArch.getDist());
+        });
+        return distList;
     }
 }

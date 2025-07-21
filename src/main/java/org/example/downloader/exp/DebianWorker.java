@@ -49,7 +49,7 @@ public class DebianWorker {
      */
     public void downloadPackage(String baseUrl) throws IOException, InterruptedException {
         if (!isRunning.compareAndSet(false, true)) {
-            throw new IllegalStateException("Download already in progress for " + debianPackage.packageName());
+            throw new IllegalStateException("Download already in progress for " + debianPackage.packageName);
         }
 
         try {
@@ -102,7 +102,7 @@ public class DebianWorker {
                     // Verify SHA256 digest
                     if (!verifyDigest(savePath)) {
                         cleanupFailedDownload(savePath);
-                        throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName());
+                        throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName);
                     }
                 }
             } finally {
@@ -133,7 +133,7 @@ public class DebianWorker {
 
             byte[] computedHash = sha256.digest();
             String computedDigest = bytesToHex(computedHash);
-            return computedDigest.equalsIgnoreCase(debianPackage.sha256digest());
+            return computedDigest.equalsIgnoreCase(debianPackage.sha256digest);
         } catch (NoSuchAlgorithmException e) {
             throw new IOException("SHA-256 algorithm not available", e);
         }

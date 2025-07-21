@@ -14,11 +14,29 @@
  */
 package org.example.downloader;
 
-public record DebianPackage(
-        String packageName, String version, String architecture,
-        String filename, long size, String sha256digest,
-        String distribution
-) {
+public class DebianPackage {
+
+    public final String packageName;
+    public final String version;
+    public final String architecture;
+    public final String filename;
+    public final long size;
+    public final String sha256digest;
+    public final String distribution;
+
+    DebianPackage(
+            String packageName, String version, String architecture,
+            String filename, long size, String sha256digest,
+            String distribution
+    ) {
+        this.packageName = packageName;
+        this.version = version;
+        this.architecture = architecture;
+        this.filename = filename;
+        this.size = size;
+        this.sha256digest = sha256digest;
+        this.distribution = distribution;
+    }
 
     public String buildDownloadUrl(String baseUrl) {
         return String.format("%s/%s", baseUrl, filename);

@@ -49,7 +49,7 @@ public class DebianWorker implements Runnable {
     @Override
     public void run() {
         if (!isRunning.compareAndSet(false, true)) {
-            System.err.println("Download already in progress for " + debianPackage.packageName());
+            System.err.println("Download already in progress for " + debianPackage.packageName);
             return;
         }
 
@@ -103,14 +103,14 @@ public class DebianWorker implements Runnable {
                     // Verify SHA256 digest
                     if (!verifyDigest(savePath)) {
                         cleanupFailedDownload(savePath);
-                        throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName());
+                        throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName);
                     }
                 }
             } finally {
                 connection.disconnect();
             }
         } catch (IOException e) {
-            System.err.println("Download failed for " + debianPackage.packageName() + ": " + e.getMessage());
+            System.err.println("Download failed for " + debianPackage.packageName + ": " + e.getMessage());
             e.printStackTrace();
         } finally {
             isRunning.set(false);
@@ -137,7 +137,7 @@ public class DebianWorker implements Runnable {
 
             byte[] computedHash = sha256.digest();
             String computedDigest = bytesToHex(computedHash);
-            return computedDigest.equalsIgnoreCase(debianPackage.sha256digest());
+            return computedDigest.equalsIgnoreCase(debianPackage.sha256digest);
         } catch (NoSuchAlgorithmException e) {
             throw new IOException("SHA-256 algorithm not available", e);
         }

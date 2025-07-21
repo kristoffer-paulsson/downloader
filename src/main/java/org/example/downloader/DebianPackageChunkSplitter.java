@@ -172,7 +172,7 @@ public class DebianPackageChunkSplitter {
     }
 
     public void loadParseAndChunkAllComponents() {
-        Arrays.stream(DebianComponent.values()).toList().forEach(c -> {
+        Arrays.stream(DebianComponent.values()).iterator().forEachRemaining(c -> {
             if(!chunks.containsKey(c)) {
                 chunks.put(c, loadAndParseAndChunkSplitPackages(c).get(Integer.parseInt(configManager.get(ConfigManager.PIECE))));
             }
