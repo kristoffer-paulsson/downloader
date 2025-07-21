@@ -10,10 +10,9 @@
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.source>19</maven.compiler.source>
-        <maven.compiler.target>19</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jpackage.jdk.version>19</jpackage.jdk.version>
         <app.main.class>org.example.downloader.Main</app.main.class>
         <app.name>downloader</app.name>
         <app.version>1.0</app.version>
@@ -48,8 +47,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>19</source>
-                    <target>19</target>
+                    <source>11</source>
+                    <target>11</target>
                 </configuration>
             </plugin>
 
@@ -89,156 +88,54 @@
                     <outputDirectory>${project.build.directory}/jpackage-input</outputDirectory>
                 </configuration>
             </plugin>
+
+            <!-- Maven Resources Plugin to copy the Bash script -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-script</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/jpackage-input</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/src/main/resources</directory>
+                                    <includes>
+                                        <include>run-downloader.sh</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Assembly Plugin to create tar.gz -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>make-tar-gz</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>${project.basedir}/src/main/assembly/tar.gz.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>jpackage-macos</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.panteleyev</groupId>
-                        <artifactId>jpackage-maven-plugin</artifactId>
-                        <version>1.5.1</version>
-                        <executions>
-                            <execution>
-                                <id>jpackage-macos</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>jpackage</goal>
-                                </goals>
-                                <configuration>
-                                    <name>${app.name}</name>
-                                    <appVersion>${app.version}</appVersion>
-                                    <mainClass>${app.main.class}</mainClass>
-                                    <mainJar>${project.build.finalName}.jar</mainJar>
-                                    <input>${project.build.directory}/jpackage-input</input>
-                                    <destination>${project.build.directory}/jpackage/macos</destination>
-                                    <javaOptions>
-                                        <option>-Xmx512m</option>
-                                    </javaOptions>
-                                    <type>DMG</type>
-                                    <macPackageName>${app.name}</macPackageName>
-                                    <installDir>/Applications</installDir>
-                                    <runtimeImage>${java.home}</runtimeImage>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>jpackage-linux-deb</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.panteleyev</groupId>
-                        <artifactId>jpackage-maven-plugin</artifactId>
-                        <version>1.5.1</version>
-                        <executions>
-                            <execution>
-                                <id>jpackage-linux-deb</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>jpackage</goal>
-                                </goals>
-                                <configuration>
-                                    <name>${app.name}</name>
-                                    <appVersion>${app.version}</appVersion>
-                                    <mainClass>${app.main.class}</mainClass>
-                                    <mainJar>${project.build.finalName}.jar</mainJar>
-                                    <input>${project.build.directory}/jpackage-input</input>
-                                    <destination>${project.build.directory}/jpackage/linux-deb</destination>
-                                    <javaOptions>
-                                        <option>-Xmx512m</option>
-                                    </javaOptions>
-                                    <type>DEB</type>
-                                    <linuxMenuGroup>Utility</linuxMenuGroup>
-                                    <installDir>/usr/local</installDir>
-                                    <runtimeImage>${java.home}</runtimeImage>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>jpackage-linux-rpm</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.panteleyev</groupId>
-                        <artifactId>jpackage-maven-plugin</artifactId>
-                        <version>1.5.1</version>
-                        <executions>
-                            <execution>
-                                <id>jpackage-linux-rpm</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>jpackage</goal>
-                                </goals>
-                                <configuration>
-                                    <name>${app.name}</name>
-                                    <appVersion>${app.version}</appVersion>
-                                    <mainClass>${app.main.class}</mainClass>
-                                    <mainJar>${project.build.finalName}.jar</mainJar>
-                                    <input>${project.build.directory}/jpackage-input</input>
-                                    <destination>${project.build.directory}/jpackage/linux-rpm</destination>
-                                    <javaOptions>
-                                        <option>-Xmx512m</option>
-                                    </javaOptions>
-                                    <type>RPM</type>
-                                    <linuxMenuGroup>Utility</linuxMenuGroup>
-                                    <installDir>/usr/local</installDir>
-                                    <runtimeImage>${java.home}</runtimeImage>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>jpackage-windows-msi</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.panteleyev</groupId>
-                        <artifactId>jpackage-maven-plugin</artifactId>
-                        <version>1.5.1</version>
-                        <executions>
-                            <execution>
-                                <id>jpackage-windows-msi</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>jpackage</goal>
-                                </goals>
-                                <configuration>
-                                    <name>${app.name}</name>
-                                    <appVersion>${app.version}</appVersion>
-                                    <mainClass>${app.main.class}</mainClass>
-                                    <mainJar>${project.build.finalName}.jar</mainJar>
-                                    <input>${project.build.directory}/jpackage-input</input>
-                                    <destination>${project.build.directory}/jpackage/windows-msi</destination>
-                                    <javaOptions>
-                                        <option>-Xmx512m</option>
-                                    </javaOptions>
-                                    <type>MSI</type>
-                                    <winDirChooser>true</winDirChooser>
-                                    <winMenu>true</winMenu>
-                                    <winMenuGroup>Downloader</winMenuGroup>
-                                    <winShortcut>true</winShortcut>
-                                    <installDir>Downloader</installDir>
-                                    <runtimeImage>${java.home}</runtimeImage>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>
