@@ -40,7 +40,7 @@ public class DebianPackageBlockchain {
 
     private String lastHash = null;
 
-    DebianPackageBlockchain(InversionOfControl ioc) {
+    public DebianPackageBlockchain(InversionOfControl ioc) {
         this.ioc = ioc;
         this.configManager = ioc.resolve(ConfigManager.class);
         this.chainDir = Path.of(configManager.get("cache_dir"), BLOCKCHAIN_DIR);

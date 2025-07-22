@@ -18,6 +18,8 @@ import org.example.downloader.*;
 import org.example.downloader.deb.Menu;
 import org.example.downloader.deb.WorkerTask;
 
+import java.io.IOException;
+
 public class WorkerMenu extends Menu {
     public WorkerMenu(InversionOfControl ioc) {
         super(ioc, "Downloader worker");
@@ -36,8 +38,16 @@ public class WorkerMenu extends Menu {
         Main main = ioc.resolve(Main.class);
 
         if(main.getTask() != WorkerTask.DOWNLOAD) {
-            DebianPackageChunkSplitter splitter = ioc.resolve(DebianPackageChunkSplitter.class);
-            main.setExecutor(splitter.jointWorkerIterator(), WorkerTask.DOWNLOAD);
+            // DebianPackageChunkSplitter splitter = ioc.resolve(DebianPackageChunkSplitter.class);
+            // main.setExecutor(splitter.jointWorkerIterator(), WorkerTask.DOWNLOAD);
+
+            ioc.register(DebianPackageBlockchain.class, () -> new DebianPackageBlockchain(ioc));
+            try {
+                main.setExecutor(ioc.resolve(DebianPackageBlockchain.class).startBlockchainCSVFile(), WorkerTask.DOWNLOAD);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
             System.out.println("Download worker started.");
         } else if (main.getExecutor().isRunning()) {
             System.out.println("Download worker is already running.");
