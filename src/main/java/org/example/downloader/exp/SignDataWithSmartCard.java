@@ -19,7 +19,7 @@ import java.io.*;
 public class SignDataWithSmartCard {
     public static void main(String[] args) throws Exception {
         // Configuration
-        String pin = "<YOUR_SMARTCARD_PIN>"; // Replace with your PIN
+        String pin = "123456"; // Replace with your YubiKey PIN
         String dataToSign = "Hello, this is data to sign!";
         byte[] dataBytes = dataToSign.getBytes("UTF-8");
 

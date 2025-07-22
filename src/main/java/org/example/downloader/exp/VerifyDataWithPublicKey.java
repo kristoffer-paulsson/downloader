@@ -31,11 +31,12 @@ public class VerifyDataWithPublicKey {
         // Load signature
         byte[] signatureBytes = Files.readAllBytes(Paths.get(signatureFile));
 
-        // Load public key from PEM file
+        // Load public key and determine algorithm
         PublicKey publicKey = loadPublicKey(publicKeyPem);
+        String algorithm = publicKey.getAlgorithm().equals("EC") ? "SHA256withECDSA" : "SHA256withRSA";
 
         // Initialize signature verification
-        Signature signature = Signature.getInstance("SHA256withRSA"); // Use SHA256withECDSA for ECC
+        Signature signature = Signature.getInstance(algorithm);
         signature.initVerify(publicKey);
         signature.update(dataBytes);
 
