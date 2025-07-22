@@ -76,6 +76,7 @@ public class DebianWorker implements Runnable {
                         Files.deleteIfExists(saveFile);
                         logger.warning("SHA256 digest verification failed for " + debianPackage.packageName + ", file may be corrupted. Deleted partial file.");
                     } else {
+                        ioc.resolve(DebianPackageBlockchain.class).logPackage(debianPackage);
                         logger.info("Skipping download for " + debianPackage.packageName + " as it is already fully downloaded and SHA256 digest verified.");
                     }
                     return;
@@ -129,6 +130,9 @@ public class DebianWorker implements Runnable {
 
                     if (!debianPackage.verifySha256Digest(saveFile)) {
                         throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName);
+                    } else {
+                        ioc.resolve(DebianPackageBlockchain.class).logPackage(debianPackage);
+                        logger.info("SHA256 digest verified for " + debianPackage.packageName);
                     }
 
                     isCompleted = true;
