@@ -23,6 +23,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 public class DebianPackageBlockchain {
     public final static String BLOCKCHAIN_DIR = "chain";
@@ -43,13 +44,44 @@ public class DebianPackageBlockchain {
         this.configManager = ioc.resolve(ConfigManager.class);
         this.chainDir = Path.of(configManager.get("cache_dir"), BLOCKCHAIN_DIR);
         this.blockchainFile = chainDir.resolve("blockchain.csv");
-        this.lastHash =  computeHash(
-            String.format(
-                    "package,version,sha256digest,%s,hash\n",
-                    dateTimeFormatter.format(LocalDateTime.now()
-                    )
-            )
-        );
+        this.lastHash =  computeHash("package,version,sha256digest,datetime,hash\n");
+    }
+
+    public Map<String, DebianPackage> getPackages() {
+        Map<String, DebianPackage> packages = Map.of();
+        ioc.resolve(DebianPackageChunkSplitter.class).getJointChunkPackages().forEach((pkg) -> {
+            packages.put(pkg.sha256digest, pkg);
+        });
+        return packages;
+    }
+
+    public void continueBlockchainCSVFile() throws IOException {
+        if (!Files.exists(blockchainFile)) {
+            throw new IOException("Blockchain file does not exist, cannot continue.");
+        }
+
+        Map<String, DebianPackage> chunk = getPackages(); // Continue from existing packages
+
+        String previousHash = this.lastHash;
+        try (var reader = Files.newBufferedReader(blockchainFile, StandardCharsets.UTF_8)) {
+            String header = reader.readLine(); // Skip header
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                if (parts.length < 5) {
+                    throw new IOException("Malformed blockchain row: " + line);
+                }
+                String rowWithoutHash = String.join(",", parts[0], parts[1], parts[2], parts[3]);
+                String expectedHash = computeHash(previousHash + "," + rowWithoutHash);
+                String actualHash = parts[4];
+                if (!expectedHash.equals(actualHash)) {
+                    throw new IOException("Blockchain hash mismatch at line: " + line);
+                }
+                previousHash = actualHash;
+            }
+        }
+        this.lastHash = previousHash;
+        this.writer = new FileWriter(blockchainFile.toFile(), true);
     }
 
     public void initiateBlockchainCSVFile() throws IOException {
@@ -70,13 +102,12 @@ public class DebianPackageBlockchain {
         }
         String datetime = LocalDateTime.now().format(dateTimeFormatter);
         String row = String.join(",",
-                escape(lastHash),
                 escape(pkg.packageName),
                 escape(pkg.version),
                 escape(pkg.sha256digest),
                 escape(datetime)
         );
-        this.lastHash = computeHash(row);
+        this.lastHash = computeHash(this.lastHash + "," + row);
         String fullRow = row + "," + lastHash + "\n";
         writer.write(fullRow);
     }
