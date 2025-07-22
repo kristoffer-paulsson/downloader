@@ -5,7 +5,7 @@ import java.io.*;
 
 public class SmartCard {
     public static void main(String[] args) throws Exception {
-        String pin = "<YOUR_YUBIKEY_PIN>";
+        String pin = "123456>";
         String dataToSign = "Hello, this is data to sign!";
         byte[] dataBytes = dataToSign.getBytes("UTF-8");
 

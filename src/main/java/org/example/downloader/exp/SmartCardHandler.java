@@ -41,7 +41,12 @@ public class SmartCardHandler {
         channel = card.getBasicChannel();
         authenticate();
         // Determine key algorithm
-        X509Certificate cert = getCertificate();
+        X509Certificate cert = null;
+        try {
+            cert = getCertificate();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         PublicKey publicKey = cert.getPublicKey();
         keyAlgorithm = publicKey.getAlgorithm(); // RSA or EC
     }
