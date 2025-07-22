@@ -23,6 +23,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class DebianPackageBlockchain {
@@ -36,15 +38,19 @@ public class DebianPackageBlockchain {
 
     private FileWriter writer = null;
 
-    private DebianPackage lastPackage = null;
     private String lastHash = null;
 
     DebianPackageBlockchain(InversionOfControl ioc) {
         this.ioc = ioc;
         this.configManager = ioc.resolve(ConfigManager.class);
         this.chainDir = Path.of(configManager.get("cache_dir"), BLOCKCHAIN_DIR);
-        this.blockchainFile = chainDir.resolve("blockchain.csv");
+        this.blockchainFile = buildBlockchainFilePath();
         this.lastHash =  computeHash("package,version,sha256digest,datetime,hash\n");
+    }
+
+    private Path buildBlockchainFilePath() {
+        String fileName = String.format("chunk_blockchain_%s_%s.csv", configManager.get(ConfigManager.PIECE), configManager.get(ConfigManager.CHUNKS));
+        return chainDir.resolve(fileName);
     }
 
     public Map<String, DebianPackage> getPackages() {
@@ -55,7 +61,16 @@ public class DebianPackageBlockchain {
         return packages;
     }
 
-    public void continueBlockchainCSVFile() throws IOException {
+    public DebianWorkerIterator startBlockchainCSVFile() throws IOException {
+        if (!Files.exists(chainDir)) {
+            initiateBlockchainCSVFile();
+            return new DebianWorkerIterator(ioc, new ArrayList<>(getPackages().values()));
+        } else {
+            return continueBlockchainCSVFile();
+        }
+    }
+
+    public DebianWorkerIterator continueBlockchainCSVFile() throws IOException {
         if (!Files.exists(blockchainFile)) {
             throw new IOException("Blockchain file does not exist, cannot continue.");
         }
@@ -74,6 +89,14 @@ public class DebianPackageBlockchain {
                 String rowWithoutHash = String.join(",", parts[0], parts[1], parts[2], parts[3]);
                 String expectedHash = computeHash(previousHash + "," + rowWithoutHash);
                 String actualHash = parts[4];
+
+                DebianPackage pkg = chunk.get(parts[2]);
+                if (!pkg.verifySha256Digest(pkg.buildSavePath(configManager))) {
+                    throw new IOException("Package verification failed for: " + pkg.packageName + " at line: " + line);
+                } else {
+                    chunk.remove(parts[2]);
+                }
+
                 if (!expectedHash.equals(actualHash)) {
                     throw new IOException("Blockchain hash mismatch at line: " + line);
                 }
@@ -82,6 +105,41 @@ public class DebianPackageBlockchain {
         }
         this.lastHash = previousHash;
         this.writer = new FileWriter(blockchainFile.toFile(), true);
+
+        return new DebianWorkerIterator(ioc, new ArrayList<>(chunk.values()));
+    }
+
+    public boolean verifyBlockchainCSVFile() throws IOException {
+        if (!Files.exists(blockchainFile)) {
+            throw new IOException("Blockchain file does not exist, cannot verify.");
+        }
+
+        String previousHash = this.lastHash;
+        try (var reader = Files.newBufferedReader(blockchainFile, StandardCharsets.UTF_8)) {
+            String header = reader.readLine(); // Skip header
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                if (parts.length < 5) {
+                    throw new IOException("Malformed blockchain row: " + line);
+                }
+                String rowWithoutHash = String.join(",", parts[0], parts[1], parts[2], parts[3]);
+                String expectedHash = computeHash(previousHash + "," + rowWithoutHash);
+                String actualHash = parts[4];
+
+                DebianPackage pkg = getPackages().get(parts[2]);
+                if (pkg == null || !pkg.verifySha256Digest(pkg.buildSavePath(configManager))) {
+                    throw new IOException("Package verification failed for: " + parts[2] + " at line: " + line);
+                }
+
+                if (!expectedHash.equals(actualHash)) {
+                    throw new IOException("Blockchain hash mismatch at line: " + line);
+                }
+                previousHash = actualHash;
+            }
+        }
+        this.lastHash = previousHash;
+        return true;
     }
 
     public void initiateBlockchainCSVFile() throws IOException {
