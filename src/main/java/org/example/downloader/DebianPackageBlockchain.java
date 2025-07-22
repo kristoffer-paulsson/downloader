@@ -54,7 +54,7 @@ public class DebianPackageBlockchain {
     }
 
     public Map<String, DebianPackage> getPackages() {
-        Map<String, DebianPackage> packages = Map.of();
+        Map<String, DebianPackage> packages = new java.util.HashMap<>();
         ioc.resolve(DebianPackageChunkSplitter.class).getJointChunkPackages().forEach((pkg) -> {
             packages.put(pkg.sha256digest, pkg);
         });
@@ -62,7 +62,7 @@ public class DebianPackageBlockchain {
     }
 
     public DebianWorkerIterator startBlockchainCSVFile() throws IOException {
-        if (!Files.exists(chainDir)) {
+        if (!Files.exists(blockchainFile)) {
             initiateBlockchainCSVFile();
             return new DebianWorkerIterator(ioc, new ArrayList<>(getPackages().values()));
         } else {
@@ -72,7 +72,7 @@ public class DebianPackageBlockchain {
 
     public DebianWorkerIterator continueBlockchainCSVFile() throws IOException {
         if (!Files.exists(blockchainFile)) {
-            throw new IOException("Blockchain file does not exist, cannot continue.");
+            throw new IOException("Blockchain file " + blockchainFile + " does not exist, cannot continue.");
         }
 
         Map<String, DebianPackage> chunk = getPackages(); // Continue from existing packages
