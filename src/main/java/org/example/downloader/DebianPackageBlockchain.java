@@ -106,13 +106,37 @@ public class DebianPackageBlockchain {
         this.lastHash = previousHash;
         this.writer = new FileWriter(blockchainFile.toFile(), true);
 
+        if(chunk.isEmpty()) {
+            logPackage(endPackage());
+            writer.close();
+            this.writer = null; // Reset writer to indicate no logging mode
+        }
+
         return new DebianWorkerIterator(ioc, new ArrayList<>(chunk.values()));
+    }
+
+    private DebianPackage endPackage() {
+        // This method is used to finalize the package logging
+        // It can be used to log the last package or finalize the blockchain
+        return new DebianPackage(
+                "end-of-blockchain",
+                "0.0.0",
+                "all",
+                "end.txt",
+                0,
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                configManager.get(ConfigManager.DIST)
+        );
     }
 
     public boolean verifyBlockchainCSVFile() throws IOException {
         if (!Files.exists(blockchainFile)) {
             throw new IOException("Blockchain file does not exist, cannot verify.");
         }
+
+        DebianPackage endPackage = endPackage();
+        Map<String, DebianPackage> chunk = getPackages();
+        chunk.put(endPackage.sha256digest, endPackage);
 
         String previousHash = this.lastHash;
         try (var reader = Files.newBufferedReader(blockchainFile, StandardCharsets.UTF_8)) {
@@ -127,8 +151,9 @@ public class DebianPackageBlockchain {
                 String expectedHash = computeHash(previousHash + "," + rowWithoutHash);
                 String actualHash = parts[4];
 
-                DebianPackage pkg = getPackages().get(parts[2]);
-                if (pkg == null || !pkg.verifySha256Digest(pkg.buildSavePath(configManager))) {
+                DebianPackage pkg = chunk.get(parts[2]);
+                boolean isEndMarker = "end-of-blockchain".equals(parts[0]);
+                if (!isEndMarker && (pkg == null || !pkg.verifySha256Digest(pkg.buildSavePath(configManager)))) {
                     throw new IOException("Package verification failed for: " + parts[2] + " at line: " + line);
                 }
 
