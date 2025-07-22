@@ -14,9 +14,12 @@
  */
 package org.example.downloader;
 
+import org.example.downloader.deb.DebianFile;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -51,28 +54,37 @@ public class DebianPackage {
         return String.format("%s/%s", baseUrl, filename);
     }
 
-    public String buildSavePath(ConfigManager configManager) {
-        return String.format("%s/%s", configManager.get("package_dir"), filename);
+    public Path buildSavePath(ConfigManager configManager) {
+        return Paths.get(String.format("%s/%s", configManager.get("package_dir"), filename));
     }
 
     public long getSize() {
         return size;
     }
 
-    public boolean isFileComplete(String filePath) {
-        try {
-            return Files.size(Paths.get(filePath)) == size;
-        } catch (IOException e) {
-            return false;
+    public DebianFile getFileStatus(Path filePath) {
+        if (!Files.exists(filePath)) {
+            return DebianFile.NONE;
         }
+        try {
+            long fileSize = Files.size(filePath);
+            if (fileSize == size) {
+                return DebianFile.COMPLETE;
+            } else if (fileSize < size) {
+                return DebianFile.PARTIAL;
+            }
+        } catch (IOException e) {
+            // Handle the exception as needed
+        }
+        return DebianFile.NONE;
     }
 
-    public boolean verifySha256Digest(String filePath) throws IOException {
+    public boolean verifySha256Digest(Path filePath) throws IOException {
         try {
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             byte[] buffer = new byte[BUFFER_SIZE];
 
-            try (InputStream inputStream = Files.newInputStream(Paths.get(filePath))) {
+            try (InputStream inputStream = Files.newInputStream(filePath)) {
                 int bytesRead;
                 while ((bytesRead = inputStream.read(buffer)) != -1) {
                     sha256.update(buffer, 0, bytesRead);

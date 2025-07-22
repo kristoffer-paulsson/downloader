@@ -22,7 +22,6 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -63,8 +62,8 @@ public class DebianWorker implements Runnable {
 
         try {
             String downloadUrl = debianPackage.buildDownloadUrl(baseUrl);
-            String savePath = debianPackage.buildSavePath(configManager);
-            Path saveFile = Paths.get(savePath);
+            Path saveFile = debianPackage.buildSavePath(configManager);
+            String savePath = saveFile.toString();
             Files.createDirectories(saveFile.getParent());
 
             long downloadedSize = 0;
@@ -73,7 +72,7 @@ public class DebianWorker implements Runnable {
 
                 if(downloadedSize >= debianPackage.getSize()) {
                     isCompleted = true;
-                    if(!debianPackage.verifySha256Digest(savePath)) {
+                    if(!debianPackage.verifySha256Digest(saveFile)) {
                         Files.deleteIfExists(saveFile);
                         logger.warning("SHA256 digest verification failed for " + debianPackage.packageName + ", file may be corrupted. Deleted partial file.");
                     } else {
@@ -128,7 +127,7 @@ public class DebianWorker implements Runnable {
                         throw new IOException("Download incomplete: expected " + totalSize + " bytes, got " + downloadedSize);
                     }
 
-                    if (!debianPackage.verifySha256Digest(savePath)) {
+                    if (!debianPackage.verifySha256Digest(saveFile)) {
                         throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName);
                     }
 
@@ -187,7 +186,7 @@ public class DebianWorker implements Runnable {
     public boolean isCompleted() { return isCompleted; }
     public long getDownloadedSize() {
         try {
-            Path saveFile = Paths.get(debianPackage.buildSavePath(configManager));
+            Path saveFile = debianPackage.buildSavePath(configManager);
             return Files.exists(saveFile) ? Files.size(saveFile) : 0;
         } catch (IOException e) {
             logger.warning("Error checking downloaded size for " + debianPackage.packageName);
