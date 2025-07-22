@@ -23,10 +23,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class DebianWorker implements Runnable {
@@ -42,7 +39,7 @@ public class DebianWorker implements Runnable {
     private volatile float speed = 0.0f;
     private volatile long bytesDownloaded = 0;
     private volatile float timeUsed = 0;
-    private static final int BUFFER_SIZE = 8192;
+    static final int BUFFER_SIZE = 8192;
     private static final int CONNECT_TIMEOUT = 10000;
     private static final int READ_TIMEOUT = 30000;
 
@@ -76,7 +73,7 @@ public class DebianWorker implements Runnable {
 
                 if(downloadedSize >= debianPackage.getSize()) {
                     isCompleted = true;
-                    if(!verifyDigest(savePath)) {
+                    if(!debianPackage.verifySha256Digest(savePath)) {
                         Files.deleteIfExists(saveFile);
                         logger.warning("SHA256 digest verification failed for " + debianPackage.packageName + ", file may be corrupted. Deleted partial file.");
                     } else {
@@ -131,7 +128,7 @@ public class DebianWorker implements Runnable {
                         throw new IOException("Download incomplete: expected " + totalSize + " bytes, got " + downloadedSize);
                     }
 
-                    if (!verifyDigest(savePath)) {
+                    if (!debianPackage.verifySha256Digest(savePath)) {
                         throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName);
                     }
 
@@ -149,27 +146,6 @@ public class DebianWorker implements Runnable {
             logger.severe("Download failed for " + debianPackage.packageName + ": " + e.getMessage());
         } finally {
             isRunning.set(false);
-        }
-    }
-
-    public boolean verifyDigest(String filePath) throws IOException {
-        try {
-            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[BUFFER_SIZE];
-
-            try (InputStream inputStream = Files.newInputStream(Paths.get(filePath))) {
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    sha256.update(buffer, 0, bytesRead);
-                }
-            }
-
-            byte[] computedHash = sha256.digest();
-            String computedDigest = bytesToHex(computedHash);
-            return computedDigest.equalsIgnoreCase(debianPackage.sha256digest);
-        } catch (NoSuchAlgorithmException e) {
-            logger.severe("SHA-256 algorithm not available: " + e.getMessage());
-            throw new IOException("SHA-256 algorithm not available", e);
         }
     }
 
@@ -197,18 +173,6 @@ public class DebianWorker implements Runnable {
         isRunning.set(false);
         isPaused.set(true);
         logger.info("Download stopped for " + debianPackage.packageName);
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) {
-                hexString.append('0');
-            }
-            hexString.append(hex);
-        }
-        return hexString.toString();
     }
 
     public float getProgress() { return progress; }
