@@ -168,6 +168,7 @@ public class DebianPackageBlockchain {
         this.lastHash = computeHash(this.lastHash + "," + row);
         String fullRow = row + "," + lastHash + "\n";
         writer.write(fullRow);
+        writer.flush();
     }
 
     private String computeHash(String data) {

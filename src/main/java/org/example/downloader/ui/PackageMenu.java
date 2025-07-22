@@ -88,6 +88,9 @@ public class PackageMenu extends Menu {
         DebianPackageChunkSplitter chunkSplitter = ioc.resolve(DebianPackageChunkSplitter.class);
         Iterator<DebianComponent> comps = Arrays.stream(DebianComponent.values()).iterator();
 
+        long allSize = 0;
+        int allCount = 0;
+
         while (comps.hasNext()) {
             DebianComponent comp = comps.next();
             AtomicLong totalSize = new AtomicLong();
@@ -98,8 +101,12 @@ public class PackageMenu extends Menu {
                 packageCount.getAndIncrement();
             });
 
+            allSize += totalSize.get();
+            allCount += packageCount.get();
+
             System.out.println("Total size of chunk '" + comp.getComp() + "' with all " + packageCount + " packages: " + totalSize + " bytes " + sizeToGbString(totalSize.get()));
         }
+        System.out.println("Total size of chunk " + chunkNum + " with all " + allCount + " packages: " + allSize + " bytes " + sizeToGbString(allSize));
 
         showMessageAndWait(" ");
     }

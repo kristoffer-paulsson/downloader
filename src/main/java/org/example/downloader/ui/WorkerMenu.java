@@ -31,6 +31,7 @@ public class WorkerMenu extends Menu {
         registerOption("Stop download worker", option -> stopDownloading());
         registerOption("Pause download worker", option -> pauseDownloading());
         registerOption("Resume download worker", option -> resumeDownloading());
+        registerOption("Verify blockchain download", option -> blockchainVerifyDownload());
     }
 
     private void startDownloading() {
@@ -43,6 +44,7 @@ public class WorkerMenu extends Menu {
 
             ioc.register(DebianPackageBlockchain.class, () -> new DebianPackageBlockchain(ioc));
             try {
+                System.out.println("Starting download blockchain worker...");
                 main.setExecutor(ioc.resolve(DebianPackageBlockchain.class).startBlockchainCSVFile(), WorkerTask.DOWNLOAD);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -96,6 +98,19 @@ public class WorkerMenu extends Menu {
             System.out.println("Download worker resumed.");
         } else {
             System.out.println("Download worker is not paused.");
+        }
+        showMessageAndWait(" ");
+    }
+
+    private void blockchainVerifyDownload() {
+        System.out.println("\n=== Verifying blockchain download ===");
+
+        try {
+            DebianPackageBlockchain blockchain = new DebianPackageBlockchain(ioc);
+            blockchain.verifyBlockchainCSVFile();
+            System.out.println("Blockchain download verified successfully.");
+        } catch (IOException e) {
+            System.err.println("Error verifying blockchain download: " + e.getMessage());
         }
         showMessageAndWait(" ");
     }

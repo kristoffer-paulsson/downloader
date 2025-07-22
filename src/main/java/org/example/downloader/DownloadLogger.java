@@ -54,6 +54,20 @@ public class DownloadLogger {
             Files.move(logFile, rotatedFile, StandardCopyOption.REPLACE_EXISTING);
             addFileHandler();
         }
+        cleanupOldFiles();
+    }
+
+    public void cleanupOldFiles() {
+        try {
+            DirectoryStream<Path> stream = Files.newDirectoryStream(logFile.getParent(), "downloader.log.*");
+            for (Path path : stream) {
+                if (Files.size(path) < maxFileSize) {
+                    Files.delete(path);
+                }
+            }
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error cleaning up old log files", e);
+        }
     }
 
     public synchronized void log(String message) {
