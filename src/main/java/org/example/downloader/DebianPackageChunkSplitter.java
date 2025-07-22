@@ -162,11 +162,16 @@ public class DebianPackageChunkSplitter {
         return new DebianWorkerIterator(ioc, chunks.get(comp).packages);
     }
 
-    public DebianWorkerIterator jointWorkerIterator() {
+    public List<DebianPackage> getJointChunkPackages() {
         loadParseAndChunkAllComponents();
 
         List<DebianPackage> all = new ArrayList<>(List.of());
         chunks.forEach((c, d) -> all.addAll(d.packages));
+        return all;
+    }
+
+    public DebianWorkerIterator jointWorkerIterator() {
+        List<DebianPackage> all = getJointChunkPackages();
         System.out.println(all.size() + " packages in total from all components for joint worker iterator.");
         return new DebianWorkerIterator(ioc, all);
     }
