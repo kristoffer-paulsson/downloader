@@ -140,7 +140,10 @@ public class DebianPackageBlockchain {
 
         DebianPackage endPackage = endPackage();
         Map<String, DebianPackage> chunk = getPackages();
+        int chunkSize = chunk.size();
         chunk.put(endPackage.sha256digest, endPackage);
+
+        int lineCount = 0;
 
         String previousHash = this.lastHash;
         try (var reader = Files.newBufferedReader(blockchainFile, StandardCharsets.UTF_8)) {
@@ -157,15 +160,23 @@ public class DebianPackageBlockchain {
 
                 DebianPackage pkg = chunk.get(parts[2]);
                 boolean isEndMarker = "end-of-blockchain".equals(parts[0]);
-                if (!isEndMarker && (pkg == null || !pkg.verifySha256Digest(pkg.buildSavePath(configManager)))) {
+                if (!isEndMarker && (!pkg.verifySha256Digest(pkg.buildSavePath(configManager)))) {
                     throw new IOException("Package verification failed for: " + parts[2] + " at line: " + line);
                 }
+                chunk.remove(parts[2]);
 
                 if (!expectedHash.equals(actualHash)) {
                     throw new IOException("Blockchain hash mismatch at line: " + line);
                 }
+                lineCount++;
+                System.out.println("Package verified: " + pkg.packageName + "-" + pkg.version + " with hash: " + actualHash);
+
                 previousHash = actualHash;
             }
+
+            System.out.println("Total lines in blockchain: " + lineCount);
+            System.out.println("Number of packages in chunk: " + chunkSize);
+            System.out.println("Number of packages left: " + chunk.size());
         }
         this.lastHash = previousHash;
         return true;
