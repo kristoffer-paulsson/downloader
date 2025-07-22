@@ -18,6 +18,7 @@ import org.example.downloader.*;
 import org.example.downloader.deb.DebianComponent;
 import org.example.downloader.deb.Menu;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +35,7 @@ public class PackageMenu extends Menu {
         registerOption("Download packages lists", option -> downloadList());
         registerOption("Package lists stats", option -> packageStatistics());
         registerOption("Package chunk stat", option -> chunkStatistics());
+        registerOption("Verify chunk blockchain", option -> blockchainVerifyDownload());
     }
 
     private void downloadList() {
@@ -107,6 +109,21 @@ public class PackageMenu extends Menu {
             System.out.println("Total size of chunk '" + comp.getComp() + "' with all " + packageCount + " packages: " + totalSize + " bytes " + sizeToGbString(totalSize.get()));
         }
         System.out.println("Total size of chunk " + chunkNum + " with all " + allCount + " packages: " + allSize + " bytes " + sizeToGbString(allSize));
+
+        showMessageAndWait(" ");
+    }
+
+    private void blockchainVerifyDownload() {
+        System.out.println("\n=== Verify package chunk blockchain ===");
+        DebianPackageBlockchain blockchain = new DebianPackageBlockchain(ioc);
+
+        try {
+            System.out.println("Loading blockchain file: " + blockchain.getBlockchainFile());
+            blockchain.verifyBlockchainCSVFile();
+            System.out.println("Blockchain download verified successfully.");
+        } catch (IOException e) {
+            System.err.println("Error verifying blockchain download: " + e.getMessage());
+        }
 
         showMessageAndWait(" ");
     }

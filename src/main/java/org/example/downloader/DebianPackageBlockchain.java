@@ -48,6 +48,10 @@ public class DebianPackageBlockchain {
         this.lastHash =  computeHash("package,version,sha256digest,datetime,hash\n");
     }
 
+    public String getBlockchainFile() {
+        return blockchainFile.toString();
+    }
+
     private Path buildBlockchainFilePath() {
         String fileName = String.format("chunk_blockchain_%s_%s.csv", configManager.get(ConfigManager.PIECE), configManager.get(ConfigManager.CHUNKS));
         return chainDir.resolve(fileName);
