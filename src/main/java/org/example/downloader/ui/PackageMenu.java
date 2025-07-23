@@ -35,7 +35,7 @@ public class PackageMenu extends Menu {
         registerOption("Download packages lists", option -> downloadList());
         registerOption("Package lists stats", option -> packageStatistics());
         registerOption("Package chunk stat", option -> chunkStatistics());
-        registerOption("Verify chunk blockchain", option -> blockchainVerifyDownload());
+        registerOption("Verify chunk blockchain", option -> new ChainForm(ioc).runForm());
     }
 
     private void downloadList() {

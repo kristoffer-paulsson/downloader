@@ -43,7 +43,15 @@ public class DebianPackageBlockchain {
         this.ioc = ioc;
         this.configManager = ioc.resolve(ConfigManager.class);
         this.chainDir = Path.of(configManager.get("cache_dir"), BLOCKCHAIN_DIR);
-        this.blockchainFile = buildBlockchainFilePath();
+        this.blockchainFile = buildBlockchainFilePath(Integer.parseInt(configManager.get(ConfigManager.PIECE)));
+        this.lastHash =  computeHash("package,version,sha256digest,datetime,hash\n");
+    }
+
+    public DebianPackageBlockchain(InversionOfControl ioc, int chunkNum) {
+        this.ioc = ioc;
+        this.configManager = ioc.resolve(ConfigManager.class);
+        this.chainDir = Path.of(configManager.get("cache_dir"), BLOCKCHAIN_DIR);
+        this.blockchainFile = buildBlockchainFilePath(chunkNum);
         this.lastHash =  computeHash("package,version,sha256digest,datetime,hash\n");
     }
 
@@ -51,8 +59,8 @@ public class DebianPackageBlockchain {
         return blockchainFile.toString();
     }
 
-    private Path buildBlockchainFilePath() {
-        String fileName = String.format("chunk_blockchain_%s_%s.csv", configManager.get(ConfigManager.PIECE), configManager.get(ConfigManager.CHUNKS));
+    private Path buildBlockchainFilePath(int piece) {
+        String fileName = String.format("chunk_blockchain_%s_%s.csv", piece, configManager.get(ConfigManager.CHUNKS));
         return chainDir.resolve(fileName);
     }
 
