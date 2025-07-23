@@ -114,6 +114,7 @@ public class DebianMirrorCache {
             System.err.println("Error reading mirror cache: " + e.getMessage());
         }
         this.mirrors = mirrors;
+        Collections.shuffle(this.mirrors);
         loadBadMirrors();
     }
 
@@ -142,6 +143,7 @@ public class DebianMirrorCache {
 
     public void reportBadMirror(String mirror) {
         if (mirrors.remove(mirror)) {
+            Collections.shuffle(this.mirrors);
             badMirrors.add(mirror);
             saveBadMirror(mirror);
         }
