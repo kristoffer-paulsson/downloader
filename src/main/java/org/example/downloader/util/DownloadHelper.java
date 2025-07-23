@@ -132,7 +132,7 @@ public class DownloadHelper {
          *
          * @return true if the download has timed out, false otherwise.
          */
-        public boolean isTimedOut() {
+        public boolean hasTimedOut() {
             return timedOut;
         }
     }
