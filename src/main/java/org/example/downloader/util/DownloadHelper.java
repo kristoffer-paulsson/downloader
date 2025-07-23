@@ -57,6 +57,7 @@ public class DownloadHelper {
         private float startTime;
         private boolean hasExited = false;
         private boolean isComplete = false;
+        private boolean timedOut = false;
 
         private float speed = 0.0f;
 
@@ -125,6 +126,15 @@ public class DownloadHelper {
         public boolean isComplete() {
             return isComplete;
         }
+
+        /**
+         * Checks if the download has timed out.
+         *
+         * @return true if the download has timed out, false otherwise.
+         */
+        public boolean isTimedOut() {
+            return timedOut;
+        }
     }
 
     /**
@@ -135,6 +145,8 @@ public class DownloadHelper {
      * @throws RuntimeException if an error occurs while continuing the download.
      */
     public static long continueDownload(Download download) {
+        long bytesDownloaded = 0;
+
         try {
             long currentByte = 0;
             if (Files.exists(download.filePath)) {
@@ -159,7 +171,6 @@ public class DownloadHelper {
                 }
 
                 long totalSize = connection.getContentLengthLong() + currentByte;
-                long bytesDownloaded = 0;
 
                 try (
                         InputStream inputStream = connection.getInputStream();
@@ -178,13 +189,15 @@ public class DownloadHelper {
                 if(bytesDownloaded + currentByte == totalSize) {
                     download.isComplete = true;
                 }
-                return bytesDownloaded;
+            } catch (SocketTimeoutException e) {
+                download.timedOut = true;
             } finally {
                 connection.disconnect();
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        return bytesDownloaded;
     }
 
     /**
