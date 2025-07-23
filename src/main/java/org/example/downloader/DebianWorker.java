@@ -1,16 +1,16 @@
 /**
  * Copyright (c) 2025 by Kristoffer Paulsson <kristoffer.paulsson@talenten.se>.
- * <p>
+ *
  * This software is available under the terms of the MIT license. Parts are licensed
  * under different terms if stated. The legal terms are attached to the LICENSE file
  * and are made available on:
- * <p>
- * https://opensource.org/licenses/MIT
- * <p>
+ *
+ *      https://opensource.org/licenses/MIT
+ *
  * SPDX-License-Identifier: MIT
- * <p>
+ *
  * Contributors:
- * Kristoffer Paulsson - initial implementation
+ *      Kristoffer Paulsson - initial implementation
  */
 package org.example.downloader;
 
