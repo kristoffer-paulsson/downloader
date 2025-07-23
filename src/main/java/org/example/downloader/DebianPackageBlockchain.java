@@ -184,6 +184,15 @@ public class DebianPackageBlockchain {
             System.out.println("Total lines in blockchain: " + lineCount);
             System.out.println("Number of packages in chunk: " + chunkSize);
             System.out.println("Number of packages left: " + chunk.size());
+
+            if (!chunk.isEmpty()) {
+                System.out.println("Warning: Not all packages were verified, remaining packages: " + chunk.size());
+                for (DebianPackage pkg : chunk.values()) {
+                    System.out.println("Remaining package: " + pkg.packageName + "-" + pkg.version);
+                }
+            } else {
+                System.out.println("All packages verified successfully.");
+            }
         }
         this.lastHash = previousHash;
         return true;
