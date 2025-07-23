@@ -168,7 +168,7 @@ public class DebianPackageBlockchain {
                 DebianPackage pkg = chunk.get(parts[2]);
                 boolean isEndMarker = "end-of-blockchain".equals(parts[0]);
                 if (!isEndMarker && (!pkg.verifySha256Digest(pkg.buildSavePath(configManager)))) {
-                    throw new IOException("Package verification failed for: " + parts[2] + " at line: " + line);
+                    throw new IOException("Package sha256 digest failed for: " + parts[2] + " at line: " + line);
                 }
                 chunk.remove(parts[2]);
 
@@ -181,16 +181,18 @@ public class DebianPackageBlockchain {
                 previousHash = actualHash;
             }
 
-            System.out.println("Total lines in blockchain: " + lineCount);
-            System.out.println("Number of packages in chunk: " + chunkSize);
-            System.out.println("Number of packages left: " + chunk.size());
-
             if (!chunk.isEmpty()) {
-                System.out.println("Warning: Not all packages were verified, remaining packages: " + chunk.size());
                 for (DebianPackage pkg : chunk.values()) {
                     System.out.println("Remaining package: " + pkg.packageName + "-" + pkg.version);
                 }
+                System.out.println("Total lines in blockchain: " + lineCount);
+                System.out.println("Number of packages in chunk: " + chunkSize);
+                System.out.println("Number of packages left: " + chunk.size());
+                System.out.println("Warning: Not all packages were verified, remaining packages: " + chunk.size());
             } else {
+                System.out.println("Total lines in blockchain: " + lineCount);
+                System.out.println("Number of packages in chunk: " + chunkSize);
+                System.out.println("Number of packages left: " + chunk.size());
                 System.out.println("All packages verified successfully.");
             }
         }

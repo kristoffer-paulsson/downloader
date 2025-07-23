@@ -68,7 +68,6 @@ public class ChainForm extends Form {
         try {
             System.out.println("Loading blockchain file: " + blockchain.getBlockchainFile());
             blockchain.verifyBlockchainCSVFile();
-            System.out.println("Blockchain download verified successfully.");
         } catch (IOException e) {
             System.err.println("Error verifying blockchain download: " + e.getMessage());
         }
