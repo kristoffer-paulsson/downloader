@@ -15,15 +15,23 @@
 package org.example.downloader.util;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Utility class for downloading files and querying file sizes from URLs.
  * Provides methods to query the total file size and the size of a partial download.
  */
 public class DownloadHelper {
+
+    static final int BUFFER_SIZE = 8192;
+    private static final int CONNECT_TIMEOUT = 10000;
+    private static final int READ_TIMEOUT = 30000;
 
     private static HttpURLConnection setupConnection(URL url, String method, String rangeHeader) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -33,10 +41,110 @@ public class DownloadHelper {
         if (rangeHeader != null) {
             connection.setRequestProperty("Range", rangeHeader);
         }
-        connection.setConnectTimeout(10000);
-        connection.setReadTimeout(30000);
+        connection.setConnectTimeout(CONNECT_TIMEOUT);
+        connection.setReadTimeout(READ_TIMEOUT);
         connection.connect();
         return connection;
+    }
+
+    public static class Download {
+        private final URL url;
+        private final Path filePath;
+
+        private float startTime;
+        private boolean isQuitted = false;
+        private boolean isCompleted = false;
+
+        private float speed = 0.0f;
+
+        Download(URL url, Path filePath) {
+            this.url = url;
+            this.filePath = filePath;
+        }
+
+        public URL getUrl() {
+            return url;
+        }
+
+        public Path getFilePath() {
+            return filePath;
+        }
+
+        public void stop() {
+            isQuitted = true;
+        }
+
+        public float getTime() {
+            return (System.currentTimeMillis() - startTime) / 1000.0f;
+        }
+
+        public float getSpeed() {
+            return speed;
+        }
+
+        public boolean isCompleted() {
+            return isCompleted;
+        }
+    }
+
+    /**
+     * Continues a download from a specified URL, resuming from the last downloaded byte.
+     *
+     * @param download The Download object containing the URL and file path.
+     * @return The number of bytes downloaded during this continuation.
+     * @throws RuntimeException if an error occurs while continuing the download.
+     */
+    public static long continueDownload(Download download) {
+        try {
+            long currentByte = 0;
+            if (Files.exists(download.filePath)) {
+                currentByte = Files.size(download.filePath);
+            } else {
+                Files.createDirectories(download.filePath.getParent());
+                Files.createFile(download.filePath);
+            }
+
+            download.startTime = System.currentTimeMillis();
+            HttpURLConnection connection = (HttpURLConnection) download.url.openConnection();
+            try {
+                if (currentByte > 0) {
+                    connection.setRequestProperty("Range", "bytes=" + currentByte + "-");
+                }
+                connection.setConnectTimeout(CONNECT_TIMEOUT);
+                connection.setReadTimeout(READ_TIMEOUT);
+
+                int responseCode = connection.getResponseCode();
+                if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
+                    throw new IOException("HTTP error code: " + responseCode + " for " + download.url);
+                }
+
+                long totalSize = connection.getContentLengthLong() + currentByte;
+                long bytesDownloaded = 0;
+
+                try (
+                        InputStream inputStream = connection.getInputStream();
+                        RandomAccessFile outputFile = new RandomAccessFile(download.filePath.toFile(), "rw")
+                ) {
+                    outputFile.seek(currentByte);
+
+                    byte[] buffer = new byte[BUFFER_SIZE];
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1 && !download.isQuitted) {
+                        outputFile.write(buffer, 0, bytesRead);
+                        bytesDownloaded += bytesRead;
+                        download.speed = bytesDownloaded / download.getTime();
+                    }
+                }
+                if(bytesDownloaded + currentByte == totalSize) {
+                    download.isCompleted = true;
+                }
+                return bytesDownloaded;
+            } finally {
+                connection.disconnect();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
