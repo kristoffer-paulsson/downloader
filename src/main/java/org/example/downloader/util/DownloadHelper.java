@@ -47,43 +47,80 @@ public class DownloadHelper {
         return connection;
     }
 
+    /**
+     * Represents a download task with a URL and file path.
+     */
     public static class Download {
         private final URL url;
         private final Path filePath;
 
         private float startTime;
         private boolean isQuitted = false;
-        private boolean isCompleted = false;
+        private boolean isComplete = false;
 
         private float speed = 0.0f;
 
+        /**
+         * Constructs a Download object with the specified URL and file path.
+         *
+         * @param url      The URL to download from.
+         * @param filePath The path where the downloaded file will be saved.
+         */
         Download(URL url, Path filePath) {
             this.url = url;
             this.filePath = filePath;
         }
 
+        /**
+         * Gets the URL of the download.
+         *
+         * @return The URL to download from.
+         */
         public URL getUrl() {
             return url;
         }
 
+        /**
+         * Gets the file path where the downloaded file will be saved.
+         *
+         * @return The path to the file.
+         */
         public Path getFilePath() {
             return filePath;
         }
 
+        /**
+         * Stops the download process.
+         */
         public void stop() {
             isQuitted = true;
         }
 
+        /**
+         * Gets the elapsed time since the download started.
+         *
+         * @return The elapsed time in seconds.
+         */
         public float getTime() {
             return (System.currentTimeMillis() - startTime) / 1000.0f;
         }
 
+        /**
+         * Gets the current download speed in bytes per second.
+         *
+         * @return The download speed.
+         */
         public float getSpeed() {
             return speed;
         }
 
-        public boolean isCompleted() {
-            return isCompleted;
+        /**
+         * Checks if the download is complete or partial.
+         *
+         * @return true if the download is complete, false otherwise.
+         */
+        public boolean isComplete() {
+            return isComplete;
         }
     }
 
@@ -136,7 +173,7 @@ public class DownloadHelper {
                     }
                 }
                 if(bytesDownloaded + currentByte == totalSize) {
-                    download.isCompleted = true;
+                    download.isComplete = true;
                 }
                 return bytesDownloaded;
             } finally {
