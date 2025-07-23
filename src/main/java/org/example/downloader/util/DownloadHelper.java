@@ -93,6 +93,9 @@ public class DownloadHelper {
          * Stops the download process.
          */
         public void stop() {
+            if(startTime == 0) {
+                throw new IllegalStateException("Download has not started yet.");
+            }
             isQuitted = true;
         }
 
