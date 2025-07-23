@@ -44,24 +44,6 @@
                     <source>11</source>
                     <target>11</target>
                     <fork>true</fork>
-                    <executable>/Library/Java/JavaVirtualMachines/jdk-17.0.13+11/Contents/Home/bin/javac</executable>
-                </configuration>
-            </plugin>
-
-            <!-- Maven Exec Plugin for running the application -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <mainClass>org.example.downloader.exp.SignDataWithSmartCard</mainClass>
                 </configuration>
             </plugin>
 
