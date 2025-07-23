@@ -55,7 +55,7 @@ public class DownloadHelper {
         private final Path filePath;
 
         private float startTime;
-        private boolean isQuitted = false;
+        private boolean hasExited = false;
         private boolean isComplete = false;
 
         private float speed = 0.0f;
@@ -96,7 +96,7 @@ public class DownloadHelper {
             if(startTime == 0) {
                 throw new IllegalStateException("Download has not started yet.");
             }
-            isQuitted = true;
+            hasExited = true;
         }
 
         /**
@@ -169,7 +169,7 @@ public class DownloadHelper {
 
                     byte[] buffer = new byte[BUFFER_SIZE];
                     int bytesRead;
-                    while ((bytesRead = inputStream.read(buffer)) != -1 && !download.isQuitted) {
+                    while ((bytesRead = inputStream.read(buffer)) != -1 && !download.hasExited) {
                         outputFile.write(buffer, 0, bytesRead);
                         bytesDownloaded += bytesRead;
                         download.speed = bytesDownloaded / download.getTime();
