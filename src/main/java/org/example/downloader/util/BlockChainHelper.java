@@ -20,10 +20,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.function.Predicate;
 
 public class BlockChainHelper {
 
@@ -50,6 +52,42 @@ public class BlockChainHelper {
                 writer.write("artifact,digest,datetime,hash\n");
             } catch (IOException e) {
                 throw new RuntimeException("Failed to start blockchain", e);
+            }
+        }
+
+        private void startOrContinue(Predicate<Row> verificationPredicate) {
+            if(Files.exists(blockchainFile.toPath())) {
+                verify(verificationPredicate);
+                try {
+                    writer = Files.newBufferedWriter(blockchainFile.toPath(), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                start();
+            }
+        }
+
+        private void verify(Predicate<Row> verificationPredicate) {
+            if (writer != null) {
+                throw new IllegalStateException("Blockchain already started. Call start() only once.");
+            }
+
+            lastHash = computeHash(blockchainFile.getName());
+
+            try {
+                Files.lines(blockchainFile.toPath()).skip(1).forEach(line -> {
+                    Row row = rowFromString(line);
+                    if (!row.verifyRowHash(lastHash)) {
+                        throw new IllegalStateException("Invalid row hash: " + row.hash);
+                    }
+                    if (!verificationPredicate.test(row)) {
+                        throw new IllegalStateException("Row verification failed for: " + row.artifact);
+                    }
+                    lastHash = row.hash;
+                });
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to verify blockchain", e);
             }
         }
 
@@ -189,23 +227,29 @@ public class BlockChainHelper {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return new Blockchain(blockchainFile.toFile());
+
+        Blockchain blockchain = new Blockchain(blockchainFile.toFile());
+        blockchain.start();
+        return blockchain;
     }
 
-    public static Blockchain continueBlockchain(Path blockchainFile, String lastHash) {
-        /*if (blockchainFile == null || !blockchainFile.toString().endsWith(".csv")) {
-            throw new IllegalArgumentException("Invalid blockchain file path: " + blockchainFile);
+    public static Blockchain continueBlockchain(Path blockchainFile, Predicate<Row> verificationPredicate) {
+        if (blockchainFile == null || !Files.exists(blockchainFile)) {
+            throw new IllegalArgumentException("Blockchain file does not exist: " + blockchainFile);
         }
-        if (!isValid32CharHex(lastHash)) {
-            throw new IllegalArgumentException("Invalid last hash: " + lastHash);
-        }
-        Blockchain blockchain = new Blockchain(blockchainFile);
-        blockchain.lastHash = lastHash;
-        return blockchain;*/
-        return null;
+
+        Blockchain blockchain = new Blockchain(blockchainFile.toFile());
+        blockchain.startOrContinue(verificationPredicate);
+        return blockchain;
     }
 
-    public static Blockchain verifyBlockchain(Path blockchainFile) {
-        return null; // Placeholder for future implementation
+    public static Blockchain verifyBlockchain(Path blockchainFile, Predicate<Row> verificationPredicate) {
+        if (blockchainFile == null || !Files.exists(blockchainFile)) {
+            throw new IllegalArgumentException("Blockchain file does not exist: " + blockchainFile);
+        }
+
+        Blockchain blockchain = new Blockchain(blockchainFile.toFile());
+        blockchain.verify(verificationPredicate);
+        return blockchain;
     }
 }
