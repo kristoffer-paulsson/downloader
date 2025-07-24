@@ -25,6 +25,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 public class BlockChainHelper {
@@ -79,7 +80,10 @@ public class BlockChainHelper {
          */
         private void startOrContinue(Predicate<Row> verificationPredicate) {
             if(Files.exists(blockchainFile.toPath())) {
-                verify(verificationPredicate);
+                boolean isFinalized = verify(false, verificationPredicate);
+                if (isFinalized) {
+                    throw new IllegalStateException("Blockchain is finalized. Cannot continue.");
+                }
                 try {
                     writer = Files.newBufferedWriter(blockchainFile.toPath(), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
                 } catch (IOException e) {
@@ -95,27 +99,44 @@ public class BlockChainHelper {
          * It uses the provided predicate to verify each row's content.
          *
          * @param verificationPredicate a predicate to verify each row in the blockchain
+         * @return true if the blockchain is finalized, false otherwise
          */
-        private void verify(Predicate<Row> verificationPredicate) {
+        private boolean verify(boolean expectFinalized, Predicate<Row> verificationPredicate) {
             if (writer != null) {
                 throw new IllegalStateException("Blockchain already started. Call start() only once.");
             }
 
             lastHash = computeHash(blockchainFile.getName());
+            AtomicReference<Row> lastRow = null;
 
             try {
                 Files.lines(blockchainFile.toPath()).skip(1).forEach(line -> {
-                    Row row = rowFromString(line);
-                    if (!row.verifyRowHash(lastHash)) {
-                        throw new IllegalStateException("Invalid row hash: " + row.hash);
+                    lastRow.set(rowFromString(line));
+                    if (!lastRow.get().verifyRowHash(lastHash)) {
+                        throw new IllegalStateException("Invalid row hash: " + lastRow.get().hash);
                     }
-                    if (!verificationPredicate.test(row)) {
-                        throw new IllegalStateException("Row verification failed for: " + row.artifact);
+                    if (!(lastRow.get().artifact.equals("end-of-blockchain") && expectFinalized)) {
+                        if (!verificationPredicate.test(lastRow.get())) {
+                            throw new IllegalStateException("Row verification failed for: " + lastRow.get().artifact);
+                        }
                     }
-                    lastHash = row.hash;
+                    lastHash = lastRow.get().hash;
                 });
             } catch (IOException e) {
                 throw new RuntimeException("Failed to verify blockchain", e);
+            }
+
+            // Check if the last row is the end-of-blockchain marker
+            if (lastRow != null && lastRow.get().artifact.equals("end-of-blockchain")) {
+                if (!expectFinalized) {
+                    throw new IllegalStateException("Blockchain is finalized but not expected to be.");
+                }
+                return true; // Blockchain is finalized
+            } else {
+                if (expectFinalized) {
+                    throw new IllegalStateException("Blockchain is not finalized but expected to be.");
+                }
+                return false; // Blockchain is not finalized
             }
         }
 
@@ -136,6 +157,57 @@ public class BlockChainHelper {
                 writer.flush();
             } catch (IOException e) {
                 throw new RuntimeException("Failed to write to blockchain file", e);
+            }
+        }
+
+        /**
+         * Adds a new row to the blockchain with the specified artifact and digest.
+         * The datetime is set to the current time, and the hash is computed automatically.
+         *
+         * @param artifact the name of the artifact
+         * @param digest   the digest of the artifact
+         */
+        public void addRow(String artifact, String digest) {
+            Row row = rowFromArtifact(artifact, digest);
+            addRow(row);
+        }
+
+        /**
+         * First finalizes teh blockchain by adding a final row with the last hash.
+         * Finalizes the blockchain by closing the writer and ensuring all data is flushed.
+         * This method should be called when done with the blockchain to ensure data integrity.
+         */
+        public void finalizeBlockchain() {
+            if (writer == null) {
+                throw new IllegalStateException("Blockchain not started. Call start() before finalizing.");
+            }
+
+            // Add a final row with the last hash
+            Row finalRow = new Row(
+                    "end-of-blockchain",
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    LocalDateTime.now().format(dateTimeFormatter),
+                    lastHash
+            );
+            addRow(finalRow);
+
+            // Close the writer to ensure all data is flushed
+            close();
+        }
+
+
+        /**
+         * Closes the blockchain writer. This should be called when done with the blockchain
+         * to ensure all data is flushed and the file is properly closed.
+         */
+        public void close() {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to close blockchain writer", e);
+                }
+                writer = null;
             }
         }
     }
@@ -385,13 +457,14 @@ public class BlockChainHelper {
      * @param verificationPredicate a predicate to verify each row in the blockchain
      * @return a Blockchain instance if verification is successful
      */
-    public static Blockchain verifyBlockchain(Path blockchainFile, Predicate<Row> verificationPredicate) {
+    public static Blockchain verifyBlockchain(Path blockchainFile, boolean expectFinalized, Predicate<Row> verificationPredicate) {
         if (blockchainFile == null || !Files.exists(blockchainFile)) {
             throw new IllegalArgumentException("Blockchain file does not exist: " + blockchainFile);
         }
 
         Blockchain blockchain = new Blockchain(blockchainFile.toFile());
-        blockchain.verify(verificationPredicate);
+        blockchain.verify(expectFinalized, verificationPredicate);
         return blockchain;
     }
 }
+
