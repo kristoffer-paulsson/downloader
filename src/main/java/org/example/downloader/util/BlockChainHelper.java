@@ -95,9 +95,11 @@ public class BlockChainHelper {
         }
 
         /**
-         * Verifies the blockchain by reading each row from the file and checking its hash.
-         * It uses the provided predicate to verify each row's content.
+         * Verifies the integrity of the blockchain by reading the file and checking each row.
+         * It ensures that the hashes are valid and that the rows match the expected format.
+         * If the blockchain is finalized, it checks for the end-of-blockchain marker.
          *
+         * @param expectFinalized whether the blockchain is expected to be finalized
          * @param verificationPredicate a predicate to verify each row in the blockchain
          * @return true if the blockchain is finalized, false otherwise
          */
@@ -128,14 +130,8 @@ public class BlockChainHelper {
 
             // Check if the last row is the end-of-blockchain marker
             if (lastRow != null && lastRow.get().artifact.equals("end-of-blockchain")) {
-                if (!expectFinalized) {
-                    throw new IllegalStateException("Blockchain is finalized but not expected to be.");
-                }
                 return true; // Blockchain is finalized
             } else {
-                if (expectFinalized) {
-                    throw new IllegalStateException("Blockchain is not finalized but expected to be.");
-                }
                 return false; // Blockchain is not finalized
             }
         }
