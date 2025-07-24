@@ -3,6 +3,7 @@ package org.example.downloader.java;
 public enum JavaPackage {
     DEB("deb"),
     RPM("rpm"),
+    ZIP("zip"),
     MSI("msi"),
     EXE("exe"),
     TAR_GZ("tar.gz"),
