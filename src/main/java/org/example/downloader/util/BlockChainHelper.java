@@ -14,7 +14,11 @@
  */
 package org.example.downloader.util;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -26,12 +30,41 @@ public class BlockChainHelper {
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public static class Blockchain {
-        private final Path blockchainFile;
+        private final File blockchainFile;
         private String lastHash = null;
 
-        public Blockchain(Path blockchainFile) {
+        private BufferedWriter writer = null;
+
+        public Blockchain(File blockchainFile) {
             this.blockchainFile = blockchainFile;
-            this.lastHash = computeHash("artifact,digest,datetime,hash");
+            this.lastHash = computeHash(blockchainFile.getName());
+        }
+
+        public Path getBlockchainFile() {
+            return blockchainFile.toPath();
+        }
+
+        private void start() {
+            try {
+                writer = Files.newBufferedWriter(blockchainFile.toPath(), StandardCharsets.UTF_8);
+                writer.write("artifact,digest,datetime,hash\n");
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to start blockchain", e);
+            }
+        }
+
+        public void addRow(Row row) {
+            if (writer == null) {
+                throw new IllegalStateException("Blockchain not started. Call start() before adding rows.");
+            }
+
+            try {
+                writer.write(row.buildNewRowAddHash(lastHash));
+                lastHash = row.hash;
+                writer.flush();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to write to blockchain file", e);
+            }
         }
     }
 
@@ -131,5 +164,48 @@ public class BlockChainHelper {
     public static boolean isValid32CharHex(String input) {
         // Check if string is exactly 32 characters long and contains only hex characters
         return input != null && input.matches("^[0-9a-fA-F]{32}$");
+    }
+
+    /**
+     * Starts a new blockchain with the given name in the specified directory.
+     * The name must be at least 4 characters long, a timestamp will be appended
+     * to ensure uniqueness. The unique filename is used to create the initial hash.
+     *
+     * @param blockchainDir the directory where the blockchain file will be created
+     * @param name          the unique name of the blockchain
+     * @return a new Blockchain instance
+     */
+    public static Blockchain startBlockchain(Path blockchainDir, String name) {
+        if (name == null || name.length() < 4) {
+            throw new IllegalArgumentException("Blockchain name must be at least 4 characters long");
+        }
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        String timestamp = LocalDateTime.now().format(dateTimeFormatter);
+        Path blockchainFile = blockchainDir.resolve(name + "-" + timestamp + ".csv");
+
+        try {
+            Files.createDirectories(blockchainFile.getParent());
+            Files.createFile(blockchainFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return new Blockchain(blockchainFile.toFile());
+    }
+
+    public static Blockchain continueBlockchain(Path blockchainFile, String lastHash) {
+        /*if (blockchainFile == null || !blockchainFile.toString().endsWith(".csv")) {
+            throw new IllegalArgumentException("Invalid blockchain file path: " + blockchainFile);
+        }
+        if (!isValid32CharHex(lastHash)) {
+            throw new IllegalArgumentException("Invalid last hash: " + lastHash);
+        }
+        Blockchain blockchain = new Blockchain(blockchainFile);
+        blockchain.lastHash = lastHash;
+        return blockchain;*/
+        return null;
+    }
+
+    public static Blockchain verifyBlockchain(Path blockchainFile) {
+        return null; // Placeholder for future implementation
     }
 }
