@@ -118,6 +118,14 @@ public class DebianPackageChunkSplitter {
                         currentIndex - chunk.size(),
                         currentIndex - 1
                 ));
+            } else {
+                // If no packages were added, create an empty chunk
+                chunks.add(new ChunkSplit(
+                        Collections.emptyList(),
+                        i + 1,
+                        currentIndex - 1,
+                        currentIndex - 1
+                ));
             }
         }
 
