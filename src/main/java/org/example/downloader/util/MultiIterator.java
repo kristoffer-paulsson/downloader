@@ -14,27 +14,28 @@
  */
 package org.example.downloader.util;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 public class MultiIterator<E extends BasePackage> implements Iterator<E>, AutoCloseable {
-    private final Iterator<E>[] iterators;
-    private int currentIndex = 0;
+    private final Iterator<Iterator<E>> iterators;
+    private Iterator<E> currentIterator;
 
     @SafeVarargs
     public MultiIterator(Iterator<E>... iterators) {
-        this.iterators = iterators;
+        this.iterators = Arrays.stream(iterators).iterator();
     }
 
     @Override
     public boolean hasNext() {
-        while (currentIndex < iterators.length) {
-            if (iterators[currentIndex].hasNext()) {
-                return true;
+        if (currentIterator == null) {
+            if (!iterators.hasNext()) {
+                return false; // No iterators available
             }
-            currentIndex++;
+            currentIterator = iterators.next();
         }
-        return false;
+        return currentIterator.hasNext();
     }
 
     @Override
@@ -42,12 +43,13 @@ public class MultiIterator<E extends BasePackage> implements Iterator<E>, AutoCl
         if (!hasNext()) {
             throw new NoSuchElementException("No more elements in the multi-iterator");
         }
-        return iterators[currentIndex].next();
+        return currentIterator.next();
     }
 
     @Override
     public void close() throws Exception {
-        for (Iterator<E> iterator : iterators) {
+        for (Iterator<Iterator<E>> it = iterators; it.hasNext(); ) {
+            Iterator<E> iterator = it.next();
             if (iterator instanceof AutoCloseable) {
                 ((AutoCloseable) iterator).close();
             }
