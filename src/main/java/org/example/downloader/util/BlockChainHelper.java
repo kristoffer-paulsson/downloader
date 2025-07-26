@@ -65,7 +65,7 @@ public class BlockChainHelper {
         private void start() {
             try {
                 writer = Files.newBufferedWriter(blockchainFile.toPath(), StandardCharsets.UTF_8);
-                writer.write("artifact,digest,datetime,hash\n");
+                writer.write("artifact,metadata,digest,datetime,hash\n");
             } catch (IOException e) {
                 throw new RuntimeException("Failed to start blockchain", e);
             }
@@ -214,6 +214,7 @@ public class BlockChainHelper {
      */
     public static class Row {
         String artifact;
+        String metadata;
         String digest;
         String datetime;
         String hash;
@@ -226,8 +227,9 @@ public class BlockChainHelper {
          * @param digest   the digest of the artifact
          * @param datetime the datetime when the row was created
          */
-        private Row(String artifact, String digest, String datetime) {
+        private Row(String artifact, String metadata, String digest, String datetime) {
             this.artifact = artifact.trim();
+            this.metadata = metadata.trim();
             this.digest = digest.trim();
             this.datetime = datetime.trim();
             this.hash = "";
@@ -242,8 +244,9 @@ public class BlockChainHelper {
          * @param datetime the datetime when the row was created
          * @param hash     the hash of the row
          */
-        private Row(String artifact, String digest, String datetime, String hash) {
+        private Row(String artifact, String metadata, String digest, String datetime, String hash) {
             this.artifact = artifact.trim();
+            this.metadata = metadata.trim();
             this.digest = digest.trim();
             this.datetime = datetime.trim();
             this.hash = hash.trim();
@@ -257,6 +260,11 @@ public class BlockChainHelper {
         public String getArtifact() {
             return artifact;
         }
+
+        public String getMetadata() {
+            return metadata;
+        }
+
 
         /**
          * Returns the digest of the artifact.
@@ -297,9 +305,8 @@ public class BlockChainHelper {
             if(!hash.isEmpty()) {
                 throw new IllegalStateException("Illegal attempt to add hash to existing row");
             }
-
             this.hash = buildRowHash(previousHash);
-            return String.format("%s,%s,%s,%s\n", artifact, digest, datetime, hash);
+            return String.format("%s,%s,%s,%s,%s\n", artifact, metadata, digest, datetime, hash);
         }
 
         /**
@@ -313,8 +320,7 @@ public class BlockChainHelper {
             if(!isValid32CharHex(previousHash)) {
                 throw new IllegalArgumentException("Invalid previous hash: " + previousHash);
             }
-
-            String newBlock = String.format("%s,%s,%s,%s", previousHash.trim(), artifact, digest, datetime);
+            String newBlock = String.format("%s,%s,%s,%s,%s", previousHash.trim(), artifact, metadata, digest, datetime);
             return computeHash(newBlock);
         }
 
@@ -341,14 +347,15 @@ public class BlockChainHelper {
      */
     public static Row rowFromString(String row) {
         String[] parts = row.split(",");
-        if (parts.length != 4) {
+        if (parts.length != 5) {
             throw new IllegalArgumentException("Invalid row format: " + row);
         }
         String artifact = parts[0].trim();
-        String digest = parts[1].trim();
-        String datetime = parts[2].trim();
-        String hash = parts[3].trim();
-        return new Row(artifact, digest, datetime, hash);
+        String metadata = parts[1].trim();
+        String digest = parts[2].trim();
+        String datetime = parts[3].trim();
+        String hash = parts[4].trim();
+        return new Row(artifact, metadata, digest, datetime, hash);
     }
 
     /**
@@ -359,8 +366,8 @@ public class BlockChainHelper {
      * @param digest   the digest of the artifact
      * @return a Row instance with the current datetime
      */
-    public static Row rowFromArtifact(String artifact, String digest) {
-        return new Row(artifact, digest, LocalDateTime.now().format(dateTimeFormatter));
+    public static Row rowFromArtifact(String artifact, String metadata, String digest) {
+        return new Row(artifact, metadata, digest, LocalDateTime.now().format(dateTimeFormatter));
     }
 
     /**
