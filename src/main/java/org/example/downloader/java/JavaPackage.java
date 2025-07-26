@@ -21,7 +21,8 @@ public enum JavaPackage {
     MSI("msi"),
     EXE("exe"),
     TAR_GZ("tar.gz"),
-    DMG("dmg");
+    DMG("dmg"),
+    PKG("pkg");
 
     private final String packageType;
 

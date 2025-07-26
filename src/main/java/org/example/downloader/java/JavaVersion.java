@@ -15,7 +15,7 @@
 package org.example.downloader.java;
 
 public enum JavaVersion {
-    JAVA_8("1.8"),
+    JAVA_8("8"),
     JAVA_11("11"),
     JAVA_17("17"),
     JAVA_21("21");
@@ -34,7 +34,7 @@ public enum JavaVersion {
     public static void main(String[] args) {
         int count = 0;
         // Example usage
-        for (JavaEdition javaEdition : JavaEdition.values()) {
+        for (JavaFlavor javaEdition : JavaFlavor.values()) {
             for (JavaVersion javaVersion : JavaVersion.values()) {
                 for (JavaType javaType : JavaType.values()) {
                     for (JavaPlatform javaEnvironment : JavaPlatform.values()) {

@@ -14,14 +14,14 @@
  */
 package org.example.downloader.java;
 
-public enum JavaEdition {
+public enum JavaFlavor {
     ORACLE("oracle"),
     // https://www.oracle.com/java/technologies/javase/javase8u211-later-archive-downloads.html
     // https://www.oracle.com/java/technologies/javase/jdk11-archive-downloads.html
     // https://www.oracle.com/java/technologies/javase/jdk17-0-13-later-archive-downloads.html
     // https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html
 
-    CORRETO("corretto"),
+    CORRETTO("corretto"),
     // https://docs.aws.amazon.com/corretto/latest/corretto-8-ug/downloads-list.html
     // https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/downloads-list.html
     // https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html
@@ -38,7 +38,7 @@ public enum JavaEdition {
 
     private final String edition;
 
-    JavaEdition(String edition) {
+    JavaFlavor(String edition) {
         this.edition = edition;
     }
 
