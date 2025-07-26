@@ -19,6 +19,64 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * Parses Debian package files in the "Packages.gz" format.
+ * This class implements Iterator<DebianPackage> to allow iteration over packages.
+ *
+ * Enhances
+ * Size
+ * Pre-Depends
+ * Important
+ * Cnf-Extra-Commands
+ * Essential
+ * Cnf-Ignore-Commands
+ * Version
+ * Gstreamer-Encoders
+ * Static-Built-Using
+ * Python-Egg-Name
+ * Built-Using
+ * Protected
+ * Architecture
+ * Priority
+ * Filename
+ * Gstreamer-Uri-Sinks
+ * Gstreamer-Uri-Sources
+ * Cnf-Visible-Pkgname
+ * MD5sum
+ * Original-Maintainer
+ * Gstreamer-Version
+ * Ghc-Package
+ * Lua-Versions
+ * Gstreamer-Decoders
+ * Package
+ * Depends
+ * Go-Import-Path
+ * Python-Version
+ * Description
+ * Build-Ids
+ * Recommends
+ * X-Cargo-Built-Using
+ * Description-md5
+ * Source
+ * Maintainer
+ * Ruby-Versions
+ * Suggests
+ * Multi-Arch
+ * Javascript-Built-Using
+ * Postgresql-Catversion
+ * Breaks
+ * Homepage
+ * Efi-Vendor
+ * Replaces
+ * Conflicts
+ * Provides
+ * Section
+ * Build-Essential
+ * SHA256
+ * Installed-Size
+ * Tag
+ * Gstreamer-Elements
+ */
 public class DebianPackageParser implements Iterator<DebianPackage>, AutoCloseable {
     private final BufferedReader reader;
     private Map<String, StringBuilder> currentPackage;
