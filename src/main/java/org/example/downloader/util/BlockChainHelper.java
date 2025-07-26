@@ -164,7 +164,11 @@ public class BlockChainHelper {
          * @param digest   the digest of the artifact
          */
         public void addRow(String artifact, String digest) {
-            Row row = rowFromArtifact(artifact, digest);
+            addRow(artifact, "", digest);
+        }
+
+        public void addRow(String artifact, String metadata, String digest) {
+            Row row = rowFromArtifact(artifact, metadata, digest);
             addRow(row);
         }
 
