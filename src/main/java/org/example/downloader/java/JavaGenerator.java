@@ -189,9 +189,16 @@ public class JavaGenerator {
 
     public static HashMap<JavaVersion, Pair<String, String>> temurinMinorPatch = new HashMap<>(Map.of(
             JavaVersion.JAVA_8, new Pair<>("u462-b08", "u462b08"),
-            JavaVersion.JAVA_17, new Pair<>(".0.28+6", ".0.28_6"),
+            JavaVersion.JAVA_11, new Pair<>(".0.28+6", ".0.28_6"),
             JavaVersion.JAVA_17, new Pair<>(".0.9+9.1", ".0.9_9"),
             JavaVersion.JAVA_21, new Pair<>(".0.8+9", ".0.8_9")
+    ));
+
+    public static HashMap<JavaVersion, String> temurinTemplate = new HashMap<>(Map.of(
+            JavaVersion.JAVA_8, "",
+            JavaVersion.JAVA_11, "",
+            JavaVersion.JAVA_17, "",
+            JavaVersion.JAVA_21, ""
     ));
 
     public static HashMap<JavaPlatform, String> temurinPlatformsTranslation = new HashMap<>(
