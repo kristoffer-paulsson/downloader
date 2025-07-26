@@ -12,20 +12,19 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
-package org.example.downloader.exp2;
+package org.example.downloader.util;
 
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
-public class PackageFileParser implements Iterator<Map<String, StringBuilder>>, AutoCloseable {
+public abstract class AbstractFileParser<E extends BasePackage> implements Iterator<E>, AutoCloseable {
     private final BufferedReader reader;
     private Map<String, StringBuilder> currentPackage;
     private String nextLine;
     private String currentField;
 
-    public PackageFileParser(String filePath) throws IOException {
+    public AbstractFileParser(String filePath) throws IOException {
         InputStream fileStream = new FileInputStream(filePath);
         GZIPInputStream gzipStream = new GZIPInputStream(fileStream);
         reader = new BufferedReader(new InputStreamReader(gzipStream));
@@ -54,8 +53,9 @@ public class PackageFileParser implements Iterator<Map<String, StringBuilder>>, 
     }
 
     @Override
-    public Map<String, StringBuilder> next() {
+    public E next(){
         if (!hasNext()) {
+            this.close();
             throw new NoSuchElementException("No more packages to parse");
         }
         Map<String, StringBuilder> data = currentPackage;
@@ -67,8 +67,10 @@ public class PackageFileParser implements Iterator<Map<String, StringBuilder>>, 
             e.printStackTrace();
             nextLine = null;
         }
-        return data;
+        return parseFieldsAndCreatePackage(data);
     }
+
+    protected abstract E parseFieldsAndCreatePackage(Map<String, StringBuilder> packageData);
 
     private void processLine() throws IOException {
         while (nextLine != null && !nextLine.trim().isEmpty()) {
@@ -92,35 +94,11 @@ public class PackageFileParser implements Iterator<Map<String, StringBuilder>>, 
     }
 
     @Override
-    public void close() throws IOException {
-        reader.close();
-    }
-
-    // Example usage
-    public static void main(String[] args) {
-        String[] filePaths = {
-            "package-cache/dists/bookworm/main/binary-amd64/Packages.gz",
-            "package-cache/dists/bookworm/contrib/binary-amd64/Packages.gz",
-            "package-cache/dists/bookworm/non-free/binary-amd64/Packages.gz",
-            "package-cache/dists/bookworm/non-free-firmware/binary-amd64/Packages.gz",
-        };
-        Set<String> fieldsToExtract = new HashSet<>();
-
-        for (String filePath : filePaths) {
-            try (PackageFileParser parser = new PackageFileParser(filePath)) {
-                while (parser.hasNext()) {
-                    Map<String, StringBuilder> packageData = parser.next();
-                    fieldsToExtract.addAll(packageData.keySet());
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        // Print the unique fields found in all packages
-        System.out.println("Unique fields found in all packages:");
-        for (String field : fieldsToExtract) {
-            System.out.println(field);
+    public void close() {
+        try {
+            reader.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }
