@@ -18,6 +18,7 @@ public enum JavaPlatform {
     LINUX("linux"),
     WINDOWS("windows"),
     MACOS("macos"),
+    AIX("aix"),
     SOLARIS("solaris");
 
     private final String os;
