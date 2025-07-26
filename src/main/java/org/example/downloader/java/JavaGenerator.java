@@ -175,6 +175,34 @@ public class JavaGenerator {
         return urls;
     }
 
+    // https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u462-b08/OpenJDK8U-jre_aarch64_linux_hotspot_8u462b08.tar.gz
+    // https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u462-b08/OpenJDK8U-jdk_aarch64_linux_hotspot_8u462b08.tar.gz
+
+    // https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.28+6/OpenJDK11U-jre_aarch64_mac_hotspot_11.0.28_6.pkg.sig
+    // https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.28+6/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.28_6.tar.gz
+
+    // https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9+9.1/OpenJDK17U-jre_x64_windows_hotspot_17.0.9_9.msi
+    // https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9+9.1/OpenJDK17U-jdk_x64_windows_hotspot_17.0.9_9.zip
+
+    // https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8+9/OpenJDK21U-jdk_x64_mac_hotspot_21.0.8_9.tar.gz
+    // https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8+9/OpenJDK21U-jdk_aarch64_windows_hotspot_21.0.8_9.msi
+
+    public static HashMap<JavaVersion, Pair<String, String>> temurinMinorPatch = new HashMap<>(Map.of(
+            JavaVersion.JAVA_8, new Pair<>("u462-b08", "u462b08"),
+            JavaVersion.JAVA_17, new Pair<>(".0.28+6", ".0.28_6"),
+            JavaVersion.JAVA_17, new Pair<>(".0.9+9.1", ".0.9_9"),
+            JavaVersion.JAVA_21, new Pair<>(".0.8+9", ".0.8_9")
+    ));
+
+    public static HashMap<JavaPlatform, String> temurinPlatformsTranslation = new HashMap<>(
+            Map.of(
+                    JavaPlatform.LINUX, "linux",
+                    JavaPlatform.WINDOWS, "windows",
+                    JavaPlatform.MACOS, "mac",
+                    JavaPlatform.AIX, "aix"
+            )
+    );
+
     public static JavaType[] temurinTypes = {
             JavaType.JDK, JavaType.JRE
     };
@@ -210,18 +238,6 @@ public class JavaGenerator {
                     )
             )
     );
-
-    // https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u462-b08/OpenJDK8U-jre_aarch64_linux_hotspot_8u462b08.tar.gz
-    // https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u462-b08/OpenJDK8U-jdk_aarch64_linux_hotspot_8u462b08.tar.gz
-
-    // https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.28+6/OpenJDK11U-jre_aarch64_mac_hotspot_11.0.28_6.pkg.sig
-    // https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.28+6/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.28_6.tar.gz
-
-    // https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9+9.1/OpenJDK17U-jre_x64_windows_hotspot_17.0.9_9.msi
-    // https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9+9.1/OpenJDK17U-jdk_x64_windows_hotspot_17.0.9_9.zip
-
-    // https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8+9/OpenJDK21U-jdk_x64_mac_hotspot_21.0.8_9.tar.gz
-    // https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8+9/OpenJDK21U-jdk_aarch64_windows_hotspot_21.0.8_9.msi
 
     public static void main(String[] args) {
     List<URL> urls = generateCorrettoDownladUrls();
