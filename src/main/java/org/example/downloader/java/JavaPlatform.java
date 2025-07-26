@@ -14,7 +14,7 @@
  */
 package org.example.downloader.java;
 
-public enum JavaEnvironment {
+public enum JavaPlatform {
     LINUX("linux"),
     WINDOWS("windows"),
     MACOS("macos"),
@@ -22,7 +22,7 @@ public enum JavaEnvironment {
 
     private final String os;
 
-    JavaEnvironment(String os) {
+    JavaPlatform(String os) {
         this.os = os;
     }
 
