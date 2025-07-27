@@ -64,7 +64,7 @@ public enum JavaVersion {
         return UNKNOWN;
     }
 
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         int count = 0;
         // Example usage
         for (JavaFlavor javaEdition : JavaFlavor.values()) {
@@ -81,5 +81,5 @@ public enum JavaVersion {
                 }
             }
         }
-    }
+    }*/
 }

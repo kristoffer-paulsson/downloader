@@ -19,7 +19,8 @@ public enum JavaPlatform {
     WINDOWS("windows"),
     MACOS("macosx"),
     AIX("aix"),
-    SOLARIS("solaris");
+    SOLARIS("solaris"),
+    UNKNOWN("unknown");
 
     private final String os;
 
@@ -29,5 +30,14 @@ public enum JavaPlatform {
 
     public String getOs() {
         return os;
+    }
+
+    public static JavaPlatform fromString(String os) {
+        for (JavaPlatform platform : JavaPlatform.values()) {
+            if (platform.os.equalsIgnoreCase(os)) {
+                return platform;
+            }
+        }
+        return UNKNOWN;
     }
 }

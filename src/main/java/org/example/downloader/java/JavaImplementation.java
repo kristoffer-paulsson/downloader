@@ -16,7 +16,8 @@ package org.example.downloader.java;
 
 public enum JavaImplementation {
     HOTSPOT("hotspot"),
-    OPENJ9("openj9");
+    OPENJ9("openj9"),
+    UNKNOWN("unknown");
 
     private final String implementation;
 
@@ -26,5 +27,14 @@ public enum JavaImplementation {
 
     public String getImplementation() {
         return implementation;
+    }
+
+    public static JavaImplementation fromString(String implementation) {
+        for (JavaImplementation impl : JavaImplementation.values()) {
+            if (impl.implementation.equalsIgnoreCase(implementation)) {
+                return impl;
+            }
+        }
+        return UNKNOWN;
     }
 }

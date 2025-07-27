@@ -1,3 +1,17 @@
+/**
+ * Copyright (c) 2025 by Kristoffer Paulsson <kristoffer.paulsson@talenten.se>.
+ *
+ * This software is available under the terms of the MIT license. Parts are licensed
+ * under different terms if stated. The legal terms are attached to the LICENSE file
+ * and are made available on:
+ *
+ *      https://opensource.org/licenses/MIT
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Contributors:
+ *      Kristoffer Paulsson - initial implementation
+ */
 package org.example.downloader.java;
 
 import org.example.downloader.util.AbstractFileParser;
@@ -55,10 +69,35 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
         statistics.get("vendor").add(packageData.getOrDefault("vendor", new StringBuilder()).toString());
         statistics.get("java_version").add(packageData.getOrDefault("java_version", new StringBuilder()).toString());
         statistics.get("jvm_impl").add(packageData.getOrDefault("jvm_impl", new StringBuilder()).toString());
+
+        /**
+         *             String architecture,
+         *             String file_type,
+         *             String filename,
+         *             String image_type,
+         *             String java_version,
+         *             String jvm_impl,
+         *             String os,
+         *             String sha256,
+         *             String size,
+         *             String url,
+         *             String vendor,
+         *             String version
+         * */
+
         return new JavaPackage(
+                packageData.getOrDefault("architecture", new StringBuilder()).toString(),
+                packageData.getOrDefault("file_type", new StringBuilder()).toString(),
                 packageData.getOrDefault("filename", new StringBuilder()).toString(),
-                packageData.getOrDefault("size", new StringBuilder("0")).toString(),
-                packageData.getOrDefault("sha256", new StringBuilder()).toString()
+                packageData.getOrDefault("image_type", new StringBuilder()).toString(),
+                packageData.getOrDefault("java_version", new StringBuilder()).toString(),
+                packageData.getOrDefault("jvm_impl", new StringBuilder()).toString(),
+                packageData.getOrDefault("os", new StringBuilder()).toString(),
+                packageData.getOrDefault("sha256", new StringBuilder()).toString(),
+                packageData.getOrDefault("size", new StringBuilder()).toString(),
+                packageData.getOrDefault("url", new StringBuilder()).toString(),
+                packageData.getOrDefault("vendor", new StringBuilder("0")).toString(),
+                packageData.getOrDefault("version", new StringBuilder()).toString()
         );
     }
 
@@ -67,9 +106,7 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
             JavaParser parser = new JavaParser("Java.gz");
             while (parser.hasNext()) {
                 JavaPackage pkg = parser.next();
-                System.out.println("Filename: " + pkg.getFilename());
-                System.out.println("Size: " + pkg.getSize());
-                System.out.println("SHA256: " + pkg.getSha256Digest());
+                System.out.println("Parsed package: " + pkg.toString());
             }
             parser.close();
 

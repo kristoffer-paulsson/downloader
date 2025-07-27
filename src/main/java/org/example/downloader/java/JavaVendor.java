@@ -33,7 +33,8 @@ public enum JavaVendor {
     TRAVA("trava", "Trava JDK"),
     ADOPTOPENJDK("adoptopenjdk", "AdoptOpenJDK"),
     TEMURIN("temurin", "Eclipse Foundation (Adoptium)"),
-    ZULU("zulu", "Azul Systems");
+    ZULU("zulu", "Azul Systems"),
+    UNKNOWN("unknown", "Unknown Vendor");
 
     private final String vendorId;
     private final String vendor;
@@ -49,5 +50,14 @@ public enum JavaVendor {
 
     public String getVendor() {
         return vendor;
+    }
+
+    public static JavaVendor fromString(String vendorId) {
+        for (JavaVendor vendor : JavaVendor.values()) {
+            if (vendor.vendorId.equalsIgnoreCase(vendorId)) {
+                return vendor;
+            }
+        }
+        return UNKNOWN;
     }
 }

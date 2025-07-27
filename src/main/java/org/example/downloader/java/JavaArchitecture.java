@@ -33,4 +33,13 @@ public enum JavaArchitecture {
     public String getArch() {
         return arch;
     }
+
+    public static JavaArchitecture fromString(String arch) {
+        for (JavaArchitecture architecture : JavaArchitecture.values()) {
+            if (architecture.arch.equalsIgnoreCase(arch)) {
+                return architecture;
+            }
+        }
+        return UNKNOWN;
+    }
 }

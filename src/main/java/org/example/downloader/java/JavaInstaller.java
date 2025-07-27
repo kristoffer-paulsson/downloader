@@ -25,7 +25,8 @@ public enum JavaInstaller {
     TGZ("tgz"),
     APK("apk"),
     DMG("dmg"),
-    PKG("pkg");
+    PKG("pkg"),
+    UNKNOWN("unknown");
 
     private final String packageType;
 
@@ -35,5 +36,14 @@ public enum JavaInstaller {
 
     public String getPackageType() {
         return packageType;
+    }
+
+    public static JavaInstaller fromString(String packageType) {
+        for (JavaInstaller installer : JavaInstaller.values()) {
+            if (installer.packageType.equalsIgnoreCase(packageType)) {
+                return installer;
+            }
+        }
+        return UNKNOWN;
     }
 }

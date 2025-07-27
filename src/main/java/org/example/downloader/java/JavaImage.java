@@ -16,7 +16,8 @@ package org.example.downloader.java;
 
 public enum JavaImage {
     JDK("jdk"),
-    JRE("jre");
+    JRE("jre"),
+    UNKNOWN("unknown");
 
     private final String type;
 
@@ -26,5 +27,14 @@ public enum JavaImage {
 
     public String getType() {
         return type;
+    }
+
+    public static JavaImage fromString(String type) {
+        for (JavaImage image : JavaImage.values()) {
+            if (image.type.equalsIgnoreCase(type)) {
+                return image;
+            }
+        }
+        return UNKNOWN;
     }
 }
