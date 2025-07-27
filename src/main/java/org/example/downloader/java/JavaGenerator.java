@@ -14,6 +14,7 @@
  */
 package org.example.downloader.java;
 
+import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.Pair;
 
@@ -119,6 +120,12 @@ public class JavaGenerator {
         return urls;
     }
 
+    public static String oracleSha256Parser(String digest) {
+        String sha256 = digest.trim();
+        BlockChainHelper.isValid32CharHex(sha256);
+        return sha256.trim();
+    }
+
     public static JavaType[] correttoTypes = {
             JavaType.JDK
     };
@@ -154,7 +161,7 @@ public class JavaGenerator {
     public static List<Pair<URL, URL>> generateCorrettoDownloadUrls() {
         List<Pair<URL, URL>> urls = new ArrayList<>();
         String baseUrl = "https://corretto.aws/downlaods/latest/amazon-corretto-%s-%s-%s-%s.%s";
-        String baseDigestUrl = "https://download.oracle.com/java/%s/latest/%s-%s_%s-%s_bin.%s.sha256";
+        String baseDigestUrl = "https://corretto.aws/downlaods/latest_sha256/amazon-corretto-%s-%s-%s-%s.%s";
         for (JavaFlavor javaEdition : List.of(JavaFlavor.CORRETTO)) {
             for (JavaVersion javaVersion : correttoVersions) {
                 for (JavaType javaType : correttoTypes) {
@@ -202,6 +209,12 @@ public class JavaGenerator {
             }
         }
         return urls;
+    }
+
+    public static String correttoSha256Parser(String digest) {
+        String sha256 = digest.trim();
+        BlockChainHelper.isValid32CharHex(sha256);
+        return sha256.trim();
     }
 
     public static HashMap<JavaVersion, Pair<String, String>> temurinMinorPatch = new HashMap<>(Map.of(
@@ -272,7 +285,6 @@ public class JavaGenerator {
 
     public static List<Pair<URL, URL>> generateTemurinDownloadUrls() {
         List<Pair<URL, URL>> urls = new ArrayList<>();
-        // https://corretto.aws/[latest/latest_checksum]/amazon-corretto-[corretto_version]-[cpu_arch]-[os]-[package_type].[file_extension]
         for (JavaFlavor javaEdition : List.of(JavaFlavor.TEMURIN)) {
             for (JavaVersion javaVersion : temurinVersions) {
                 for (JavaType javaType : temurinTypes) {
@@ -340,6 +352,12 @@ public class JavaGenerator {
             }
         }
         return urls;
+    }
+
+    public static String temurinSha256Parser(String digest) {
+        String sha256 = digest.trim();
+        BlockChainHelper.isValid32CharHex(sha256);
+        return sha256.trim();
     }
 
     // -----------------------------------------------------------------------------------------
@@ -479,16 +497,16 @@ public class JavaGenerator {
         }*/
 
         //List<Pair<URL, URL>> urls = generateOracleDownloadUrls();
-        //List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
+        List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
         //List<Pair<URL, URL>> urls = generateTemurinDownloadUrls();
-        List<Pair<URL, URL>> urls = generateZuluDownloadUrls();
+        //List<Pair<URL, URL>> urls = generateZuluDownloadUrls();
 
         for (Pair<URL, URL> url : urls) {
             try {
                 long size = DownloadHelper.queryUrlFileDownloadSize(url.getFirst());
-                //String sha256 = DownloadHelper.downloadSmallData(url.getSecond());
-                String sha256 = "N/A";
-                System.out.println(size + ": " + url.getFirst() + " | SHA256: " + sha256);
+                String sha256 = DownloadHelper.downloadSmallData(url.getSecond());
+                //String sha256 = "N/A";
+                System.out.println(size + ": " + url.getFirst() + " | SHA256: " + sha256.trim());
             } catch (RuntimeException e) {
                 System.out.println(e);
             }
