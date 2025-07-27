@@ -14,6 +14,7 @@
  */
 package org.example.downloader.java;
 
+import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.Pair;
 
 import java.net.MalformedURLException;
@@ -246,10 +247,129 @@ public class JavaGenerator {
             )
     );
 
+    // -----------------------------------------------------------------------------------------
+
+    // https://cdn.azul.com/zulu/bin/zulu21.44.17-ca-jdk21.0.8-linux.x86_64.rpm
+    // https://cdn.azul.com/zulu/bin/zulu17.60.17-ca-jdk17.0.16-win_x64.msi
+    // https://cdn.azul.com/zulu/bin/zulu11.82.19-ca-jdk11.0.28-macosx_aarch64.dmg
+    // https://cdn.azul.com/zulu/bin/zulu8.88.0.19-ca-jdk8.0.462-linux_x64.zip
+
+    public static HashMap<JavaVersion, Pair<String, String>> zuluMinorPatch = new HashMap<>(Map.of(
+            JavaVersion.JAVA_8, new Pair<>(".88.0.19", ".0.462"),
+            JavaVersion.JAVA_11, new Pair<>(".82.19", ".0.28"),
+            JavaVersion.JAVA_17, new Pair<>(".60.17", ".0.16"),
+            JavaVersion.JAVA_21, new Pair<>(".44.17", ".0.8")
+    ));
+
+    public static JavaType[] zuluTypes = {
+            JavaType.JDK
+    };
+
+    public static JavaVersion[] zuluVersions = {
+            JavaVersion.JAVA_8, JavaVersion.JAVA_11, JavaVersion.JAVA_17, JavaVersion.JAVA_21
+    };
+
+    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> zuluPlatforms = new HashMap<>(
+            Map.of(
+                    JavaPlatform.LINUX, List.of(
+                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.DEB),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.RPM),
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.RPM),
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.DEB)
+                    ),
+                    JavaPlatform.WINDOWS, List.of(
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.MSI),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.ZIP)
+                    ),
+                    JavaPlatform.MACOS, List.of(
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaPackage.DMG),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.ZIP),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.DMG)
+                    )
+            )
+    );
+
+    public static List<URL> generateZuluDownladUrls() {
+        List<URL> urls = new ArrayList<>();
+        // https://cdn.azul.com/zulu/bin/zulu8.88.0.19-ca-jdk8.0.462-linux_x64.zip
+        String baseUrl = "https://cdn.azul.com/zulu/bin/zulu%s%s-ca-%s%s%s-%s_%s.%s";
+        for (JavaFlavor javaEdition : List.of(JavaFlavor.CORRETTO)) {
+            for (JavaVersion javaVersion : zuluVersions) {
+                for (JavaType javaType : zuluTypes) {
+                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> entry : zuluPlatforms.entrySet()) {
+                        JavaPlatform javaPlatform = entry.getKey();
+                        for (Pair<JavaArchitecture, JavaPackage> pair : entry.getValue()) {
+                            JavaArchitecture javaArchitecture = pair.getFirst();
+                            JavaPackage javaPackage = pair.getSecond();
+
+                            if(javaVersion == JavaVersion.JAVA_8 || javaVersion == JavaVersion.JAVA_11) {
+                                if(javaPlatform == JavaPlatform.WINDOWS && javaArchitecture == JavaArchitecture.AARCH64) {
+                                    continue; // No AARCH64 support for Windows in Zulu 8 and 11
+                                }
+                            }
+
+                            String version = javaVersion.getVersion();
+                            String type = javaType.getType();
+                            String platform = javaPlatform.getOs();
+                            String architecture = javaArchitecture.getArch();
+                            String packageType = javaPackage.getPackageType();
+
+                            if(javaPackage == JavaPackage.DEB && javaArchitecture == JavaArchitecture.AARCH64) {
+                                architecture = "arm64"; // For Zulu, AARCH64 is translated to arm64 for DEB packages
+                            } else if (javaPackage == JavaPackage.DEB && javaArchitecture == JavaArchitecture.X64) {
+                                architecture = "amd64"; // For Zulu, X64 is translated to amd64 for DEB packages
+                            } else if (javaPackage == JavaPackage.RPM && javaArchitecture == JavaArchitecture.X64) {
+                                architecture = "x86_64"; // For Zulu, X64 is translated to x86_64 for RPM packages
+                            }
+
+                            if (javaPlatform == JavaPlatform.WINDOWS) {
+                                platform = "win"; // For Zulu, Windows platform is prefixed with win
+                            } else if(javaPlatform == JavaPlatform.MACOS) {
+                                platform = "macosx"; // For Zulu, macOS platform is prefixed with macosx
+                            }
+
+                            String url = String.format(
+                                    baseUrl,
+                                    version,
+                                    zuluMinorPatch.get(javaVersion).getFirst(),
+                                    type,
+                                    version,
+                                    zuluMinorPatch.get(javaVersion).getSecond(),
+                                    platform, //zuluPlatformsTranslation.get(javaPlatform),
+                                    architecture,
+                                    packageType
+                            );
+                            try {
+                                urls.add(new URI(url).toURL());
+                            } catch (MalformedURLException e) {
+                                throw new RuntimeException(e);
+                            } catch (URISyntaxException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return urls;
+    }
+
     public static void main(String[] args) {
-    List<URL> urls = generateCorrettoDownladUrls();
+    List<URL> urls = generateZuluDownladUrls();
         for (URL url : urls) {
-            System.out.println(url);
+            try {
+                long size = DownloadHelper.queryUrlFileDownloadSize(url);
+                System.out.println(size + ": " + url);
+            } catch (RuntimeException e) {
+                System.out.println(e);
+            }
         }
     }
 }
