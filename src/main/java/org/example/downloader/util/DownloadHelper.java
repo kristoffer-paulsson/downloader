@@ -22,6 +22,8 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Utility class for downloading files and querying file sizes from URLs.
@@ -263,5 +265,61 @@ public class DownloadHelper {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static long queryUrlFileDownloadSizeWithRedirect(URL url) {
+        Set<String> visitedUrls = new HashSet<>(); // Track visited URLs to prevent circular redirects
+        int maxRedirects = 8;
+        int redirectCount = 0;
+
+        try {
+            while (redirectCount <= maxRedirects) {
+                // Check for circular redirect
+                String urlString = url.toString();
+                if (!visitedUrls.add(urlString)) {
+                    throw new IOException("Circular redirect detected for URL: " + urlString);
+                }
+
+                HttpURLConnection connection = setupConnection(url, "HEAD", null);
+                connection.setInstanceFollowRedirects(false); // Disable automatic redirect following
+                int responseCode = connection.getResponseCode();
+
+                if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_PARTIAL) {
+                    return connection.getContentLengthLong();
+                } else if (isRedirect(responseCode)) {
+                    redirectCount++;
+                    if (redirectCount > maxRedirects) {
+                        throw new IOException("Maximum redirect limit (" + maxRedirects + ") exceeded for URL: " + url);
+                    }
+
+                    // Get the redirect location
+                    String location = connection.getHeaderField("Location");
+                    if (location == null || location.isEmpty()) {
+                        throw new IOException("Redirect response code " + responseCode + " but no Location header found for URL: " + url);
+                    }
+
+                    // Resolve the new URL relative to the current URL
+                    url = new URL(url, location);
+                    connection.disconnect(); // Close the current connection
+                    continue; // Follow the redirect
+                } else {
+                    throw new IOException("Failed to query file size, HTTP response code: " + responseCode + " for URL: " + url);
+                }
+            }
+        } catch (SocketTimeoutException e) {
+            throw new RuntimeException("Timeout while querying file size: " + url, e);
+        } catch (IOException e) {
+            throw new RuntimeException("Error querying file size: " + url, e);
+        }
+        //throw new IOException("Unexpected error while querying file size: " + url);
+        return -1; // Return -1 if no valid size could be determined
+    }
+
+    // Helper method to check if the response code indicates a redirect
+    private static boolean isRedirect(int responseCode) {
+        return responseCode == HttpURLConnection.HTTP_MOVED_PERM || // 301
+                responseCode == HttpURLConnection.HTTP_MOVED_TEMP || // 302
+                responseCode == HttpURLConnection.HTTP_SEE_OTHER ||  // 303
+                responseCode == 308; // Permanent Redirect
     }
 }

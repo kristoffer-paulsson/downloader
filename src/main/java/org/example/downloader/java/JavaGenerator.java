@@ -17,10 +17,12 @@ package org.example.downloader.java;
 import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.Pair;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +62,7 @@ public class JavaGenerator {
             )
     );
 
-    public static List<URL> generateOracleDownladUrls() {
+    public static List<URL> generateOracleDownloadUrls() {
         List<URL> urls = new ArrayList<>();
         String baseUrl = "https://download.oracle.com/java/%s/latest/%s-%s_%s-%s_bin.%s";
         for (JavaFlavor javaEdition : List.of(JavaFlavor.ORACLE)) {
@@ -77,6 +79,10 @@ public class JavaGenerator {
                             String platform = javaPlatform.getOs();
                             String architecture = javaArchitecture.getArch();
                             String packageType = javaPackage.getPackageType();
+
+                            if(javaVersion == JavaVersion.JAVA_17) {
+                                continue; // Oracle does not provide free access JDK 17 downloads anymore, only JDK 21
+                            }
 
                             String url = String.format(
                                     baseUrl,
@@ -134,7 +140,7 @@ public class JavaGenerator {
             )
     );
 
-    public static List<URL> generateCorrettoDownladUrls() {
+    public static List<URL> generateCorrettoDownloadUrls() {
         List<URL> urls = new ArrayList<>();
         // https://corretto.aws/[latest/latest_checksum]/amazon-corretto-[corretto_version]-[cpu_arch]-[os]-[package_type].[file_extension]
         String baseUrl = "https://corretto.aws/downlaods/latest/amazon-corretto-%s-%s-%s-%s.%s";
@@ -296,7 +302,7 @@ public class JavaGenerator {
             )
     );
 
-    public static List<URL> generateZuluDownladUrls() {
+    public static List<URL> generateZuluDownloadUrls() {
         List<URL> urls = new ArrayList<>();
         // https://cdn.azul.com/zulu/bin/zulu8.88.0.19-ca-jdk8.0.462-linux_x64.zip
         String baseUrl = "https://cdn.azul.com/zulu/bin/zulu%s%s-ca-%s%s%s-%s_%s.%s";
@@ -362,10 +368,14 @@ public class JavaGenerator {
     }
 
     public static void main(String[] args) {
-    List<URL> urls = generateZuluDownladUrls();
-        for (URL url : urls) {
+        List<List<URL>> allUrls = new ArrayList<>();
+        allUrls.add(generateOracleDownloadUrls());
+        allUrls.add(generateCorrettoDownloadUrls());
+        allUrls.add(generateZuluDownloadUrls());
+
+        for (URL url : allUrls.get(1)) {
             try {
-                long size = DownloadHelper.queryUrlFileDownloadSize(url);
+                long size = DownloadHelper.queryUrlFileDownloadSizeWithRedirect(url);
                 System.out.println(size + ": " + url);
             } catch (RuntimeException e) {
                 System.out.println(e);
