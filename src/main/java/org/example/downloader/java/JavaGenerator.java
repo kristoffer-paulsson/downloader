@@ -270,8 +270,8 @@ public class JavaGenerator {
             )
     );
 
-    public static List<URL> generateTemurinDownloadUrls() {
-        List<URL> urls = new ArrayList<>();
+    public static List<Pair<URL, URL>> generateTemurinDownloadUrls() {
+        List<Pair<URL, URL>> urls = new ArrayList<>();
         // https://corretto.aws/[latest/latest_checksum]/amazon-corretto-[corretto_version]-[cpu_arch]-[os]-[package_type].[file_extension]
         for (JavaFlavor javaEdition : List.of(JavaFlavor.TEMURIN)) {
             for (JavaVersion javaVersion : temurinVersions) {
@@ -325,7 +325,10 @@ public class JavaGenerator {
                                     packageType
                             );
                             try {
-                                urls.add(new URI(url).toURL());
+                                urls.add(new Pair<>(
+                                        new URI(url).toURL(),
+                                        new URI(url+".sha256.txt").toURL()
+                                ));
                             } catch (MalformedURLException e) {
                                 throw new RuntimeException(e);
                             } catch (URISyntaxException e) {
@@ -462,7 +465,8 @@ public class JavaGenerator {
         }*/
 
         //List<Pair<URL, URL>> urls = generateOracleDownloadUrls();
-        List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
+        //List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
+        List<Pair<URL, URL>> urls = generateTemurinDownloadUrls();
 
         for (Pair<URL, URL> url : urls) {
             try {
