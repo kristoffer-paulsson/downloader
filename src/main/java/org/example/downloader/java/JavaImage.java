@@ -14,13 +14,13 @@
  */
 package org.example.downloader.java;
 
-public enum JavaType {
+public enum JavaImage {
     JDK("jdk"),
     JRE("jre");
 
     private final String type;
 
-    JavaType(String type) {
+    JavaImage(String type) {
         this.type = type;
     }
 

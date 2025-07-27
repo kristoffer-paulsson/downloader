@@ -17,7 +17,7 @@ package org.example.downloader.java;
 public enum JavaPlatform {
     LINUX("linux"),
     WINDOWS("windows"),
-    MACOS("macos"),
+    MACOS("macosx"),
     AIX("aix"),
     SOLARIS("solaris");
 

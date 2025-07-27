@@ -14,23 +14,26 @@
  */
 package org.example.downloader.java;
 
-public enum JavaArchitecture {
-    AARCH64("aarch64"),
-    S390X("s390x"),
-    SPARC64("sparcv9"),
-    X64("x86_64"),
-    RISCV64("riscv64"),
-    PPC64("ppc64"),
-    PPC64LE("ppc64le"),
-    UNKNOWN("unknown");
+public enum JavaInstaller {
+    DEB("deb"),
+    RPM("rpm"),
+    ZIP("zip"),
+    MSI("msi"),
+    EXE("exe"),
+    TAR_GZ("tar.gz"),
+    TAR_XZ("tar.xz"),
+    TGZ("tgz"),
+    APK("apk"),
+    DMG("dmg"),
+    PKG("pkg");
 
-    private final String arch;
+    private final String packageType;
 
-    JavaArchitecture(String arch) {
-        this.arch = arch;
+    JavaInstaller(String packageType) {
+        this.packageType = packageType;
     }
 
-    public String getArch() {
-        return arch;
+    public String getPackageType() {
+        return packageType;
     }
 }

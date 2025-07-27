@@ -14,23 +14,17 @@
  */
 package org.example.downloader.java;
 
-public enum JavaArchitecture {
-    AARCH64("aarch64"),
-    S390X("s390x"),
-    SPARC64("sparcv9"),
-    X64("x86_64"),
-    RISCV64("riscv64"),
-    PPC64("ppc64"),
-    PPC64LE("ppc64le"),
-    UNKNOWN("unknown");
+public enum JavaImplementation {
+    HOTSPOT("hotspot"),
+    OPENJ9("openj9");
 
-    private final String arch;
+    private final String implementation;
 
-    JavaArchitecture(String arch) {
-        this.arch = arch;
+    JavaImplementation(String implementation) {
+        this.implementation = implementation;
     }
 
-    public String getArch() {
-        return arch;
+    public String getImplementation() {
+        return implementation;
     }
 }

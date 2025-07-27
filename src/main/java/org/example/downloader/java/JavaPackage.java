@@ -1,36 +1,38 @@
-/**
- * Copyright (c) 2025 by Kristoffer Paulsson <kristoffer.paulsson@talenten.se>.
- *
- * This software is available under the terms of the MIT license. Parts are licensed
- * under different terms if stated. The legal terms are attached to the LICENSE file
- * and are made available on:
- *
- *      https://opensource.org/licenses/MIT
- *
- * SPDX-License-Identifier: MIT
- *
- * Contributors:
- *      Kristoffer Paulsson - initial implementation
- */
 package org.example.downloader.java;
 
-public enum JavaPackage {
-    DEB("deb"),
-    RPM("rpm"),
-    ZIP("zip"),
-    MSI("msi"),
-    EXE("exe"),
-    TAR_GZ("tar.gz"),
-    DMG("dmg"),
-    PKG("pkg");
+import org.example.downloader.util.BasePackage;
 
-    private final String packageType;
+public class JavaPackage implements BasePackage {
 
-    JavaPackage(String packageType) {
-        this.packageType = packageType;
+    private final String filename;
+    private final String size;
+    private final String sha256Digest;
+    //private final String url;
+
+
+    JavaPackage(String filename, String size, String sha256Digest) {
+        this.filename = filename;
+        this.size = size;
+        this.sha256Digest = sha256Digest;
+        //this.url = url;
     }
 
-    public String getPackageType() {
-        return packageType;
+    @Override
+    public String getFilename() {
+        return filename;
     }
+
+    @Override
+    public String getSize() {
+        return size;
+    }
+
+    @Override
+    public String getSha256Digest() {
+        return sha256Digest;
+    }
+
+    /*public String getUrl() {
+        return url;
+    }*/
 }

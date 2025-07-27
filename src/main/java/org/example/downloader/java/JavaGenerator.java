@@ -16,12 +16,15 @@ package org.example.downloader.java;
 
 import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.DownloadHelper;
+import org.example.downloader.util.JsonParser;
 import org.example.downloader.util.Pair;
 
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,34 +32,34 @@ import java.util.Map;
 
 public class JavaGenerator {
 
-    public static JavaType[] oracleTypes = {
-            JavaType.JDK
+    public static JavaImage[] oracleTypes = {
+            JavaImage.JDK
     };
 
     public static JavaVersion[] oracleVersions = {
             JavaVersion.JAVA_17, JavaVersion.JAVA_21
     };
 
-    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> oraclePlatforms = new HashMap<>(
+    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaInstaller>>> oraclePlatforms = new HashMap<>(
             Map.of(
                     JavaPlatform.LINUX, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.DEB),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.RPM),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.RPM)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.DEB),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.RPM),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.RPM)
 
                     ),
                     JavaPlatform.WINDOWS, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.EXE),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.MSI)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.EXE),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.MSI)
                     ),
                     JavaPlatform.MACOS, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.DMG),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.DMG)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.DMG),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.DMG)
                     )
             )
     );
@@ -67,12 +70,12 @@ public class JavaGenerator {
         String baseDigestUrl = "https://download.oracle.com/java/%s/latest/%s-%s_%s-%s_bin.%s.sha256";
         for (JavaFlavor javaEdition : List.of(JavaFlavor.ORACLE)) {
             for (JavaVersion javaVersion : oracleVersions) {
-                for (JavaType javaType : oracleTypes) {
-                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> entry : oraclePlatforms.entrySet()) {
+                for (JavaImage javaType : oracleTypes) {
+                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaInstaller>>> entry : oraclePlatforms.entrySet()) {
                         JavaPlatform javaPlatform = entry.getKey();
-                        for (Pair<JavaArchitecture, JavaPackage> pair : entry.getValue()) {
+                        for (Pair<JavaArchitecture, JavaInstaller> pair : entry.getValue()) {
                             JavaArchitecture javaArchitecture = pair.getFirst();
-                            JavaPackage javaPackage = pair.getSecond();
+                            JavaInstaller javaPackage = pair.getSecond();
 
                             String version = javaVersion.getVersion();
                             String type = javaType.getType();
@@ -126,34 +129,34 @@ public class JavaGenerator {
         return sha256.trim();
     }
 
-    public static JavaType[] correttoTypes = {
-            JavaType.JDK
+    public static JavaImage[] correttoTypes = {
+            JavaImage.JDK
     };
 
     public static JavaVersion[] correttoVersions = {
             JavaVersion.JAVA_8, JavaVersion.JAVA_11, JavaVersion.JAVA_17, JavaVersion.JAVA_21
     };
 
-    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> correttoPlatforms = new HashMap<>(
+    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaInstaller>>> correttoPlatforms = new HashMap<>(
             Map.of(
                     JavaPlatform.LINUX, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.DEB),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.RPM),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.DEB),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.RPM)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.DEB),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.RPM),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.DEB),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.RPM)
 
                     ),
                     JavaPlatform.WINDOWS, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.MSI)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.MSI)
                     ),
                     JavaPlatform.MACOS, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.PKG),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.PKG)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.PKG),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.PKG)
                     )
             )
     );
@@ -164,12 +167,12 @@ public class JavaGenerator {
         String baseDigestUrl = "https://corretto.aws/downlaods/latest_sha256/amazon-corretto-%s-%s-%s-%s.%s";
         for (JavaFlavor javaEdition : List.of(JavaFlavor.CORRETTO)) {
             for (JavaVersion javaVersion : correttoVersions) {
-                for (JavaType javaType : correttoTypes) {
-                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> entry : correttoPlatforms.entrySet()) {
+                for (JavaImage javaType : correttoTypes) {
+                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaInstaller>>> entry : correttoPlatforms.entrySet()) {
                         JavaPlatform javaPlatform = entry.getKey();
-                        for (Pair<JavaArchitecture, JavaPackage> pair : entry.getValue()) {
+                        for (Pair<JavaArchitecture, JavaInstaller> pair : entry.getValue()) {
                             JavaArchitecture javaArchitecture = pair.getFirst();
-                            JavaPackage javaPackage = pair.getSecond();
+                            JavaInstaller javaPackage = pair.getSecond();
 
                             String version = javaVersion.getVersion();
                             String type = javaType.getType();
@@ -247,38 +250,38 @@ public class JavaGenerator {
             )
     );
 
-    public static JavaType[] temurinTypes = {
-            JavaType.JDK, JavaType.JRE
+    public static JavaImage[] temurinTypes = {
+            JavaImage.JDK, JavaImage.JRE
     };
 
     public static JavaVersion[] temurinVersions = {
             JavaVersion.JAVA_8, JavaVersion.JAVA_11, JavaVersion.JAVA_17, JavaVersion.JAVA_21
     };
 
-    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> temurinPlatforms = new HashMap<>(
+    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaInstaller>>> temurinPlatforms = new HashMap<>(
             Map.of(
                     JavaPlatform.LINUX, List.of(
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.RISCV64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.S390X, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.PPC64LE, JavaPackage.TAR_GZ)
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.RISCV64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.S390X, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.PPC64LE, JavaInstaller.TAR_GZ)
 
                     ),
                     JavaPlatform.WINDOWS, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.MSI),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.ZIP),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.MSI)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.MSI),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.ZIP),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.MSI)
                     ),
                     JavaPlatform.MACOS, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.PKG),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.PKG)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.PKG),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.PKG)
                     ),
                     JavaPlatform.AIX, List.of(
-                            new Pair<>(JavaArchitecture.PPC64, JavaPackage.TAR_GZ)
+                            new Pair<>(JavaArchitecture.PPC64, JavaInstaller.TAR_GZ)
                     )
             )
     );
@@ -287,17 +290,17 @@ public class JavaGenerator {
         List<Pair<URL, URL>> urls = new ArrayList<>();
         for (JavaFlavor javaEdition : List.of(JavaFlavor.TEMURIN)) {
             for (JavaVersion javaVersion : temurinVersions) {
-                for (JavaType javaType : temurinTypes) {
-                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> entry : temurinPlatforms.entrySet()) {
+                for (JavaImage javaType : temurinTypes) {
+                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaInstaller>>> entry : temurinPlatforms.entrySet()) {
                         JavaPlatform javaPlatform = entry.getKey();
-                        for (Pair<JavaArchitecture, JavaPackage> pair : entry.getValue()) {
+                        for (Pair<JavaArchitecture, JavaInstaller> pair : entry.getValue()) {
                             JavaArchitecture javaArchitecture = pair.getFirst();
-                            JavaPackage javaPackage = pair.getSecond();
+                            JavaInstaller javaPackage = pair.getSecond();
 
                             String baseUrl = "";
-                            if (javaType == JavaType.JDK) {
+                            if (javaType == JavaImage.JDK) {
                                 baseUrl = temurinJDKTemplate.get(javaVersion);
-                            } else if (javaType == JavaType.JRE) {
+                            } else if (javaType == JavaImage.JRE) {
                                 baseUrl = temurinJRETemplate.get(javaVersion);
                             }
 
@@ -369,37 +372,37 @@ public class JavaGenerator {
             JavaVersion.JAVA_21, new Pair<>(".44.17", ".0.8")
     ));
 
-    public static JavaType[] zuluTypes = {
-            JavaType.JDK
+    public static JavaImage[] zuluTypes = {
+            JavaImage.JDK
     };
 
     public static JavaVersion[] zuluVersions = {
             JavaVersion.JAVA_8, JavaVersion.JAVA_11, JavaVersion.JAVA_17, JavaVersion.JAVA_21
     };
 
-    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> zuluPlatforms = new HashMap<>(
+    public static HashMap<JavaPlatform, List<Pair<JavaArchitecture, JavaInstaller>>> zuluPlatforms = new HashMap<>(
             Map.of(
                     JavaPlatform.LINUX, List.of(
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.DEB),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.RPM),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.RPM),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.DEB)
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.DEB),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.RPM),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.RPM),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.DEB)
                     ),
                     JavaPlatform.WINDOWS, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.MSI),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.ZIP)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.MSI),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.ZIP)
                     ),
                     JavaPlatform.MACOS, List.of(
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.ZIP),
-                            new Pair<>(JavaArchitecture.X64, JavaPackage.DMG),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.TAR_GZ),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.ZIP),
-                            new Pair<>(JavaArchitecture.AARCH64, JavaPackage.DMG)
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.ZIP),
+                            new Pair<>(JavaArchitecture.X64, JavaInstaller.DMG),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.TAR_GZ),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.ZIP),
+                            new Pair<>(JavaArchitecture.AARCH64, JavaInstaller.DMG)
                     )
             )
     );
@@ -410,12 +413,12 @@ public class JavaGenerator {
         String baseDigestUrl = "https://github.com/joschi/zulu-metadata/raw/master/checksums/zulu%s%s-ca-%s%s%s-%s_%s.%s.sha256";
         for (JavaFlavor javaEdition : List.of(JavaFlavor.CORRETTO)) {
             for (JavaVersion javaVersion : zuluVersions) {
-                for (JavaType javaType : zuluTypes) {
-                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaPackage>>> entry : zuluPlatforms.entrySet()) {
+                for (JavaImage javaType : zuluTypes) {
+                    for (Map.Entry<JavaPlatform, List<Pair<JavaArchitecture, JavaInstaller>>> entry : zuluPlatforms.entrySet()) {
                         JavaPlatform javaPlatform = entry.getKey();
-                        for (Pair<JavaArchitecture, JavaPackage> pair : entry.getValue()) {
+                        for (Pair<JavaArchitecture, JavaInstaller> pair : entry.getValue()) {
                             JavaArchitecture javaArchitecture = pair.getFirst();
-                            JavaPackage javaPackage = pair.getSecond();
+                            JavaInstaller javaPackage = pair.getSecond();
 
                             if(javaVersion == JavaVersion.JAVA_8 || javaVersion == JavaVersion.JAVA_11) {
                                 if(javaPlatform == JavaPlatform.WINDOWS && javaArchitecture == JavaArchitecture.AARCH64) {
@@ -429,11 +432,11 @@ public class JavaGenerator {
                             String architecture = javaArchitecture.getArch();
                             String packageType = javaPackage.getPackageType();
 
-                            if(javaPackage == JavaPackage.DEB && javaArchitecture == JavaArchitecture.AARCH64) {
+                            if(javaPackage == JavaInstaller.DEB && javaArchitecture == JavaArchitecture.AARCH64) {
                                 architecture = "arm64"; // For Zulu, AARCH64 is translated to arm64 for DEB packages
-                            } else if (javaPackage == JavaPackage.DEB && javaArchitecture == JavaArchitecture.X64) {
+                            } else if (javaPackage == JavaInstaller.DEB && javaArchitecture == JavaArchitecture.X64) {
                                 architecture = "amd64"; // For Zulu, X64 is translated to amd64 for DEB packages
-                            } else if (javaPackage == JavaPackage.RPM && javaArchitecture == JavaArchitecture.X64) {
+                            } else if (javaPackage == JavaInstaller.RPM && javaArchitecture == JavaArchitecture.X64) {
                                 architecture = "x86_64"; // For Zulu, X64 is translated to x86_64 for RPM packages
                             }
 
@@ -505,7 +508,7 @@ public class JavaGenerator {
         //List<Pair<URL, URL>> urls = generateOracleDownloadUrls();
         //List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
         //List<Pair<URL, URL>> urls = generateTemurinDownloadUrls();
-        List<Pair<URL, URL>> urls = generateZuluDownloadUrls();
+        /*List<Pair<URL, URL>> urls = generateZuluDownloadUrls();
 
         for (Pair<URL, URL> url : urls) {
             try {
@@ -516,6 +519,18 @@ public class JavaGenerator {
             } catch (RuntimeException e) {
                 System.out.println(e);
             }
+        }*/
+        try {
+            URL packetData = new URI("https://joschi.github.io/java-metadata/metadata/all.json").toURL();
+            Path cachePath = Path.of("./all.json");
+            long allDownloadedSize = DownloadHelper.continueDownload(new DownloadHelper.Download(packetData, cachePath));
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(cachePath.toFile())));
+            JsonParser jsonParser = new JsonParser();
+            Object jsonData = jsonParser.parse(reader);
+        } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(e);
         }
+
     }
 }

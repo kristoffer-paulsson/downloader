@@ -36,10 +36,10 @@ public enum JavaVersion {
         // Example usage
         for (JavaFlavor javaEdition : JavaFlavor.values()) {
             for (JavaVersion javaVersion : JavaVersion.values()) {
-                for (JavaType javaType : JavaType.values()) {
+                for (JavaImage javaType : JavaImage.values()) {
                     for (JavaPlatform javaEnvironment : JavaPlatform.values()) {
                         for (JavaArchitecture javaArchitecture : JavaArchitecture.values()) {
-                            for (JavaPackage javaPackage : JavaPackage.values()) {
+                            for (JavaInstaller javaPackage : JavaInstaller.values()) {
                                 String config = String.join("-", javaEdition.getEdition(), javaVersion.getVersion(), javaType.getType(), javaEnvironment.getOs(), javaArchitecture.getArch(), javaPackage.getPackageType());
                                 System.out.println(++count + ": " + config);
                             }

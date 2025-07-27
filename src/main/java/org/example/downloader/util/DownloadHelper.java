@@ -69,7 +69,7 @@ public class DownloadHelper {
          * @param url      The URL to download from.
          * @param filePath The path where the downloaded file will be saved.
          */
-        Download(URL url, Path filePath) {
+        public Download(URL url, Path filePath) {
             this.url = url;
             this.filePath = filePath;
         }
