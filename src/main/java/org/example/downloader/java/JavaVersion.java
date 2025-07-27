@@ -14,6 +14,8 @@
  */
 package org.example.downloader.java;
 
+import java.util.List;
+
 public enum JavaVersion {
     JAVA_8("8"), // Java 8 is the last version with long-term support (LTS)
     JAVA_9("9"),
@@ -32,7 +34,8 @@ public enum JavaVersion {
     JAVA_22("22"),
     JAVA_23("23"),
     JAVA_24("24"),
-    JAVA_25("25");
+    JAVA_25("25"),
+    UNKNOWN("unknown");
 
     private final String version;
 
@@ -42,6 +45,23 @@ public enum JavaVersion {
 
     public String getVersion() {
         return version;
+    }
+
+    public List<JavaVersion> getLongTermSupportVersions() {
+        return List.of(JAVA_8, JAVA_11, JAVA_17, JAVA_21);
+    }
+
+    public boolean isLongTermSupport() {
+        return getLongTermSupportVersions().contains(this);
+    }
+
+    public static JavaVersion fromString(String version) {
+        for (JavaVersion javaVersion : JavaVersion.values()) {
+            if (version.startsWith(javaVersion.getVersion())) {
+                return javaVersion;
+            }
+        }
+        return UNKNOWN;
     }
 
     public static void main(String[] args) {
