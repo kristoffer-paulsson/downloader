@@ -386,10 +386,10 @@ public class JavaGenerator {
             )
     );
 
-    public static List<URL> generateZuluDownloadUrls() {
-        List<URL> urls = new ArrayList<>();
-        // https://cdn.azul.com/zulu/bin/zulu8.88.0.19-ca-jdk8.0.462-linux_x64.zip
+    public static List<Pair<URL, URL>> generateZuluDownloadUrls() {
+        List<Pair<URL, URL>> urls = new ArrayList<>();
         String baseUrl = "https://cdn.azul.com/zulu/bin/zulu%s%s-ca-%s%s%s-%s_%s.%s";
+        String baseDigestUrl = "https://github.com/joschi/zulu-metadata/raw/master/checksums/zulu%s%s-ca-%s%s%s-%s_%s.%s.sha256";
         for (JavaFlavor javaEdition : List.of(JavaFlavor.CORRETTO)) {
             for (JavaVersion javaVersion : zuluVersions) {
                 for (JavaType javaType : zuluTypes) {
@@ -436,8 +436,22 @@ public class JavaGenerator {
                                     architecture,
                                     packageType
                             );
+                            String sha256Url = String.format(
+                                    baseDigestUrl,
+                                    version,
+                                    zuluMinorPatch.get(javaVersion).getFirst(),
+                                    type,
+                                    version,
+                                    zuluMinorPatch.get(javaVersion).getSecond(),
+                                    platform, //zuluPlatformsTranslation.get(javaPlatform),
+                                    architecture,
+                                    packageType
+                            );
                             try {
-                                urls.add(new URI(url).toURL());
+                                urls.add(new Pair<>(
+                                        new URI(url).toURL(),
+                                        new URI(sha256Url).toURL()
+                                ));
                             } catch (MalformedURLException e) {
                                 throw new RuntimeException(e);
                             } catch (URISyntaxException e) {
@@ -466,12 +480,14 @@ public class JavaGenerator {
 
         //List<Pair<URL, URL>> urls = generateOracleDownloadUrls();
         //List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
-        List<Pair<URL, URL>> urls = generateTemurinDownloadUrls();
+        //List<Pair<URL, URL>> urls = generateTemurinDownloadUrls();
+        List<Pair<URL, URL>> urls = generateZuluDownloadUrls();
 
         for (Pair<URL, URL> url : urls) {
             try {
                 long size = DownloadHelper.queryUrlFileDownloadSize(url.getFirst());
-                String sha256 = DownloadHelper.downloadSmallData(url.getSecond());
+                //String sha256 = DownloadHelper.downloadSmallData(url.getSecond());
+                String sha256 = "N/A";
                 System.out.println(size + ": " + url.getFirst() + " | SHA256: " + sha256);
             } catch (RuntimeException e) {
                 System.out.println(e);
