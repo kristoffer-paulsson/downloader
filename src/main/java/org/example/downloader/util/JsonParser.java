@@ -14,139 +14,173 @@
  */
 package org.example.downloader.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class JsonParser {
-    private int index;
-    private String json;
+    private BufferedReader reader;
+    private String currentLine; // Current line being processed
+    private int lineIndex; // Index within the current line
+    private boolean hasNextLine; // Indicates if there are more lines to read
+    private int currentChar; // Current character being processed (-1 for EOF or end of line)
 
-    // Main method to parse a JSON string
-    public Object parse(String jsonString) throws IllegalArgumentException {
-        this.json = jsonString;
-        this.index = 0;
+    // Main method to parse JSON from a BufferedReader
+    public Object parse(BufferedReader reader) throws IllegalArgumentException, IOException {
+        this.reader = reader;
+        this.currentLine = null;
+        this.lineIndex = 0;
+        this.hasNextLine = true;
+        fetchNextLine();
         skipWhitespace();
         Object result = parseValue();
         skipWhitespace();
-        if (index < json.length()) {
-            throw new IllegalArgumentException("Unexpected characters after JSON: " + json.substring(index));
+        if (hasNextLine || (currentLine != null && lineIndex < currentLine.length())) {
+            throw new IllegalArgumentException("Unexpected characters after JSON");
         }
         return result;
     }
 
+    // Fetch the next line from the BufferedReader
+    private void fetchNextLine() throws IOException {
+        currentLine = reader.readLine();
+        lineIndex = 0;
+        hasNextLine = currentLine != null;
+        if (hasNextLine && currentLine.isEmpty()) {
+            fetchNextLine(); // Skip empty lines
+        }
+    }
+
+    // Read the next character from the current line or fetch a new line
+    private int readChar() throws IOException {
+        while (hasNextLine) {
+            if (currentLine == null || lineIndex >= currentLine.length()) {
+                fetchNextLine();
+                if (!hasNextLine) {
+                    return -1; // EOF
+                }
+            }
+            return currentLine.charAt(lineIndex++);
+        }
+        return -1; // EOF if no more lines
+    }
+
+    // Advance to the next character
+    private void nextChar() throws IOException {
+        currentChar = readChar();
+    }
+
     // Parse any JSON value (object, array, string, number, boolean, null)
-    private Object parseValue() {
+    private Object parseValue() throws IOException {
         skipWhitespace();
-        if (index >= json.length()) {
+        if (!hasNextLine && (currentLine == null || lineIndex >= currentLine.length())) {
             throw new IllegalArgumentException("Unexpected end of JSON");
         }
 
-        char c = json.charAt(index);
-        if (c == '{') {
+        if (currentChar == '{') {
             return parseObject();
-        } else if (c == '[') {
+        } else if (currentChar == '[') {
             return parseArray();
-        } else if (c == '"') {
+        } else if (currentChar == '"') {
             return parseString();
-        } else if (Character.isDigit(c) || c == '-') {
+        } else if (Character.isDigit(currentChar) || currentChar == '-') {
             return parseNumber();
-        } else if (c == 't' || c == 'f') {
+        } else if (currentChar == 't' || currentChar == 'f') {
             return parseBoolean();
-        } else if (c == 'n') {
+        } else if (currentChar == 'n') {
             return parseNull();
         } else {
-            throw new IllegalArgumentException("Invalid JSON at position " + index + ": " + c);
+            throw new IllegalArgumentException("Invalid JSON character: " + (char) currentChar);
         }
     }
 
     // Parse a JSON object
-    private Map<String, Object> parseObject() {
+    private Map<String, Object> parseObject() throws IOException {
         Map<String, Object> object = new HashMap<>();
-        index++; // Skip '{'
+        nextChar(); // Skip '{'
         skipWhitespace();
 
-        if (index < json.length() && json.charAt(index) == '}') {
-            index++; // Empty object
+        if (currentChar == '}' && (hasNextLine || lineIndex < currentLine.length())) {
+            nextChar(); // Empty object
             return object;
         }
 
-        while (index < json.length()) {
+        while (hasNextLine || (currentLine != null && lineIndex < currentLine.length())) {
             skipWhitespace();
-            if (json.charAt(index) != '"') {
-                throw new IllegalArgumentException("Expected string key at position " + index);
+            if (currentChar != '"') {
+                throw new IllegalArgumentException("Expected string key, found: " + (char) currentChar);
             }
             String key = parseString();
             skipWhitespace();
-            if (index >= json.length() || json.charAt(index) != ':') {
-                throw new IllegalArgumentException("Expected ':' at position " + index);
+            if (!hasNextLine && (currentLine == null || lineIndex >= currentLine.length()) || currentChar != ':') {
+                throw new IllegalArgumentException("Expected ':'");
             }
-            index++; // Skip ':'
+            nextChar(); // Skip ':'
             skipWhitespace();
             Object value = parseValue();
             object.put(key, value);
             skipWhitespace();
-            if (index < json.length() && json.charAt(index) == '}') {
-                index++; // Skip '}'
+            if (currentChar == '}' && (hasNextLine || lineIndex < currentLine.length())) {
+                nextChar(); // Skip '}'
                 break;
             }
-            if (index >= json.length() || json.charAt(index) != ',') {
-                throw new IllegalArgumentException("Expected ',' or '}' at position " + index);
+            if (!hasNextLine && (currentLine == null || lineIndex >= currentLine.length()) || currentChar != ',') {
+                throw new IllegalArgumentException("Expected ',' or '}'");
             }
-            index++; // Skip ','
+            nextChar(); // Skip ','
         }
         return object;
     }
 
     // Parse a JSON array
-    private List<Object> parseArray() {
+    private List<Object> parseArray() throws IOException {
         List<Object> array = new ArrayList<>();
-        index++; // Skip '['
+        nextChar(); // Skip '['
         skipWhitespace();
 
-        if (index < json.length() && json.charAt(index) == ']') {
-            index++; // Empty array
+        if (currentChar == ']' && (hasNextLine || lineIndex < currentLine.length())) {
+            nextChar(); // Empty array
             return array;
         }
 
-        while (index < json.length()) {
+        while (hasNextLine || (currentLine != null && lineIndex < currentLine.length())) {
             array.add(parseValue());
             skipWhitespace();
-            if (index < json.length() && json.charAt(index) == ']') {
-                index++; // Skip ']'
+            if (currentChar == ']' && (hasNextLine || lineIndex < currentLine.length())) {
+                nextChar(); // Skip ']'
                 break;
             }
-            if (index >= json.length() || json.charAt(index) != ',') {
-                throw new IllegalArgumentException("Expected ',' or ']' at position " + index);
+            if (!hasNextLine && (currentLine == null || lineIndex >= currentLine.length()) || currentChar != ',') {
+                throw new IllegalArgumentException("Expected ',' or ']'");
             }
-            index++; // Skip ','
+            nextChar(); // Skip ','
             skipWhitespace();
         }
         return array;
     }
 
     // Parse a JSON string
-    private String parseString() {
-        index++; // Skip opening quote
+    private String parseString() throws IOException {
+        nextChar(); // Skip opening quote
         StringBuilder result = new StringBuilder();
-        while (index < json.length()) {
-            char c = json.charAt(index);
-            if (c == '"') {
-                index++; // Skip closing quote
+        while (hasNextLine || (currentLine != null && lineIndex < currentLine.length())) {
+            if (currentChar == '"') {
+                nextChar(); // Skip closing quote
                 return result.toString();
             }
-            if (c == '\\') {
-                index++;
-                if (index >= json.length()) {
+            if (currentChar == '\\') {
+                nextChar();
+                if (!hasNextLine && (currentLine == null || lineIndex >= currentLine.length())) {
                     throw new IllegalArgumentException("Unexpected end of string");
                 }
-                c = json.charAt(index);
-                switch (c) {
+                switch (currentChar) {
                     case '"':
                     case '\\':
                     case '/':
-                        result.append(c);
+                        result.append((char) currentChar);
                         break;
                     case 'b':
                         result.append('\b');
@@ -167,41 +201,40 @@ public class JsonParser {
                         result.append(parseUnicode());
                         break;
                     default:
-                        throw new IllegalArgumentException("Invalid escape character at position " + index);
+                        throw new IllegalArgumentException("Invalid escape character: " + (char) currentChar);
                 }
             } else {
-                result.append(c);
+                result.append((char) currentChar);
             }
-            index++;
+            nextChar();
         }
         throw new IllegalArgumentException("Unterminated string");
     }
 
     // Parse a Unicode escape sequence
-    private char parseUnicode() {
-        if (index + 4 > json.length()) {
-            throw new IllegalArgumentException("Invalid Unicode sequence");
+    private char parseUnicode() throws IOException {
+        StringBuilder hex = new StringBuilder();
+        for (int i = 0; i < 4; i++) {
+            nextChar();
+            if (!hasNextLine && (currentLine == null || lineIndex >= currentLine.length())) {
+                throw new IllegalArgumentException("Invalid Unicode sequence");
+            }
+            hex.append((char) currentChar);
         }
-        String hex = json.substring(index + 1, index + 5);
-        index += 4;
         try {
-            return (char) Integer.parseInt(hex, 16);
+            return (char) Integer.parseInt(hex.toString(), 16);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid Unicode sequence: " + hex);
         }
     }
 
     // Parse a JSON number
-    private Number parseNumber() {
+    private Number parseNumber() throws IOException {
         StringBuilder number = new StringBuilder();
-        while (index < json.length()) {
-            char c = json.charAt(index);
-            if (Character.isDigit(c) || c == '-' || c == '+' || c == '.' || c == 'e' || c == 'E') {
-                number.append(c);
-                index++;
-            } else {
-                break;
-            }
+        while ((hasNextLine || (currentLine != null && lineIndex < currentLine.length())) &&
+                (Character.isDigit(currentChar) || currentChar == '-' || currentChar == '+' || currentChar == '.' || currentChar == 'e' || currentChar == 'E')) {
+            number.append((char) currentChar);
+            nextChar();
         }
         String numStr = number.toString();
         try {
@@ -216,43 +249,53 @@ public class JsonParser {
     }
 
     // Parse a JSON boolean
-    private Boolean parseBoolean() {
-        if (json.startsWith("true", index)) {
-            index += 4;
-            return true;
-        } else if (json.startsWith("false", index)) {
-            index += 5;
-            return false;
-        } else {
-            throw new IllegalArgumentException("Invalid boolean at position " + index);
+    private Boolean parseBoolean() throws IOException {
+        StringBuilder bool = new StringBuilder();
+        for (int i = 0; i < 5 && (hasNextLine || (currentLine != null && lineIndex < currentLine.length())); i++) {
+            bool.append((char) currentChar);
+            nextChar();
+            if (bool.toString().equals("true")) {
+                return true;
+            }
+            if (bool.toString().equals("false")) {
+                return false;
+            }
         }
+        throw new IllegalArgumentException("Invalid boolean: " + bool);
     }
 
     // Parse a JSON null
-    private Object parseNull() {
-        if (json.startsWith("null", index)) {
-            index += 4;
-            return null;
-        } else {
-            throw new IllegalArgumentException("Invalid null at position " + index);
+    private Object parseNull() throws IOException {
+        StringBuilder nullStr = new StringBuilder();
+        for (int i = 0; i < 4 && (hasNextLine || (currentLine != null && lineIndex < currentLine.length())); i++) {
+            nullStr.append((char) currentChar);
+            nextChar();
         }
+        if (nullStr.toString().equals("null")) {
+            return null;
+        }
+        throw new IllegalArgumentException("Invalid null: " + nullStr);
     }
 
     // Skip whitespace characters
-    private void skipWhitespace() {
-        while (index < json.length() && Character.isWhitespace(json.charAt(index))) {
-            index++;
+    private void skipWhitespace() throws IOException {
+        while (hasNextLine || (currentLine != null && lineIndex < currentLine.length())) {
+            if (Character.isWhitespace(currentChar)) {
+                nextChar();
+            } else {
+                break;
+            }
         }
     }
 
     // Example usage
     public static void main(String[] args) {
-        JsonParser parser = new JsonParser();
         String jsonString = "{\"name\": \"John\", \"age\": 30, \"isStudent\": false, \"grades\": [90, 85, 88], \"address\": {\"street\": \"123 Main St\", \"city\": \"Anytown\"}}";
-        try {
-            Object result = parser.parse(jsonString);
+        try (BufferedReader reader = new BufferedReader(new java.io.StringReader(jsonString))) {
+            JsonParser parser = new JsonParser();
+            Object result = parser.parse(reader);
             System.out.println(result);
-        } catch (IllegalArgumentException e) {
+        } catch (IOException | IllegalArgumentException e) {
             System.err.println("Error parsing JSON: " + e.getMessage());
         }
     }
