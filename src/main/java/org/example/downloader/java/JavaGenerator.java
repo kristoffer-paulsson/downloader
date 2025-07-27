@@ -355,7 +355,7 @@ public class JavaGenerator {
     }
 
     public static String temurinSha256Parser(String digest) {
-        String sha256 = digest.trim();
+        String sha256 = digest.split(" ")[0].trim();
         BlockChainHelper.isValid32CharHex(sha256);
         return sha256.trim();
     }
@@ -483,6 +483,12 @@ public class JavaGenerator {
         return urls;
     }
 
+    public static String zuluSha256Parser(String digest) {
+        String sha256 = digest.trim();
+        BlockChainHelper.isValid32CharHex(sha256);
+        return sha256.trim();
+    }
+
     public static void main(String[] args) {
         /*List<List<URL>> allUrls = new ArrayList<>();
         allUrls.add(generateOracleDownloadUrls());
@@ -497,9 +503,9 @@ public class JavaGenerator {
         }*/
 
         //List<Pair<URL, URL>> urls = generateOracleDownloadUrls();
-        List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
+        //List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
         //List<Pair<URL, URL>> urls = generateTemurinDownloadUrls();
-        //List<Pair<URL, URL>> urls = generateZuluDownloadUrls();
+        List<Pair<URL, URL>> urls = generateZuluDownloadUrls();
 
         for (Pair<URL, URL> url : urls) {
             try {
