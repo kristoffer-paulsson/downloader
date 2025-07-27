@@ -202,6 +202,24 @@ public class DownloadHelper {
         return bytesDownloaded;
     }
 
+    public static String downloadSmallData(URL url) {
+        try {
+            HttpURLConnection connection = setupConnection(url, "GET", null);
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                try (InputStream inputStream = connection.getInputStream()) {
+                    return new String(inputStream.readAllBytes());
+                }
+            } else {
+                throw new IOException("Failed to download data, HTTP response code: " + responseCode);
+            }
+        } catch (SocketTimeoutException e) {
+            throw new RuntimeException("Timeout while downloading data: " + url, e);
+        } catch (IOException e) {
+            throw new RuntimeException("Error downloading data: " + url, e);
+        }
+    }
+
     /**
      * Queries the file size of a URL using a HEAD request.
      *

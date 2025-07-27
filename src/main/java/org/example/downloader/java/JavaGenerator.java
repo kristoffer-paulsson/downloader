@@ -60,9 +60,10 @@ public class JavaGenerator {
             )
     );
 
-    public static List<URL> generateOracleDownloadUrls() {
-        List<URL> urls = new ArrayList<>();
+    public static List<Pair<URL, URL>> generateOracleDownloadUrls() {
+        List<Pair<URL, URL>> urls = new ArrayList<>();
         String baseUrl = "https://download.oracle.com/java/%s/latest/%s-%s_%s-%s_bin.%s";
+        String baseDigestUrl = "https://download.oracle.com/java/%s/latest/%s-%s_%s-%s_bin.%s.sha256";
         for (JavaFlavor javaEdition : List.of(JavaFlavor.ORACLE)) {
             for (JavaVersion javaVersion : oracleVersions) {
                 for (JavaType javaType : oracleTypes) {
@@ -91,8 +92,20 @@ public class JavaGenerator {
                                     architecture,
                                     packageType
                             );
+                            String sha256Url = String.format(
+                                    baseDigestUrl,
+                                    version,
+                                    type,
+                                    version,
+                                    platform,
+                                    architecture,
+                                    packageType
+                            );
                             try {
-                                urls.add(new URI(url).toURL());
+                                urls.add(new Pair<>(
+                                        new URI(url).toURL(),
+                                        new URI(sha256Url).toURL()
+                                ));
                             } catch (MalformedURLException e) {
                                 throw new RuntimeException(e);
                             } catch (URISyntaxException e) {
@@ -138,9 +151,10 @@ public class JavaGenerator {
             )
     );
 
-    public static List<URL> generateCorrettoDownloadUrls() {
-        List<URL> urls = new ArrayList<>();
+    public static List<Pair<URL, URL>> generateCorrettoDownloadUrls() {
+        List<Pair<URL, URL>> urls = new ArrayList<>();
         String baseUrl = "https://corretto.aws/downlaods/latest/amazon-corretto-%s-%s-%s-%s.%s";
+        String baseDigestUrl = "https://download.oracle.com/java/%s/latest/%s-%s_%s-%s_bin.%s.sha256";
         for (JavaFlavor javaEdition : List.of(JavaFlavor.CORRETTO)) {
             for (JavaVersion javaVersion : correttoVersions) {
                 for (JavaType javaType : correttoTypes) {
@@ -164,8 +178,19 @@ public class JavaGenerator {
                                     type,
                                     packageType
                             );
+                            String sha256Url = String.format(
+                                    baseDigestUrl,
+                                    version,
+                                    architecture,
+                                    platform,
+                                    type,
+                                    packageType
+                            );
                             try {
-                                urls.add(new URI(url).toURL());
+                                urls.add(new Pair<>(
+                                        new URI(url).toURL(),
+                                        new URI(sha256Url).toURL()
+                                ));
                             } catch (MalformedURLException e) {
                                 throw new RuntimeException(e);
                             } catch (URISyntaxException e) {
@@ -424,16 +449,26 @@ public class JavaGenerator {
     }
 
     public static void main(String[] args) {
-        List<List<URL>> allUrls = new ArrayList<>();
+        /*List<List<URL>> allUrls = new ArrayList<>();
         allUrls.add(generateOracleDownloadUrls());
-        allUrls.add(generateCorrettoDownloadUrls());
-        allUrls.add(generateTemurinDownloadUrls());
-        allUrls.add(generateZuluDownloadUrls());
 
-        for (URL url : allUrls.get(2)) {
+        for (URL url : allUrls.get(0)) {
             try {
-                long size = DownloadHelper.queryUrlFileDownloadSizeWithRedirect(url);
+                String size = DownloadHelper.downloadSmallData(url);
                 System.out.println(size + ": " + url);
+            } catch (RuntimeException e) {
+                System.out.println(e);
+            }
+        }*/
+
+        //List<Pair<URL, URL>> urls = generateOracleDownloadUrls();
+        List<Pair<URL, URL>> urls = generateCorrettoDownloadUrls();
+
+        for (Pair<URL, URL> url : urls) {
+            try {
+                long size = DownloadHelper.queryUrlFileDownloadSize(url.getFirst());
+                String sha256 = DownloadHelper.downloadSmallData(url.getSecond());
+                System.out.println(size + ": " + url.getFirst() + " | SHA256: " + sha256);
             } catch (RuntimeException e) {
                 System.out.println(e);
             }
