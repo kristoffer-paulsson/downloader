@@ -28,7 +28,7 @@ public enum JavaPlatform {
         this.os = os;
     }
 
-    public String getOs() {
+    public String getPlatform() {
         return os;
     }
 

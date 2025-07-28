@@ -13,6 +13,7 @@
             <includes>
                 <include>*.jar</include>
                 <include>run-downloader.sh</include>
+                <include>run-downloader.bat</include>
             </includes>
             <fileMode>0644</fileMode>
             <directoryMode>0755</directoryMode>
@@ -22,6 +23,7 @@
             <outputDirectory>${project.artifactId}-${project.version}</outputDirectory>
             <includes>
                 <include>run-downloader.sh</include>
+                <include>run-downloader.bat</include>
             </includes>
             <fileMode>0755</fileMode> <!-- Make script executable -->
         </fileSet>

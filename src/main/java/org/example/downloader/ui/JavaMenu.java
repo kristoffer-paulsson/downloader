@@ -18,9 +18,9 @@ import org.example.downloader.ConfigManager;
 import org.example.downloader.InversionOfControl;
 import org.example.downloader.deb.Menu;
 
-public class MonitoringMenu extends Menu {
-    public MonitoringMenu(InversionOfControl ioc) {
-        super(ioc, "Debian Downloader CLI");
+public class JavaMenu extends Menu {
+    public JavaMenu(InversionOfControl ioc) {
+        super(ioc, "Java Downloader CLI");
     }
 
     @Override

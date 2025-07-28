@@ -34,7 +34,7 @@ public enum JavaInstaller {
         this.packageType = packageType;
     }
 
-    public String getPackageType() {
+    public String getInstaller() {
         return packageType;
     }
 

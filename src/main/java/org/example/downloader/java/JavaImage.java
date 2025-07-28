@@ -25,7 +25,7 @@ public enum JavaImage {
         this.type = type;
     }
 
-    public String getType() {
+    public String getImage() {
         return type;
     }
 

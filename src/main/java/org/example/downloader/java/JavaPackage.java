@@ -16,7 +16,6 @@ package org.example.downloader.java;
 
 import org.example.downloader.util.BasePackage;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;

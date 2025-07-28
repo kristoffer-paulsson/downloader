@@ -28,6 +28,6 @@ public class MainMenu extends Menu {
         registerOption("Mirror websites", option -> new MirrorMenu(ioc).runMenu());
         registerOption("Package lists", option -> new PackageMenu(ioc).runMenu());
         registerOption("Workers", option -> new WorkerMenu(ioc).runMenu());
-        registerOption("Monitoring", option -> new MonitoringMenu(ioc).runMenu());
+        registerOption("Monitoring", option -> new JavaMenu(ioc).runMenu());
     }
 }
