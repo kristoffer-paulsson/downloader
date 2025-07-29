@@ -254,6 +254,9 @@ public abstract class Form {
                 selectedOptions.add(selectedOption); // Add if not selected
                 System.out.println("Added: " + selectedOption);
             }
+            // Display current selections
+            System.out.println("Current selections: " + String.join(", ", selectedOptions));
+            System.out.print("Select another option (1-" + options.size() + ", 0 to finish): ");
         }
 
         if (!selectedOptions.isEmpty()) {
