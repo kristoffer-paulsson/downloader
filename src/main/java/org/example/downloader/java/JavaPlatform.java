@@ -14,6 +14,9 @@
  */
 package org.example.downloader.java;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum JavaPlatform {
     LINUX("linux"),
     WINDOWS("windows"),
@@ -41,10 +44,10 @@ public enum JavaPlatform {
         return UNKNOWN;
     }
 
-    public static String[] toStringList() {
-        String[] platformList = new String[JavaPlatform.values().length];
-        for (int i = 0; i < JavaPlatform.values().length; i++) {
-            platformList[i] = JavaPlatform.values()[i].getPlatform();
+    public static List<String> toStringList() {
+        List<String> platformList = new ArrayList<>();
+        for (JavaPlatform installer : JavaPlatform.values()) {
+            platformList.add(installer.getPlatform());
         }
         return platformList;
     }

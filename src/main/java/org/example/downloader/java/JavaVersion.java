@@ -14,6 +14,7 @@
  */
 package org.example.downloader.java;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public enum JavaVersion {
@@ -64,10 +65,10 @@ public enum JavaVersion {
         return UNKNOWN;
     }
 
-    public static String[] toStringList() {
-        String[] versionList = new String[JavaVersion.values().length];
-        for (int i = 0; i < JavaVersion.values().length; i++) {
-            versionList[i] = JavaVersion.values()[i].getVersion();
+    public static List<String> toStringList() {
+        List<String> versionList = new ArrayList<>();
+        for (JavaVersion version : JavaVersion.values()) {
+            versionList.add(version.getVersion());
         }
         return versionList;
     }

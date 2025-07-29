@@ -1,10 +1,11 @@
 package org.example.downloader.ui;
 
-import org.example.downloader.ConfigManager;
 import org.example.downloader.InversionOfControl;
 import org.example.downloader.deb.Form;
-import org.example.downloader.java.JavaArchitecture;
-import org.example.downloader.java.JavaDownloadEnvironment;
+import org.example.downloader.java.*;
+
+import java.io.IOException;
+import java.util.List;
 
 /**
  * A Java-specific form implementation that extends the generic Form class.
@@ -28,21 +29,67 @@ public class JavaForm extends Form {
                 System.out::println
         ));
 
-        /*// Register questions specific to the Java download environment
-        registerQuestion(() -> askTextQuestion("Enter the Java version to download:", response -> {
-            // Process the response, e.g., store it in a config or log it
-            System.out.println("Java version entered: " + response);
-        }));
+        registerQuestion(() -> askMultipleAnswerQuestion(
+                "Which Java image type:",
+                JavaImage.toStringList(),
+                jde.get(JavaDownloadEnvironment.EnvironmentKey.IMAGE.getKey(), JavaImage.UNKNOWN.getImage()),
+                System.out::println
+        ));
 
-        registerQuestion(() -> askTextQuestion("Enter the download URL for the Java package:", response -> {
-            // Process the response, e.g., store it in a config or log it
-            System.out.println("Download URL entered: " + response);
-        }));*/
+        registerQuestion(() -> askMultipleAnswerQuestion(
+                "Which Java implementation:",
+                JavaImplementation.toStringList(),
+                jde.get(JavaDownloadEnvironment.EnvironmentKey.IMPLEMENTATION.getKey(), JavaImplementation.UNKNOWN.getImplementation()),
+                System.out::println
+        ));
+
+        registerQuestion(() -> askMultipleAnswerQuestion(
+                "Which Java installers:",
+                JavaInstaller.toStringList(),
+                jde.get(JavaDownloadEnvironment.EnvironmentKey.INSTALLER.getKey(), JavaInstaller.UNKNOWN.getInstaller()),
+                System.out::println
+        ));
+
+        registerQuestion(() -> askMultipleAnswerQuestion(
+                "Which Java platforms:",
+                JavaPlatform.toStringList(),
+                jde.get(JavaDownloadEnvironment.EnvironmentKey.PLATFORM.getKey(), JavaPlatform.UNKNOWN.getPlatform()),
+                System.out::println
+        ));
+
+        registerQuestion(() -> askMultipleAnswerQuestion(
+                "Which Java vendors:",
+                JavaVendor.toStringList(),
+                jde.get(JavaDownloadEnvironment.EnvironmentKey.VENDOR.getKey(), JavaVendor.UNKNOWN.getVendor()),
+                System.out::println
+        ));
+
+        registerQuestion(() -> askMultipleAnswerQuestion(
+                "Which Java versions:",
+                JavaVersion.toStringList(),
+                jde.get(JavaDownloadEnvironment.EnvironmentKey.VERSION.getKey(), JavaVersion.UNKNOWN.getVersion()),
+                System.out::println
+        ));
     }
 
     @Override
     protected void processForm() {
-        // Process collected answers here if needed
-        System.out.println("Processing Java download environment form...");
+        List<Answer> answers = getAnswers();
+
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.ARCH.getKey(), answers.get(0).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.IMAGE.getKey(), answers.get(1).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.IMPLEMENTATION.getKey(), answers.get(2).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.INSTALLER.getKey(), answers.get(3).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.PLATFORM.getKey(), answers.get(4).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.VENDOR.getKey(), answers.get(5).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.VERSION.getKey(), answers.get(6).getResponse());
+
+        try {
+            jde.save();
+            jde.reload();
+            System.out.println("Saved and reloaded the environment.");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
