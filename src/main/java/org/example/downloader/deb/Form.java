@@ -223,25 +223,38 @@ public abstract class Form {
     public boolean askMultipleAnswerQuestion(String question, List<String> options, String standard, Consumer<String> onInvalid) {
         clearScreen();
         List<String> selectedOptions = new ArrayList<>();
-        int standardOption = -1;
 
-        System.out.println("=== " + question + " ===");
-        for (int i = 0; i < options.size(); i++) {
-            String option = options.get(i);
-            if(option.equals(standard)) {
-                standardOption = i+1;
-                System.out.println((i + 1) + ". " + option + " [default]");
-            } else
-                System.out.println((i + 1) + ". " + option);
+        if (options == null || options.isEmpty()) {
+            String[] opt = standard.split(",");
+            for (String opti : opt) {
+                if(!opti.isBlank()) {
+                    selectedOptions.add(opti.trim());
+                }
+            }
         }
-        System.out.println("0. Finish selection");
-        System.out.print("Select an option (1-" + options.size() + ", 0 to finish): ");
 
         while (true) {
-            int choice = readMenuChoice(options.size(), standardOption, onInvalid);
+            System.out.println("=== " + question + " ===");
+            for (int i = 0; i < options.size(); i++) {
+                String option = options.get(i);
+                if(selectedOptions.contains(option)) {
+                    System.out.println((i + 1) + ". " + option + " [selected]");
+                } else {
+                    System.out.println((i + 1) + ". " + option);
+                }
+            }
+            System.out.println((options.size() + 1) + ". Finish selection");
 
-            if (choice == 0) {
-                break; // Finish selection
+            if(!selectedOptions.isEmpty())
+                System.out.println("Currently selected options: " + String.join(", ", selectedOptions));
+            System.out.println("Deselect an option by selecting it again.");
+            System.out.print("Select option(s) (1-" + options.size() + ", " + (options.size() + 1) + " to finish): ");
+
+            int choice = readMenuChoice(options.size()+1, -1, onInvalid);
+            System.out.println("DEBUG: " + choice); // Print a new line for better readability
+
+            if (choice == (options.size() + 1)) {
+               break; // Finish selection
             } else if (choice == -1) {
                 continue; // Invalid input, retry
             }
@@ -254,9 +267,6 @@ public abstract class Form {
                 selectedOptions.add(selectedOption); // Add if not selected
                 System.out.println("Added: " + selectedOption);
             }
-            // Display current selections
-            System.out.println("Current selections: " + String.join(", ", selectedOptions));
-            System.out.print("Select another option (1-" + options.size() + ", 0 to finish): ");
         }
 
         if (!selectedOptions.isEmpty()) {

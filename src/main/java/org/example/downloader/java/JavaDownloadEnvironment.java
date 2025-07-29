@@ -51,14 +51,19 @@ public class JavaDownloadEnvironment {
     private final Properties properties = new Properties();
     private final Path configPath;
 
-    public JavaDownloadEnvironment(String environmentDirPath) throws IOException {
+    public JavaDownloadEnvironment(String environmentDirPath){
         this.configPath = Paths.get(environmentDirPath, ENVIRONMENT_FILE);
-        if (!Files.exists(configPath)) {
-            Files.createDirectories(configPath.getParent());
-            Files.createFile(configPath);
-        }
-        try (InputStream in = Files.newInputStream(configPath)) {
-            properties.load(in);
+
+        try {
+            if (!Files.exists(configPath)) {
+                Files.createDirectories(configPath.getParent());
+                Files.createFile(configPath);
+            }
+            try (InputStream in = Files.newInputStream(configPath)) {
+                properties.load(in);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load Java download environment properties", e);
         }
     }
 
@@ -132,7 +137,7 @@ public class JavaDownloadEnvironment {
             multi.forEach(arch -> {
                 array.add(name.stringify(arch));
             });
-            value = String.join(",", array);
+            value = String.join(", ", array);
         } else {
             value = name.stringify(multi.get(0));
         }
@@ -149,6 +154,9 @@ public class JavaDownloadEnvironment {
             return List.of();
         }
         String[] values = value.split(",");
+        for (int i = 0; i < values.length; i++) {
+            values[i] = values[i].trim();
+        }
         List<E> objects = new ArrayList<>();
         for (String part : values) {
             E obj = name.objectify(part.trim());

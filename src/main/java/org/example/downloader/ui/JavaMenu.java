@@ -14,9 +14,9 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.ConfigManager;
 import org.example.downloader.InversionOfControl;
 import org.example.downloader.deb.Menu;
+import org.example.downloader.java.JavaDownloadEnvironment;
 
 public class JavaMenu extends Menu {
     public JavaMenu(InversionOfControl ioc) {
@@ -25,14 +25,6 @@ public class JavaMenu extends Menu {
 
     @Override
     protected void setupMenu() {
-        registerOption("Configuration", option -> new ConfigMenu(ioc).runMenu());
-        registerOption("Mirror websites", option -> new MirrorMenu(ioc).runMenu());
-        registerOption("Package lists", option -> new PackageMenu(ioc).runMenu());
-    }
-
-    private void reviewConfig(ConfigManager configManager) {
-        System.out.println("\n=== Current config ===");
-        configManager.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
-        showMessageAndWait(" ");
+        registerOption("Setup environment", option -> new JavaForm(new JavaDownloadEnvironment("./"), ioc).runForm());
     }
 }
