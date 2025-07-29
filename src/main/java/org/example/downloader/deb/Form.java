@@ -209,6 +209,63 @@ public abstract class Form {
     }
 
     /**
+     * Asks a multiple-answer question and collects several selected options.
+     * This allows the user to select multiple options from a list, looping through the options
+     * and adds an option by selecting one answer at a time. When the user repeats a selected option
+     * it will be removed from the selection. Then when done the user can press Enter to finish the selection.
+     *
+     * @param question   The question to display.
+     * @param options    The list of possible options.
+     * @param standard   The default option to select if no input is given.
+     * @param onInvalid  A callback to handle invalid input.
+     * @return True if a valid selection was made and collected, false otherwise.
+     */
+    public boolean askMultipleAnswerQuestion(String question, List<String> options, String standard, Consumer<String> onInvalid) {
+        clearScreen();
+        List<String> selectedOptions = new ArrayList<>();
+        int standardOption = -1;
+
+        System.out.println("=== " + question + " ===");
+        for (int i = 0; i < options.size(); i++) {
+            String option = options.get(i);
+            if(option.equals(standard)) {
+                standardOption = i+1;
+                System.out.println((i + 1) + ". " + option + " [default]");
+            } else
+                System.out.println((i + 1) + ". " + option);
+        }
+        System.out.println("0. Finish selection");
+        System.out.print("Select an option (1-" + options.size() + ", 0 to finish): ");
+
+        while (true) {
+            int choice = readMenuChoice(options.size(), standardOption, onInvalid);
+
+            if (choice == 0) {
+                break; // Finish selection
+            } else if (choice == -1) {
+                continue; // Invalid input, retry
+            }
+
+            String selectedOption = options.get(choice - 1);
+            if (selectedOptions.contains(selectedOption)) {
+                selectedOptions.remove(selectedOption); // Remove if already selected
+                System.out.println("Removed: " + selectedOption);
+            } else {
+                selectedOptions.add(selectedOption); // Add if not selected
+                System.out.println("Added: " + selectedOption);
+            }
+        }
+
+        if (!selectedOptions.isEmpty()) {
+            answers.add(new Answer(question, String.join(", ", selectedOptions)));
+            return true;
+        } else {
+            onInvalid.accept("No options selected! Please try again.");
+            return false;
+        }
+    }
+
+    /**
      * Returns the list of collected answers.
      *
      * @return The list of answers.

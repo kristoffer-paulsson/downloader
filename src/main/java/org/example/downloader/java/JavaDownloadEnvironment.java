@@ -28,7 +28,7 @@ public class JavaDownloadEnvironment {
 
     public static final String ENVIRONMENT_FILE = "java-download.properties";
 
-    public static enum EnvironmentKey {
+    public enum EnvironmentKey {
         ARCH("java_arch"),
         IMAGE("java_image"),
         IMPLEMENTATION("java_impl"),
@@ -132,7 +132,7 @@ public class JavaDownloadEnvironment {
             multi.forEach(arch -> {
                 array.add(name.stringify(arch));
             });
-            value = String.join(", ", array);
+            value = String.join(",", array);
         } else {
             value = name.stringify(multi.get(0));
         }
