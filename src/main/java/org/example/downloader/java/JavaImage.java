@@ -14,6 +14,9 @@
  */
 package org.example.downloader.java;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum JavaImage {
     JDK("jdk"),
     JRE("jre"),
@@ -36,5 +39,13 @@ public enum JavaImage {
             }
         }
         return UNKNOWN;
+    }
+
+    public static List<String> toStringList() {
+        List<String> imageList = new ArrayList<>();
+        for (JavaImage image : JavaImage.values()) {
+            imageList.add(image.getImage());
+        }
+        return imageList;
     }
 }

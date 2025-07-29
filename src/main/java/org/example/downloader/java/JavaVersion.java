@@ -64,6 +64,14 @@ public enum JavaVersion {
         return UNKNOWN;
     }
 
+    public static String[] toStringList() {
+        String[] versionList = new String[JavaVersion.values().length];
+        for (int i = 0; i < JavaVersion.values().length; i++) {
+            versionList[i] = JavaVersion.values()[i].getVersion();
+        }
+        return versionList;
+    }
+
     /*public static void main(String[] args) {
         int count = 0;
         // Example usage

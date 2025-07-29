@@ -14,6 +14,9 @@
  */
 package org.example.downloader.java;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum JavaImplementation {
     HOTSPOT("hotspot"),
     OPENJ9("openj9"),
@@ -36,5 +39,13 @@ public enum JavaImplementation {
             }
         }
         return UNKNOWN;
+    }
+
+    public static List<String> toStringList() {
+        List<String> implList = new ArrayList<>();
+        for (JavaImplementation impl : JavaImplementation.values()) {
+            implList.add(impl.getImplementation());
+        }
+        return implList;
     }
 }

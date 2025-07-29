@@ -14,6 +14,10 @@
  */
 package org.example.downloader.java;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public enum JavaArchitecture {
     AARCH64("aarch64"),
     S390X("s390x"),
@@ -41,5 +45,13 @@ public enum JavaArchitecture {
             }
         }
         return UNKNOWN;
+    }
+
+    public static List<String> toStringList() {
+        List<String> archList = new ArrayList<>();
+        Arrays.stream(values()).iterator().forEachRemaining(genericArch -> {
+            archList.add(genericArch.getArch());
+        });
+        return archList;
     }
 }

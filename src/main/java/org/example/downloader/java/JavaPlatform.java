@@ -40,4 +40,12 @@ public enum JavaPlatform {
         }
         return UNKNOWN;
     }
+
+    public static String[] toStringList() {
+        String[] platformList = new String[JavaPlatform.values().length];
+        for (int i = 0; i < JavaPlatform.values().length; i++) {
+            platformList[i] = JavaPlatform.values()[i].getPlatform();
+        }
+        return platformList;
+    }
 }

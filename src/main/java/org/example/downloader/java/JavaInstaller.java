@@ -14,6 +14,9 @@
  */
 package org.example.downloader.java;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum JavaInstaller {
     DEB("deb"),
     RPM("rpm"),
@@ -45,5 +48,13 @@ public enum JavaInstaller {
             }
         }
         return UNKNOWN;
+    }
+
+    public static List<String> toStringList() {
+        List<String> installerList = new ArrayList<>();
+        for (JavaInstaller installer : JavaInstaller.values()) {
+            installerList.add(installer.getInstaller());
+        }
+        return installerList;
     }
 }

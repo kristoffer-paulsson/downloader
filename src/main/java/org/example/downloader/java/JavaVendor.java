@@ -14,6 +14,9 @@
  */
 package org.example.downloader.java;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum JavaVendor {
     ORACLE("oracle", "Oracle Corporation"),
     KONA("kona", "Kona JDK"),
@@ -59,5 +62,13 @@ public enum JavaVendor {
             }
         }
         return UNKNOWN;
+    }
+
+    public static List<String> toStringList() {
+        List<String> vendorList = new ArrayList<>();
+        for (JavaVendor vendor : JavaVendor.values()) {
+            vendorList.add(vendor.getVendorId());
+        }
+        return vendorList;
     }
 }
