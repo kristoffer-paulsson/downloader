@@ -26,5 +26,13 @@ public class JavaMenu extends Menu {
     @Override
     protected void setupMenu() {
         registerOption("Setup environment", option -> new JavaForm(new JavaDownloadEnvironment("./"), ioc).runForm());
+        registerOption("View environment", option ->reviewConfig(new JavaDownloadEnvironment("./")));
+        registerOption("Download Worker", option -> reviewConfig(ioc.resolve(JavaDownloadEnvironment.class)));
+    }
+
+    private void reviewConfig(JavaDownloadEnvironment jds) {
+        System.out.println("\n=== Current config ===");
+        jds.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
+        showMessageAndWait(" ");
     }
 }

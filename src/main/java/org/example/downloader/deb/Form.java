@@ -224,10 +224,10 @@ public abstract class Form {
         clearScreen();
         List<String> selectedOptions = new ArrayList<>();
 
-        if (options == null || options.isEmpty()) {
+        if (standard != null && !standard.isEmpty()) {
             String[] opt = standard.split(",");
             for (String opti : opt) {
-                if(!opti.isBlank()) {
+                if(!opti.isEmpty()) {
                     selectedOptions.add(opti.trim());
                 }
             }

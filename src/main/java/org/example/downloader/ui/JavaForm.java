@@ -18,6 +18,11 @@ public class JavaForm extends Form {
     public JavaForm(JavaDownloadEnvironment jde, InversionOfControl ioc) {
         super(ioc, "Java Download Environment");
         this.jde = jde;
+        try {
+            jde.reload();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
