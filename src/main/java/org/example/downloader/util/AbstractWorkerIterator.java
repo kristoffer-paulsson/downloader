@@ -17,17 +17,17 @@ package org.example.downloader.util;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public abstract class AbstractWorkerIterator implements Iterator<Worker> {
+public abstract class AbstractWorkerIterator<E extends BasePackage> implements Iterator<Worker<E>> {
 
-    protected abstract Worker createWorker();
+    protected abstract Worker<E> createWorker();
 
     @Override
     public abstract boolean hasNext();
 
     @Override
-    public Worker next() {
+    public Worker<E> next() {
         if (!hasNext()) {
-            throw new NoSuchElementException("No more items in the package");
+            throw new NoSuchElementException("No more workers available");
         }
         return createWorker();
     }

@@ -27,7 +27,7 @@ import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
-public class Worker implements Runnable {
+public class Worker<E extends BasePackage> implements Runnable {
 
     public static enum WorkerState {
         NOT_STARTED,
@@ -36,14 +36,12 @@ public class Worker implements Runnable {
         COMPLETED;
     }
 
-    private final DebianPackage debianPackage;
+    private final E basePackage;
+    private final DownloadHelper.Download downloadTask;
     private final InversionOfControl ioc;
     private final ConfigManager configManager;
     private final Logger logger;
-    private final String baseUrl;
     private final AtomicBoolean isRunning;
-    //private final AtomicBoolean isPaused;
-    private volatile boolean isCompleted;
     private volatile float progress = 0.0f;
     private volatile float speed = 0.0f;
     private volatile long bytesDownloaded = 0;
@@ -52,27 +50,25 @@ public class Worker implements Runnable {
     private static final int CONNECT_TIMEOUT = 10000;
     private static final int READ_TIMEOUT = 30000;
 
-    public Worker(DebianPackage debianPackage, InversionOfControl ioc) {
-        this.debianPackage = debianPackage;
+    public Worker(E basePackage, DownloadHelper.Download downloadTask, InversionOfControl ioc) {
+        this.basePackage = basePackage;
+        this.downloadTask = downloadTask;
         this.ioc = ioc;
         this.configManager = ioc.resolve(ConfigManager.class);
         this.logger = ioc.resolve(DownloadLogger.class).getLogger();
-        this.baseUrl = ioc.resolve(DebianMirrorCache.class).getNextMirror();
         this.isRunning = new AtomicBoolean(false);
-        //this.isPaused = new AtomicBoolean(false);
-        this.isCompleted = false;
     }
 
     @Override
     public void run() {
         if (!isRunning.compareAndSet(false, true)) {
-            logger.warning("Download already in progress for " + debianPackage.packageName);
+            logger.warning("Download already in progress for " + downloadTask);
             return;
         }
 
         try {
-            String downloadUrl = debianPackage.buildDownloadUrl(baseUrl);
-            Path saveFile = debianPackage.buildSavePath(configManager);
+            URL downloadUrl = downloadTask.getUrl();
+            Path saveFile = downloadTask.getFilePath();
             String savePath = saveFile.toString();
             Files.createDirectories(saveFile.getParent());
 
@@ -80,21 +76,21 @@ public class Worker implements Runnable {
             if (Files.exists(saveFile)) {
                 downloadedSize = Files.size(saveFile);
 
-                if(downloadedSize >= debianPackage.getSize()) {
+                if(downloadedSize >= basePackage.getSize()) {
                     isCompleted = true;
-                    if(!debianPackage.verifySha256Digest(saveFile)) {
+                    if(!Sha256Helper.verifySha256Digest(saveFile, basePackage.getSha256Digest())) {
                         Files.deleteIfExists(saveFile);
-                        logger.warning("SHA256 digest verification failed for " + debianPackage.packageName + ", file may be corrupted. Deleted partial file.");
+                        logger.warning("SHA256 digest verification failed for " + downloadTask + ", file may be corrupted. Deleted partial file.");
                     } else {
-                        ioc.resolve(DebianPackageBlockchain.class).logPackage(debianPackage);
-                        logger.info("Skipping download for " + debianPackage.packageName + " as it is already fully downloaded and SHA256 digest verified.");
+                        ioc.resolve(DebianPackageBlockchain.class).logPackage(downloadTask);
+                        logger.info("Skipping download for " + downloadTask + " as it is already fully downloaded and SHA256 digest verified.");
                     }
                     return;
                 }
 
-                logger.info("Resuming download for " + debianPackage.packageName + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
+                logger.info("Resuming download for " + downloadTask + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
             } else {
-                logger.info("Starting download for " + debianPackage.packageName + " from " + downloadUrl + " to " + savePath);
+                logger.info("Starting download for " + downloadTask + " from " + downloadUrl + " to " + savePath);
             }
 
             URL url = new URL(downloadUrl);
@@ -108,7 +104,7 @@ public class Worker implements Runnable {
 
                 int responseCode = connection.getResponseCode();
                 if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
-                    throw new IOException("HTTP error code: " + responseCode + " for " + debianPackage.packageName + " at " + downloadUrl);
+                    throw new IOException("HTTP error code: " + responseCode + " for " + downloadTask);
                 }
 
                 long totalSize = connection.getContentLengthLong() + downloadedSize;
@@ -119,7 +115,7 @@ public class Worker implements Runnable {
 
                     byte[] buffer = new byte[BUFFER_SIZE];
                     int bytesRead;
-                    while ((bytesRead = inputStream.read(buffer)) != -1 && isRunning.get() /*&& !isPaused.get()*/) {
+                    while ((bytesRead = inputStream.read(buffer)) != -1 && isRunning.get()) {
                         outputFile.write(buffer, 0, bytesRead);
                         downloadedSize += bytesRead;
                         bytesDownloaded += bytesRead;
@@ -129,84 +125,55 @@ public class Worker implements Runnable {
                         speed = bytesRead / (currentTimeSlice / 1000.0f);
                     }
 
-                    /*if (isPaused.get()) {
-                        logger.info("Download paused for " + debianPackage.packageName + " at " + downloadedSize + " bytes");
-                        return;
-                    }*/
-
                     if (downloadedSize != totalSize) {
                         throw new IOException("Download incomplete: expected " + totalSize + " bytes, got " + downloadedSize);
                     }
 
-                    if (!debianPackage.verifySha256Digest(saveFile)) {
-                        throw new IOException("SHA256 digest verification failed for " + debianPackage.packageName);
+                    if (!Sha256Helper.verifySha256Digest(saveFile, basePackage.getSha256Digest())) {
+                        throw new IOException("SHA256 digest verification failed for " + downloadTask);
                     } else {
-                        ioc.resolve(DebianPackageBlockchain.class).logPackage(debianPackage);
-                        logger.info("SHA256 digest verified for " + debianPackage.packageName);
+                        ioc.resolve(DebianPackageBlockchain.class).logPackage(downloadTask);
+                        logger.info("SHA256 digest verified for " + downloadTask);
                     }
 
                     isCompleted = true;
-                    logger.info("Download completed for " + debianPackage.packageName);
+                    logger.info("Download completed for " + downloadTask);
                 }
             } finally {
                 connection.disconnect();
             }
         } catch (SocketTimeoutException e) {
             ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
-            logger.warning("Download timed out for " + debianPackage.packageName + " for mirror " + baseUrl + ": " + e.getMessage());
+            logger.warning("Download timed out for " + downloadTask + " for mirror " + baseUrl + ": " + e.getMessage());
         } catch (IOException e) {
             ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
-            logger.severe("Download failed for " + debianPackage.packageName + ": " + e.getMessage());
+            logger.severe("Download failed for " + downloadTask + ": " + e.getMessage());
         } finally {
             isRunning.set(false);
         }
     }
 
-    /*public void pauseDownload() {
-        if (isRunning.get() && !isPaused.get()) {
-            isPaused.set(true);
-            logger.info("Pausing download for " + debianPackage.packageName);
-        }
-    }*/
-
-    /*public void resumeDownload() {
-        if (isPaused.get() && !isRunning.get() && !isCompleted) {
-            isPaused.set(false);
-            Thread thread = new Thread(this);
-            thread.start();
-            logger.info("Resuming download for " + debianPackage.packageName);
-        } else if (isCompleted) {
-            logger.info("Download already completed for " + debianPackage.packageName);
-        } else if (isRunning.get()) {
-            logger.warning("Download already in progress for " + debianPackage.packageName);
-        }
-    }*/
-
     public void stopDownload() {
+        downloadTask.stop();
         isRunning.set(false);
-        //isPaused.set(true);
-        logger.info("Download stopped for " + debianPackage.packageName);
+        logger.info("Download stopped for " + downloadTask);
     }
 
     public float getProgress() { return progress; }
     public float getSpeed() { return speed; }
-    public DebianPackage getDebianPackage() { return debianPackage; }
-    public String getBaseUrl() { return baseUrl; }
+    public DownloadHelper.Download getDownloadTask() { return downloadTask; }
     public float getTimeUsed() { return timeUsed; }
     public long getBytesDownloaded() { return bytesDownloaded; }
     public float getAverageSpeed() { return bytesDownloaded / (timeUsed > 0 ? timeUsed : 1); }
 
-    //public boolean isDownloading() { return isRunning.get() && !isPaused.get(); }
-    //public boolean isPaused() { return isPaused.get(); }
-
-    public boolean isRunning() { return isRunning.get() && !isCompleted; }
-    public boolean isCompleted() { return isCompleted; }
+    public boolean isRunning() { return isRunning.get() && !isCompleted(); }
+    public boolean isCompleted() { return downloadTask.isComplete(); }
     public long getDownloadedSize() {
         try {
-            Path saveFile = debianPackage.buildSavePath(configManager);
+            Path saveFile = downloadTask.getFilePath();
             return Files.exists(saveFile) ? Files.size(saveFile) : 0;
         } catch (IOException e) {
-            logger.warning("Error checking downloaded size for " + debianPackage.packageName);
+            logger.warning("Error checking downloaded size for " + downloadTask);
             return 0;
         }
     }

@@ -28,6 +28,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
+import static org.example.downloader.util.Sha256Helper.computeHash;
+
 public class BlockChainHelper {
 
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -321,7 +323,7 @@ public class BlockChainHelper {
          * @return the computed hash as a 32-character hexadecimal string
          */
         public String buildRowHash(String previousHash) {
-            if(!isValid32CharHex(previousHash)) {
+            if(!Sha256Helper.isValid32CharHex(previousHash)) {
                 throw new IllegalArgumentException("Invalid previous hash: " + previousHash);
             }
             String newBlock = String.format("%s,%s,%s,%s,%s", previousHash.trim(), artifact, metadata, digest, datetime);
@@ -372,40 +374,6 @@ public class BlockChainHelper {
      */
     public static Row rowFromArtifact(String artifact, String metadata, String digest) {
         return new Row(artifact, metadata, digest, LocalDateTime.now().format(dateTimeFormatter));
-    }
-
-    /**
-     * Computes the SHA-256 hash of the given data.
-     * The result is returned as a 32-character hexadecimal string.
-     *
-     * @param data the input data to hash
-     * @return the computed hash as a lowercase hexadecimal string
-     */
-    private static String computeHash(String data) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(data.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : digest) {
-                String h = Integer.toHexString(0xff & b);
-                if (h.length() == 1) hex.append('0');
-                hex.append(h);
-            }
-            return hex.toString().toLowerCase();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
-    }
-
-    /**
-     * Validates if the input string is a valid 32-character hexadecimal string.
-     *
-     * @param input the string to validate
-     * @return true if the string is a valid 32-character hex, false otherwise
-     */
-    public static boolean isValid32CharHex(String input) {
-        // Check if string is exactly 32 characters long and contains only hex characters
-        return input != null && input.matches("^[0-9a-fA-F]{32}$");
     }
 
     /**
