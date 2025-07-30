@@ -39,6 +39,9 @@ public class ParallelProgressBars {
             for (int i = 0; i < progresses.length; i++) {
                 if (i > 0) System.out.print(ANSI_CURSOR_UP);
             }
+
+            StringBuilder bar = new StringBuilder("\r\r\r");
+
             // Print each progress bar
             for (int i = 0; i < progresses.length; i++) {
                 int progress = progresses[i];
@@ -60,7 +63,8 @@ public class ParallelProgressBars {
                 }
 
                 // Build the progress bar
-                StringBuilder bar = new StringBuilder(ANSI_CLEAR_LINE + "\r> Task :" + taskNames[i] + " [");
+                //StringBuilder bar = new StringBuilder(ANSI_CLEAR_LINE + "\r> Task :" + taskNames[i] + " [");
+                bar.append(ANSI_CLEAR_LINE + "\r> Task :" + taskNames[i] + " [");
                 bar.append(colorCode);
                 for (int j = 0; j < width; j++) {
                     bar.append(j < filled ? "=" : "-");
@@ -68,8 +72,9 @@ public class ParallelProgressBars {
                 bar.append(ANSI_RESET);
                 bar.append(String.format("] %d%%", percent));
 
-                System.out.println(bar);
+                //System.out.println(bar);
             }
+            System.out.println(bar);
             System.out.flush();
         }
     }

@@ -26,18 +26,7 @@ public class ProgressBar {
         int filled = progress * width / total;
 
         // Select color based on input
-        String colorCode;
-        switch (color.toLowerCase()) {
-            case "yellow":
-                colorCode = ANSI_YELLOW;
-                break;
-            case "red":
-                colorCode = ANSI_RED;
-                break;
-            case "green":
-            default:
-                colorCode = ANSI_GREEN;
-        }
+        String colorCode = color;
 
         // Build the progress bar
         StringBuilder bar = new StringBuilder("\r[");
@@ -58,19 +47,19 @@ public class ProgressBar {
 
         // Example: Green progress bar
         for (int i = 0; i <= total / 3; i++) {
-            printProgress(i, total, width, "green");
+            printProgress(i, total, width, ANSI_GREEN);
             Thread.sleep(100); // Simulate work
         }
 
         // Example: Yellow progress bar
         for (int i = total / 3 + 1; i <= 2 * total / 3; i++) {
-            printProgress(i, total, width, "yellow");
+            printProgress(i, total, width, ANSI_YELLOW);
             Thread.sleep(100); // Simulate work
         }
 
         // Example: Red progress bar
         for (int i = 2 * total / 3 + 1; i <= total; i++) {
-            printProgress(i, total, width, "red");
+            printProgress(i, total, width, ANSI_RED);
             Thread.sleep(100); // Simulate work
         }
 

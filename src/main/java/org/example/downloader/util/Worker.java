@@ -17,45 +17,21 @@ package org.example.downloader.util;
 import org.example.downloader.*;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.net.HttpURLConnection;
-import java.net.SocketTimeoutException;
-import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public class Worker<E extends BasePackage> implements Runnable {
 
-    public static enum WorkerState {
-        NOT_STARTED,
-        RUNNING,
-        STOPPED,
-        COMPLETED;
-    }
-
     private final E basePackage;
     private final DownloadHelper.Download downloadTask;
-    private final InversionOfControl ioc;
-    private final ConfigManager configManager;
     private final Logger logger;
     private final AtomicBoolean isRunning;
-    private volatile float progress = 0.0f;
-    private volatile float speed = 0.0f;
-    private volatile long bytesDownloaded = 0;
-    private volatile float timeUsed = 0;
-    static final int BUFFER_SIZE = 8192;
-    private static final int CONNECT_TIMEOUT = 10000;
-    private static final int READ_TIMEOUT = 30000;
 
-    public Worker(E basePackage, DownloadHelper.Download downloadTask, InversionOfControl ioc) {
+    public Worker(E basePackage, DownloadHelper.Download downloadTask, DownloadLogger logger) {
         this.basePackage = basePackage;
         this.downloadTask = downloadTask;
-        this.ioc = ioc;
-        this.configManager = ioc.resolve(ConfigManager.class);
-        this.logger = ioc.resolve(DownloadLogger.class).getLogger();
+        this.logger = logger.getLogger();
         this.isRunning = new AtomicBoolean(false);
     }
 
@@ -66,90 +42,40 @@ public class Worker<E extends BasePackage> implements Runnable {
             return;
         }
 
-
+        long downloadFullByteSize = Long.parseLong(basePackage.getSize());
 
         try {
-            URL downloadUrl = downloadTask.getUrl();
-            Path saveFile = downloadTask.getFilePath();
-            String savePath = saveFile.toString();
-            Files.createDirectories(saveFile.getParent());
+            long bytesDownloaded = DownloadHelper.continueDownload(downloadTask);
+            long currentByteSize = Files.size(downloadTask.getFilePath());
 
-            long downloadedSize = 0;
-            if (Files.exists(saveFile)) {
-                downloadedSize = Files.size(saveFile);
+            if(downloadTask.hasTimedOut()) {
+                logger.info("Download halted due to time out for some reason, continue another time please.");
+            } else if (!downloadTask.isComplete() && bytesDownloaded > 0) {
+                logger.info("Download incomplete due too manual stop, continue another time please.");
+            } else if(downloadTask.isComplete() && currentByteSize == downloadFullByteSize) {
+                logger.info("Download completed.");
 
-                /*if(downloadedSize >= basePackage.getSize()) {
-                    //isCompleted = true;
-                    if(!Sha256Helper.verifySha256Digest(saveFile, basePackage.getSha256Digest())) {
-                        Files.deleteIfExists(saveFile);
-                        logger.warning("SHA256 digest verification failed for " + downloadTask + ", file may be corrupted. Deleted partial file.");
-                    } else {
-                        //ioc.resolve(DebianPackageBlockchain.class).logPackage(downloadTask);
-                        logger.info("Skipping download for " + downloadTask + " as it is already fully downloaded and SHA256 digest verified.");
-                    }
-                    return;
-                }*/
+                boolean digestVerified = Sha256Helper.verifySha256Digest(
+                        downloadTask.getFilePath(),
+                        basePackage.getSha256Digest()
+                );
 
-                logger.info("Resuming download for " + downloadTask + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
+                if(digestVerified) {
+                    logger.info("Download sha256 digest verified, download file is intact.");
+
+                    // Write successfully to blockchain
+                } else {
+                    logger.warning("Download file failed sha256 verification");
+
+                    Files.deleteIfExists(downloadTask.getFilePath());
+                    logger.info("Deleted failed download file");
+                }
             } else {
-                logger.info("Starting download for " + downloadTask + " from " + downloadUrl + " to " + savePath);
+                logger.severe("Download file marked as complete but file size differ, investigate!");
             }
 
-            URL url = downloadUrl;
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            try {
-                if (downloadedSize > 0) {
-                    connection.setRequestProperty("Range", "bytes=" + downloadedSize + "-");
-                }
-                connection.setConnectTimeout(CONNECT_TIMEOUT);
-                connection.setReadTimeout(READ_TIMEOUT);
-
-                int responseCode = connection.getResponseCode();
-                if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
-                    throw new IOException("HTTP error code: " + responseCode + " for " + downloadTask);
-                }
-
-                long totalSize = connection.getContentLengthLong() + downloadedSize;
-
-                try (InputStream inputStream = connection.getInputStream();
-                     RandomAccessFile outputFile = new RandomAccessFile(savePath, "rw")) {
-                    outputFile.seek(downloadedSize);
-
-                    byte[] buffer = new byte[BUFFER_SIZE];
-                    int bytesRead;
-                    while ((bytesRead = inputStream.read(buffer)) != -1 && isRunning.get()) {
-                        outputFile.write(buffer, 0, bytesRead);
-                        downloadedSize += bytesRead;
-                        bytesDownloaded += bytesRead;
-                        progress = (float) downloadedSize / totalSize;
-                        float currentTimeSlice = System.currentTimeMillis() - connection.getLastModified();
-                        timeUsed += currentTimeSlice / 1000.0f;
-                        speed = bytesRead / (currentTimeSlice / 1000.0f);
-                    }
-
-                    if (downloadedSize != totalSize) {
-                        throw new IOException("Download incomplete: expected " + totalSize + " bytes, got " + downloadedSize);
-                    }
-
-                    if (!Sha256Helper.verifySha256Digest(saveFile, basePackage.getSha256Digest())) {
-                        throw new IOException("SHA256 digest verification failed for " + downloadTask);
-                    } else {
-                        //ioc.resolve(DebianPackageBlockchain.class).logPackage(downloadTask);
-                        logger.info("SHA256 digest verified for " + downloadTask);
-                    }
-
-                    //isCompleted = true;
-                    logger.info("Download completed for " + downloadTask);
-                }
-            } finally {
-                connection.disconnect();
-            }
-        } catch (SocketTimeoutException e) {
-            //ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
-            //logger.warning("Download timed out for " + downloadTask + " for mirror " + baseUrl + ": " + e.getMessage());
         } catch (IOException e) {
-            //ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
-            logger.severe("Download failed for " + downloadTask + ": " + e.getMessage());
+            throw new RuntimeException(e);
         } finally {
             isRunning.set(false);
         }
@@ -161,22 +87,9 @@ public class Worker<E extends BasePackage> implements Runnable {
         logger.info("Download stopped for " + downloadTask);
     }
 
-    public float getProgress() { return progress; }
-    public float getSpeed() { return speed; }
-    public DownloadHelper.Download getDownloadTask() { return downloadTask; }
-    public float getTimeUsed() { return timeUsed; }
-    public long getBytesDownloaded() { return bytesDownloaded; }
-    public float getAverageSpeed() { return bytesDownloaded / (timeUsed > 0 ? timeUsed : 1); }
+    public float getSpeed() { return downloadTask.getSpeed(); }
+    public float getTime() { return downloadTask.getTime(); }
 
     public boolean isRunning() { return isRunning.get() && !isCompleted(); }
     public boolean isCompleted() { return downloadTask.isComplete(); }
-    public long getDownloadedSize() {
-        try {
-            Path saveFile = downloadTask.getFilePath();
-            return Files.exists(saveFile) ? Files.size(saveFile) : 0;
-        } catch (IOException e) {
-            logger.warning("Error checking downloaded size for " + downloadTask);
-            return 0;
-        }
-    }
 }
