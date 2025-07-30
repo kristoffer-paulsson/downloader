@@ -14,17 +14,12 @@
  */
 package org.example.downloader.java;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import org.example.downloader.util.EnvironmentManager;
 
-public class JavaDownloadEnvironment {
+import java.nio.file.Paths;
+import java.util.List;
+
+public class JavaDownloadEnvironment extends EnvironmentManager {
 
     public static final String ENVIRONMENT_FILE = "java-download.properties";
 
@@ -48,23 +43,8 @@ public class JavaDownloadEnvironment {
         }
     }
 
-    private final Properties properties = new Properties();
-    private final Path configPath;
-
     public JavaDownloadEnvironment(String environmentDirPath){
-        this.configPath = Paths.get(environmentDirPath, ENVIRONMENT_FILE);
-
-        try {
-            if (!Files.exists(configPath)) {
-                Files.createDirectories(configPath.getParent());
-                Files.createFile(configPath);
-            }
-            try (InputStream in = Files.newInputStream(configPath)) {
-                properties.load(in);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load Java download environment properties", e);
-        }
+        super(Paths.get(environmentDirPath, ENVIRONMENT_FILE));
     }
 
     public void setArchitectures(List<JavaArchitecture> architectures) {
@@ -121,78 +101,5 @@ public class JavaDownloadEnvironment {
 
     public List<JavaVersion> getVersions() {
         return getMulti(EnvironmentKey.VERSION.getKey(), JavaVersion::fromString);
-    }
-
-    public interface ToString<E> {
-        String stringify(E e);
-    }
-
-    public <E> void setMulti(String key, List<E> multi, ToString<E> name) {
-        if(multi == null || multi.isEmpty()) {
-            throw new IllegalArgumentException("Architectures list cannot be null or empty");
-        }
-        String value;
-        if (multi.size() > 1) {
-            ArrayList<String> array = new ArrayList<>();
-            multi.forEach(arch -> {
-                array.add(name.stringify(arch));
-            });
-            value = String.join(", ", array);
-        } else {
-            value = name.stringify(multi.get(0));
-        }
-        properties.setProperty(key, value);
-    }
-
-    public interface FromString<E> {
-        E objectify(String s);
-    }
-
-    public <E> List<E> getMulti(String key, FromString<E> name) {
-        String value = properties.getProperty(key);
-        if (value == null || value.isEmpty()) {
-            return List.of();
-        }
-        String[] values = value.split(",");
-        for (int i = 0; i < values.length; i++) {
-            values[i] = values[i].trim();
-        }
-        List<E> objects = new ArrayList<>();
-        for (String part : values) {
-            E obj = name.objectify(part.trim());
-            objects.add(obj);
-        }
-        return objects;
-    }
-
-    public String get(String key, String defaultValue) {
-        return properties.getProperty(key, defaultValue);
-    }
-
-    public String get(String key) {
-        return properties.getProperty(key);
-    }
-
-    public void set(String key, String value) {
-        properties.setProperty(key, value);
-    }
-
-    public void save() throws IOException {
-        try (OutputStream out = Files.newOutputStream(configPath)) {
-            properties.store(out, "Debian Downloader Configuration");
-        }
-    }
-
-    public void reload() throws IOException {
-        properties.clear();
-        if (Files.exists(configPath)) {
-            try (InputStream in = Files.newInputStream(configPath)) {
-                properties.load(in);
-            }
-        }
-    }
-
-    public Properties getProperties() {
-        return properties;
     }
 }
