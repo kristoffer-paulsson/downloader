@@ -14,6 +14,8 @@
  */
 package org.example.downloader;
 
+import org.example.downloader.util.InversionOfControl;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;

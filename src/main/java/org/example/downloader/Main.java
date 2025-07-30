@@ -16,6 +16,8 @@ package org.example.downloader;
 
 import org.example.downloader.deb.WorkerTask;
 import org.example.downloader.ui.MainMenu;
+import org.example.downloader.util.InversionOfControl;
+
 import java.io.*;
 import java.util.List;
 import java.util.Scanner;

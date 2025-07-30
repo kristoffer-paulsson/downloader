@@ -15,6 +15,7 @@
 package org.example.downloader;
 
 import org.example.downloader.deb.DebianComponent;
+import org.example.downloader.util.InversionOfControl;
 
 import java.io.*;
 import java.nio.file.Path;

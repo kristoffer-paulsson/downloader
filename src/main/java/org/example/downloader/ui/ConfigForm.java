@@ -15,7 +15,7 @@
 package org.example.downloader.ui;
 
 import org.example.downloader.ConfigManager;
-import org.example.downloader.InversionOfControl;
+import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.deb.DebianArchitecture;
 import org.example.downloader.deb.DebianComponent;
 import org.example.downloader.deb.DebianDistribution;
@@ -25,13 +25,7 @@ import java.io.IOException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 /**
  * A utility class containing reusable TUI routines for displaying menus,

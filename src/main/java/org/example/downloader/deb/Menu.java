@@ -14,13 +14,12 @@
  */
 package org.example.downloader.deb;
 
-import org.example.downloader.InversionOfControl;
+import org.example.downloader.util.InversionOfControl;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 /**
  * A utility class containing reusable TUI routines for displaying menus,

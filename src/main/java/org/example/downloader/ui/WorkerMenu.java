@@ -17,6 +17,7 @@ package org.example.downloader.ui;
 import org.example.downloader.*;
 import org.example.downloader.deb.Menu;
 import org.example.downloader.deb.WorkerTask;
+import org.example.downloader.util.InversionOfControl;
 
 import java.io.IOException;
 

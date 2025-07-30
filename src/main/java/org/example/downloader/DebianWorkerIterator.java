@@ -14,10 +14,11 @@
  */
 package org.example.downloader;
 
+import org.example.downloader.util.InversionOfControl;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.logging.Logger;
 
 public class DebianWorkerIterator implements Iterator<DebianWorker> {
     private final Iterator<DebianPackage> packages;

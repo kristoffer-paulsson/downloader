@@ -14,7 +14,7 @@
  */
 package org.example.downloader.deb;
 
-import org.example.downloader.InversionOfControl;
+import org.example.downloader.util.InversionOfControl;
 
 import java.util.ArrayList;
 import java.util.List;

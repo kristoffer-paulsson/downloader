@@ -12,7 +12,7 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
-package org.example.downloader;
+package org.example.downloader.util;
 
 import java.util.HashMap;
 import java.util.Map;
