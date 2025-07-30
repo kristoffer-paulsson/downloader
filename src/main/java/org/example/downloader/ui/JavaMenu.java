@@ -47,7 +47,7 @@ public class JavaMenu extends Menu {
     private void runDownloadWorker() {
 
         JavaParser.filterPackages(ioc.resolve(JavaDownloadEnvironment.class)).forEach((p) -> {
-            System.out.println(p.uniqueKey() + ", " + p.getJavaVersion() + ", " + p.getVendorVersion());
+            System.out.println(p.uniqueKey() + ", " + p.getFilename());
         });
 
         new Thread(() -> {
