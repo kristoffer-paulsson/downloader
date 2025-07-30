@@ -21,12 +21,13 @@ import org.example.downloader.java.JavaDownloadEnvironment;
 public class JavaMenu extends Menu {
     public JavaMenu(InversionOfControl ioc) {
         super(ioc, "Java Downloader CLI");
+        ioc.register(JavaDownloadEnvironment.class, () -> new JavaDownloadEnvironment("./"));
     }
 
     @Override
     protected void setupMenu() {
-        registerOption("Setup environment", option -> new JavaForm(new JavaDownloadEnvironment("./"), ioc).runForm());
-        registerOption("View environment", option ->reviewConfig(new JavaDownloadEnvironment("./")));
+        registerOption("Setup environment", option -> new JavaForm(ioc.resolve(JavaDownloadEnvironment.class), ioc).runForm());
+        registerOption("View environment", option ->reviewConfig(ioc.resolve(JavaDownloadEnvironment.class)));
         registerOption("Download Worker", option -> reviewConfig(ioc.resolve(JavaDownloadEnvironment.class)));
     }
 

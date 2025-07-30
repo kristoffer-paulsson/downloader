@@ -66,6 +66,8 @@ public class Worker<E extends BasePackage> implements Runnable {
             return;
         }
 
+
+
         try {
             URL downloadUrl = downloadTask.getUrl();
             Path saveFile = downloadTask.getFilePath();
@@ -76,24 +78,24 @@ public class Worker<E extends BasePackage> implements Runnable {
             if (Files.exists(saveFile)) {
                 downloadedSize = Files.size(saveFile);
 
-                if(downloadedSize >= basePackage.getSize()) {
-                    isCompleted = true;
+                /*if(downloadedSize >= basePackage.getSize()) {
+                    //isCompleted = true;
                     if(!Sha256Helper.verifySha256Digest(saveFile, basePackage.getSha256Digest())) {
                         Files.deleteIfExists(saveFile);
                         logger.warning("SHA256 digest verification failed for " + downloadTask + ", file may be corrupted. Deleted partial file.");
                     } else {
-                        ioc.resolve(DebianPackageBlockchain.class).logPackage(downloadTask);
+                        //ioc.resolve(DebianPackageBlockchain.class).logPackage(downloadTask);
                         logger.info("Skipping download for " + downloadTask + " as it is already fully downloaded and SHA256 digest verified.");
                     }
                     return;
-                }
+                }*/
 
                 logger.info("Resuming download for " + downloadTask + " at " + downloadedSize + " bytes from " + downloadUrl + " to " + savePath);
             } else {
                 logger.info("Starting download for " + downloadTask + " from " + downloadUrl + " to " + savePath);
             }
 
-            URL url = new URL(downloadUrl);
+            URL url = downloadUrl;
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             try {
                 if (downloadedSize > 0) {
@@ -132,21 +134,21 @@ public class Worker<E extends BasePackage> implements Runnable {
                     if (!Sha256Helper.verifySha256Digest(saveFile, basePackage.getSha256Digest())) {
                         throw new IOException("SHA256 digest verification failed for " + downloadTask);
                     } else {
-                        ioc.resolve(DebianPackageBlockchain.class).logPackage(downloadTask);
+                        //ioc.resolve(DebianPackageBlockchain.class).logPackage(downloadTask);
                         logger.info("SHA256 digest verified for " + downloadTask);
                     }
 
-                    isCompleted = true;
+                    //isCompleted = true;
                     logger.info("Download completed for " + downloadTask);
                 }
             } finally {
                 connection.disconnect();
             }
         } catch (SocketTimeoutException e) {
-            ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
-            logger.warning("Download timed out for " + downloadTask + " for mirror " + baseUrl + ": " + e.getMessage());
+            //ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
+            //logger.warning("Download timed out for " + downloadTask + " for mirror " + baseUrl + ": " + e.getMessage());
         } catch (IOException e) {
-            ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
+            //ioc.resolve(DebianMirrorCache.class).reportBadMirror(baseUrl);
             logger.severe("Download failed for " + downloadTask + ": " + e.getMessage());
         } finally {
             isRunning.set(false);
