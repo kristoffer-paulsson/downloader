@@ -28,13 +28,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public class Worker implements Runnable {
+
+    public static enum WorkerState {
+        NOT_STARTED,
+        RUNNING,
+        STOPPED,
+        COMPLETED;
+    }
+
     private final DebianPackage debianPackage;
     private final InversionOfControl ioc;
     private final ConfigManager configManager;
     private final Logger logger;
     private final String baseUrl;
     private final AtomicBoolean isRunning;
-    private final AtomicBoolean isPaused;
+    //private final AtomicBoolean isPaused;
     private volatile boolean isCompleted;
     private volatile float progress = 0.0f;
     private volatile float speed = 0.0f;
@@ -51,7 +59,7 @@ public class Worker implements Runnable {
         this.logger = ioc.resolve(DownloadLogger.class).getLogger();
         this.baseUrl = ioc.resolve(DebianMirrorCache.class).getNextMirror();
         this.isRunning = new AtomicBoolean(false);
-        this.isPaused = new AtomicBoolean(false);
+        //this.isPaused = new AtomicBoolean(false);
         this.isCompleted = false;
     }
 
@@ -111,7 +119,7 @@ public class Worker implements Runnable {
 
                     byte[] buffer = new byte[BUFFER_SIZE];
                     int bytesRead;
-                    while ((bytesRead = inputStream.read(buffer)) != -1 && isRunning.get() && !isPaused.get()) {
+                    while ((bytesRead = inputStream.read(buffer)) != -1 && isRunning.get() /*&& !isPaused.get()*/) {
                         outputFile.write(buffer, 0, bytesRead);
                         downloadedSize += bytesRead;
                         bytesDownloaded += bytesRead;
@@ -121,10 +129,10 @@ public class Worker implements Runnable {
                         speed = bytesRead / (currentTimeSlice / 1000.0f);
                     }
 
-                    if (isPaused.get()) {
+                    /*if (isPaused.get()) {
                         logger.info("Download paused for " + debianPackage.packageName + " at " + downloadedSize + " bytes");
                         return;
-                    }
+                    }*/
 
                     if (downloadedSize != totalSize) {
                         throw new IOException("Download incomplete: expected " + totalSize + " bytes, got " + downloadedSize);
@@ -154,14 +162,14 @@ public class Worker implements Runnable {
         }
     }
 
-    public void pauseDownload() {
+    /*public void pauseDownload() {
         if (isRunning.get() && !isPaused.get()) {
             isPaused.set(true);
             logger.info("Pausing download for " + debianPackage.packageName);
         }
-    }
+    }*/
 
-    public void resumeDownload() {
+    /*public void resumeDownload() {
         if (isPaused.get() && !isRunning.get() && !isCompleted) {
             isPaused.set(false);
             Thread thread = new Thread(this);
@@ -172,11 +180,11 @@ public class Worker implements Runnable {
         } else if (isRunning.get()) {
             logger.warning("Download already in progress for " + debianPackage.packageName);
         }
-    }
+    }*/
 
     public void stopDownload() {
         isRunning.set(false);
-        isPaused.set(true);
+        //isPaused.set(true);
         logger.info("Download stopped for " + debianPackage.packageName);
     }
 
@@ -187,8 +195,11 @@ public class Worker implements Runnable {
     public float getTimeUsed() { return timeUsed; }
     public long getBytesDownloaded() { return bytesDownloaded; }
     public float getAverageSpeed() { return bytesDownloaded / (timeUsed > 0 ? timeUsed : 1); }
-    public boolean isDownloading() { return isRunning.get() && !isPaused.get(); }
-    public boolean isPaused() { return isPaused.get(); }
+
+    //public boolean isDownloading() { return isRunning.get() && !isPaused.get(); }
+    //public boolean isPaused() { return isPaused.get(); }
+
+    public boolean isRunning() { return isRunning.get() && !isCompleted; }
     public boolean isCompleted() { return isCompleted; }
     public long getDownloadedSize() {
         try {
