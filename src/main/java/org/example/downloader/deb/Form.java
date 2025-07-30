@@ -16,6 +16,9 @@ package org.example.downloader.deb;
 
 import org.example.downloader.util.InversionOfControl;
 
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -299,5 +302,20 @@ public abstract class Form {
      */
     public void close() {
 
+    }
+
+    /**
+     * Validates a file system path.
+     *
+     * @param p The path to validate.
+     * @return True if the path is valid, false otherwise.
+     */
+    protected boolean validatePath(String p) {
+        try {
+            Path path = Paths.get(p);
+            return true;
+        } catch (InvalidPathException e) {
+            return false;
+        }
     }
 }

@@ -5,6 +5,8 @@ import org.example.downloader.deb.Form;
 import org.example.downloader.java.*;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -27,6 +29,14 @@ public class JavaForm extends Form {
 
     @Override
     protected void setupForm() {
+
+        registerQuestion(() -> askQuestion(
+                "Enter Java download environment path",
+                jde.getDownloadDir("java-downloads").toString(),
+                this::validatePath,
+                System.out::println
+        ));
+
         registerQuestion(() -> askMultipleAnswerQuestion(
                 "Support for Java architectures:",
                 JavaArchitecture.toStringList(),
@@ -81,13 +91,14 @@ public class JavaForm extends Form {
     protected void processForm() {
         List<Answer> answers = getAnswers();
 
-        jde.set(JavaDownloadEnvironment.EnvironmentKey.ARCH.getKey(), answers.get(0).getResponse());
-        jde.set(JavaDownloadEnvironment.EnvironmentKey.IMAGE.getKey(), answers.get(1).getResponse());
-        jde.set(JavaDownloadEnvironment.EnvironmentKey.IMPLEMENTATION.getKey(), answers.get(2).getResponse());
-        jde.set(JavaDownloadEnvironment.EnvironmentKey.INSTALLER.getKey(), answers.get(3).getResponse());
-        jde.set(JavaDownloadEnvironment.EnvironmentKey.PLATFORM.getKey(), answers.get(4).getResponse());
-        jde.set(JavaDownloadEnvironment.EnvironmentKey.VENDOR.getKey(), answers.get(5).getResponse());
-        jde.set(JavaDownloadEnvironment.EnvironmentKey.VERSION.getKey(), answers.get(6).getResponse());
+        jde.setDownloadDir(Paths.get(answers.get(0).getResponse()));
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.ARCH.getKey(), answers.get(1).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.IMAGE.getKey(), answers.get(2).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.IMPLEMENTATION.getKey(), answers.get(3).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.INSTALLER.getKey(), answers.get(4).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.PLATFORM.getKey(), answers.get(5).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.VENDOR.getKey(), answers.get(6).getResponse());
+        jde.set(JavaDownloadEnvironment.EnvironmentKey.VERSION.getKey(), answers.get(7).getResponse());
 
         try {
             jde.save();

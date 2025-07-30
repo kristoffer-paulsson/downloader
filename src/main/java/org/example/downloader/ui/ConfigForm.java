@@ -77,15 +77,6 @@ public class ConfigForm extends Form {
         ));
     }
 
-    private boolean validatePath(String p) {
-        try {
-            Path path = Paths.get(p);
-            return true;
-        } catch (InvalidPathException e) {
-            return false;
-        }
-    }
-
     @Override
     protected void processForm() {
         ConfigManager configManager = ioc.resolve(ConfigManager.class);

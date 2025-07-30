@@ -26,6 +26,8 @@ import java.util.Properties;
 
 public class EnvironmentManager {
 
+    public static String DIR_DOWNLOAD = "download_dir";
+
     protected final Path configPath;
     protected final Properties properties = new Properties();
 
@@ -43,6 +45,21 @@ public class EnvironmentManager {
         } catch (IOException e) {
             throw new RuntimeException("Failed to load Java download environment properties", e);
         }
+    }
+
+    public Path getDownloadDir(String defaultDir) {
+        String downloadDir = get(DIR_DOWNLOAD, defaultDir);
+        if (downloadDir == null || downloadDir.isEmpty()) {
+            throw new IllegalStateException("Download directory is not set in the environment");
+        }
+        return Paths.get(downloadDir);
+    }
+
+    public void setDownloadDir(Path downloadDir) {
+        if (downloadDir == null || !Files.isDirectory(downloadDir)) {
+            throw new IllegalArgumentException("Download directory must be a valid directory");
+        }
+        set(DIR_DOWNLOAD, downloadDir.toString());
     }
 
     public interface ToString<E> {
