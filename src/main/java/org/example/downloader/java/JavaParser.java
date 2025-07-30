@@ -17,9 +17,8 @@ package org.example.downloader.java;
 import org.example.downloader.util.AbstractFileParser;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.lang.module.ModuleDescriptor;
+import java.util.*;
 
 /**
  * architecture: ppc64
@@ -101,6 +100,102 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
         );
     }
 
+    public static class Filter {
+        JavaDownloadEnvironment jde;
+
+        List<JavaArchitecture> archFilter;
+        List<JavaImage> imageFilter;
+        List<JavaImplementation> implFilter;
+        List<JavaInstaller> installerFilter;
+        List<JavaPlatform> platformFilter;
+        List<JavaVendor> vendorFilter;
+        List<JavaVersion> versionFilter;
+
+        Filter(JavaDownloadEnvironment jde) {
+            this.jde = jde;
+
+            archFilter = jde.getArchitectures();
+            if(archFilter.get(0) == JavaArchitecture.UNKNOWN)
+                archFilter = List.of(JavaArchitecture.values());
+
+            imageFilter = jde.getImages();
+            if(imageFilter.get(0) == JavaImage.UNKNOWN)
+                imageFilter = List.of(JavaImage.values());
+
+            implFilter = jde.getImplementations();
+            if(implFilter.get(0) == JavaImplementation.UNKNOWN)
+                implFilter = List.of(JavaImplementation.values());
+
+            installerFilter = jde.getInstallers();
+            if(installerFilter.get(0) == JavaInstaller.UNKNOWN)
+                installerFilter = List.of(JavaInstaller.values());
+
+            platformFilter = jde.getPlatforms();
+            if(platformFilter.get(0) == JavaPlatform.UNKNOWN)
+                platformFilter = List.of(JavaPlatform.values());
+
+            vendorFilter = jde.getVendors();
+            if(vendorFilter.get(0) == JavaVendor.UNKNOWN)
+                vendorFilter = List.of(JavaVendor.values());
+
+            versionFilter = jde.getVersions();
+            if(versionFilter.get(0) == JavaVersion.UNKNOWN)
+                versionFilter = List.of(JavaVersion.values());
+        }
+
+        public boolean filterPackage(JavaPackage pkg) {
+            boolean add = true;
+
+            add = archFilter.contains(pkg.getArch()) && add;
+            add = imageFilter.contains(pkg.getImage()) && add;
+            add = implFilter.contains(pkg.getImplementation()) && add;
+            add = installerFilter.contains(pkg.getInstaller()) && add;
+            add = platformFilter.contains(pkg.getPlatform()) && add;
+            add = vendorFilter.contains(pkg.getVendor()) && add;
+            add = versionFilter.contains(pkg.getVersion()) && add;
+
+            return add;
+        }
+    }
+
+    public static Filter createFilter(JavaDownloadEnvironment jde) {
+        return new Filter(jde);
+    }
+
+    public static List<JavaPackage> filterPackages(JavaDownloadEnvironment jde) {
+        HashMap<String, JavaPackage> filteredPackages = new HashMap<>();
+        Filter filter = createFilter(jde);
+
+        try {
+            JavaParser parser = new JavaParser("Java.gz");
+
+            while (parser.hasNext()) {
+                JavaPackage pkg = parser.next();
+                if(filter.filterPackage(pkg)){
+                    String uk = pkg.uniqueKey();
+
+                    if(filteredPackages.containsKey(uk)) {
+                        String oldVersion = filteredPackages.get(uk).getJavaVersion();
+                        String newVersion = pkg.getJavaVersion();
+
+                        if(ModuleDescriptor.Version.parse(oldVersion).compareTo(ModuleDescriptor.Version.parse(newVersion)) < 0) {
+                            filteredPackages.put(uk, pkg);
+                        }
+
+                    } else {
+                        filteredPackages.put(pkg.uniqueKey(), pkg);
+                    }
+                }
+            }
+
+            parser.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return List.copyOf(filteredPackages.values());
+    }
+
     public static void main(String[] args) {
         try {
             JavaParser parser = new JavaParser("Java.gz");
@@ -116,5 +211,6 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 }

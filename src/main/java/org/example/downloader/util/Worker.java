@@ -51,7 +51,7 @@ public class Worker<E extends BasePackage> implements Runnable {
             if(downloadTask.hasTimedOut()) {
                 logger.info("Download halted due to time out for some reason, continue another time please.");
             } else if (!downloadTask.isComplete() && bytesDownloaded > 0) {
-                logger.info("Download incomplete due too manual stop, continue another time please.");
+                logger.info("Download incomplete due to manual stop, continue another time please.");
             } else if(downloadTask.isComplete() && currentByteSize == downloadFullByteSize) {
                 logger.info("Download completed.");
 

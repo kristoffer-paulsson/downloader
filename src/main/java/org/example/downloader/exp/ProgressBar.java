@@ -16,8 +16,8 @@ package org.example.downloader.exp;
 
 public class ProgressBar {
     // ANSI escape codes for colors
-    public static final String ANSI_GREEN = "\u001B[32m";
-    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_GREEN = "\u001B[92m";
+    public static final String ANSI_YELLOW = "\u001B[93m";
     public static final String ANSI_RED = "\u001B[31m";
     public static final String ANSI_RESET = "\u001B[0m";
 

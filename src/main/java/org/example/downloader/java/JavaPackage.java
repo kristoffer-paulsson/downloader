@@ -98,7 +98,7 @@ public class JavaPackage implements BasePackage {
         return arch;
     }
 
-    public JavaInstaller getFile() {
+    public JavaInstaller getInstaller() {
         return file;
     }
 
@@ -155,6 +155,10 @@ public class JavaPackage implements BasePackage {
 
     public URL getRealUrl() throws MalformedURLException, URISyntaxException {
         return new URI(url).toURL();
+    }
+
+    public String uniqueKey() {
+        return String.format("%s-%s-%s-%s-%s-%s-%s", getVendor(), getVersion(), getImplementation(), getImage(), getPlatform(), getArch(), getInstaller());
     }
 
     @Override
