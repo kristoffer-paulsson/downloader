@@ -14,16 +14,12 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.java.JavaPackage;
 import org.example.downloader.java.JavaParser;
 import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.deb.Menu;
 import org.example.downloader.java.JavaDownloadEnvironment;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.lang.module.ModuleDescriptor.Version;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class JavaMenu extends Menu {
     public JavaMenu(InversionOfControl ioc) {
@@ -46,9 +42,13 @@ public class JavaMenu extends Menu {
 
     private void runDownloadWorker() {
 
+        AtomicInteger count = new AtomicInteger();
         JavaParser.filterPackages(ioc.resolve(JavaDownloadEnvironment.class)).forEach((p) -> {
             System.out.println(p.uniqueKey() + ", " + p.getFilename());
+            count.getAndIncrement();
         });
+
+        System.out.println(count.get());
 
         new Thread(() -> {
 

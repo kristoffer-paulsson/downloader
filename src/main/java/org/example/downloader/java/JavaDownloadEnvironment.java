@@ -16,6 +16,7 @@ package org.example.downloader.java;
 
 import org.example.downloader.util.EnvironmentManager;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -45,6 +46,10 @@ public class JavaDownloadEnvironment extends EnvironmentManager {
 
     public JavaDownloadEnvironment(String environmentDirPath){
         super(Paths.get(environmentDirPath, ENVIRONMENT_FILE));
+    }
+
+    public Path getDownloadDir() {
+        return getDownloadDir("java-downloads");
     }
 
     public void setArchitectures(List<JavaArchitecture> architectures) {

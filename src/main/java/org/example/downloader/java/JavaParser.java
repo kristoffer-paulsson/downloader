@@ -211,6 +211,5 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 }
