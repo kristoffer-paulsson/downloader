@@ -42,4 +42,9 @@ public class BasePackageImpl implements BasePackage{
     public String getSha256Digest() {
         return sha256digest;
     }
+
+    @Override
+    public String uniqueKey() {
+        return String.format("%s-%s", sha256digest, filename);
+    }
 }

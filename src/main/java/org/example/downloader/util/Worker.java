@@ -35,6 +35,27 @@ public class Worker<E extends BasePackage> implements Runnable {
         this.isRunning = new AtomicBoolean(false);
     }
 
+    protected void doWhenTimedOut() {
+
+    }
+
+    protected void doWhenDownloadHaltedUnexpectedly() {
+
+    }
+
+    protected void doWhenVerifiedSuccessful() throws IOException {
+
+    }
+
+    protected void doWhenVerifiedFailed() throws IOException {
+        Files.deleteIfExists(downloadTask.getFilePath());
+        logger.info("Deleted failed download file");
+    }
+
+    protected void doWhenCompleteWrongFileSize() throws IOException {
+
+    }
+
     @Override
     public void run() {
         if (!isRunning.compareAndSet(false, true)) {
@@ -49,11 +70,13 @@ public class Worker<E extends BasePackage> implements Runnable {
             long currentByteSize = Files.size(downloadTask.getFilePath());
 
             if(downloadTask.hasTimedOut()) {
-                logger.info("Download halted due to time out for some reason, continue another time please.");
+                logger.info("Download of " + basePackage.uniqueKey() + " halted due to time out for some reason, continue another time please.");
+                doWhenTimedOut();
             } else if (!downloadTask.isComplete() && bytesDownloaded > 0) {
-                logger.info("Download incomplete due to manual stop, continue another time please.");
+                logger.info("Download of " + basePackage.uniqueKey() + " incomplete due to manual stop, continue another time please.");
+                doWhenDownloadHaltedUnexpectedly();
             } else if(downloadTask.isComplete() && currentByteSize == downloadFullByteSize) {
-                logger.info("Download completed.");
+                logger.info("Download of " + basePackage.uniqueKey() + " completed.");
 
                 boolean digestVerified = Sha256Helper.verifySha256Digest(
                         downloadTask.getFilePath(),
@@ -61,17 +84,15 @@ public class Worker<E extends BasePackage> implements Runnable {
                 );
 
                 if(digestVerified) {
-                    logger.info("Download sha256 digest verified, download file is intact.");
-
-                    // Write successfully to blockchain
+                    logger.info("Download of " + basePackage.uniqueKey() + " sha256 digest verified, download file is intact.");
+                    doWhenVerifiedSuccessful();
                 } else {
-                    logger.warning("Download file failed sha256 verification");
-
-                    Files.deleteIfExists(downloadTask.getFilePath());
-                    logger.info("Deleted failed download file");
+                    logger.warning("Download of " + basePackage.uniqueKey() + " file failed sha256 verification");
+                    doWhenVerifiedFailed();
                 }
             } else {
-                logger.severe("Download file marked as complete but file size differ, investigate!");
+                logger.severe("Download file " + basePackage.uniqueKey() + " marked as complete but file size differ, investigate!");
+                doWhenCompleteWrongFileSize();
             }
 
         } catch (IOException e) {
@@ -84,7 +105,7 @@ public class Worker<E extends BasePackage> implements Runnable {
     public void stopDownload() {
         downloadTask.stop();
         isRunning.set(false);
-        logger.info("Download stopped for " + downloadTask);
+        logger.info("Download stopped for " + basePackage.uniqueKey());
     }
 
     public float getSpeed() { return downloadTask.getSpeed(); }

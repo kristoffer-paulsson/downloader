@@ -25,4 +25,6 @@ public interface BasePackage {
     public String getSize();
 
     public String getSha256Digest();
+
+    public String uniqueKey();
 }
