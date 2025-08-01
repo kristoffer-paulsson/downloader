@@ -27,4 +27,8 @@ public interface BasePackage {
     public String getSha256Digest();
 
     public String uniqueKey();
+
+    public default long getByteSize() {
+        return Long.parseLong(getSize());
+    }
 }

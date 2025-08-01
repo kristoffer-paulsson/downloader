@@ -56,11 +56,20 @@ public class JavaMenu extends Menu {
         AtomicLong downloadedSize = new AtomicLong();
         AtomicReference<HashMap<String, JavaPackage>> allPackages = new AtomicReference<>(new HashMap<>());
 
-        JavaParser.filterPackages(jde).forEach((p) -> {
+        /*JavaParser.filterPackages(jde).forEach((p) -> {
             allPackages.get().put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
-        });
+        });*/
+
+        JavaPackage p = JavaParser.filterPackages(jde).get(0);
+        allPackages.get().put(p.getSha256Digest(), p);
+        totalSize.getAndAdd(p.getByteSize());
+        System.out.println("Total size: " + totalSize.get());
+
+        count.getAndIncrement();
+
+        //ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
         BlockChainHelper.Blockchain chain = BlockChainHelper.continueBlockchain(
                 Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv")),
@@ -70,7 +79,7 @@ public class JavaMenu extends Menu {
                         downloadedSize.getAndAdd(Files.size(artifactFile));
                         allPackages.get().remove(row.getDigest());
 
-                        ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+                        //ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
                         return Sha256Helper.verifySha256Digest(artifactFile, row.getDigest());
                     } catch (IOException e) {
@@ -82,26 +91,28 @@ public class JavaMenu extends Menu {
         DownloadLogger logger = ioc.resolve(DownloadLogger.class);
         WorkerExecutor executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages.get(), chain, logger), logger);
 
-        Thread indicator = new Thread(() -> {
+        /*Thread indicator = new Thread(() -> {
             while (executor.isRunning()) {
                 try {
                     Thread.sleep(100);
-                    ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+                    //ProgressBar.printProgress(downloadedSize.get() + executor.getCurrentTotalBytes(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
                 } catch (InterruptedException e) {
                     //
                 }
             }
         });
-        indicator.start();
+        indicator.start();*/
 
         executor.start();
 
-        try {
+        chain.close();
+
+        /*try {
             indicator.interrupt();
             indicator.join(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }
+        }*/
 
         System.out.println(count.get());
     }

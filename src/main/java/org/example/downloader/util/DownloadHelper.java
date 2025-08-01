@@ -14,6 +14,8 @@
  */
 package org.example.downloader.util;
 
+import org.example.downloader.DownloadLogger;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
@@ -60,6 +62,7 @@ public class DownloadHelper {
         private boolean hasExited = false;
         private boolean isComplete = false;
         private boolean timedOut = false;
+        private boolean httpError = false;
 
         private float speed = 0.0f;
 
@@ -139,6 +142,14 @@ public class DownloadHelper {
         public boolean hasTimedOut() {
             return timedOut;
         }
+        public boolean httpError() {
+            return httpError;
+        }
+
+
+        private long totalSize = 0;
+
+        public long totalByteSize() { return totalSize; }
 
         private long bytesDownloaded = 0;
         private long currentByte = 0;
@@ -153,7 +164,7 @@ public class DownloadHelper {
      * @return The number of bytes downloaded during this continuation.
      * @throws RuntimeException if an error occurs while continuing the download.
      */
-    public static long continueDownload(Download download) {
+    public static long continueDownload(Download download, DownloadLogger logger) {
         try {
             if (Files.exists(download.filePath)) {
                 download.currentByte = Files.size(download.filePath);
@@ -176,7 +187,7 @@ public class DownloadHelper {
                     throw new IOException("HTTP error code: " + responseCode + " for " + download.url);
                 }
 
-                long totalSize = connection.getContentLengthLong() + download.currentByte;
+                download.totalSize = connection.getContentLengthLong() + download.currentByte;
 
                 try (
                         InputStream inputStream = connection.getInputStream();
@@ -192,7 +203,7 @@ public class DownloadHelper {
                         download.speed = download.bytesDownloaded / download.getTime();
                     }
                 }
-                if(download.bytesDownloaded + download.currentByte == totalSize) {
+                if(download.bytesDownloaded + download.currentByte == download.totalSize) {
                     download.isComplete = true;
                 }
             } catch (SocketTimeoutException e) {
@@ -201,7 +212,8 @@ public class DownloadHelper {
                 connection.disconnect();
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            download.httpError = true;
+            logger.getLogger().severe("Unexpected error when downloading " + download.url + ": " + e.getMessage());
         }
         return download.bytesDownloaded;
     }

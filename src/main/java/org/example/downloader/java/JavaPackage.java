@@ -144,10 +144,6 @@ public class JavaPackage implements BasePackage {
         return size;
     }
 
-    public long getByteSize() {
-        return Long.parseLong(size);
-    }
-
     @Override
     public String getSha256Digest() {
         return sha256Digest;

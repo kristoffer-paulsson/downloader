@@ -29,8 +29,8 @@ public class JavaGenerator {
         try {
             URL packetData = new URI("https://joschi.github.io/java-metadata/metadata/all.json").toURL();
             Path cachePath = Path.of("./all.json");
-            long allDownloadedSize = DownloadHelper.continueDownload(new DownloadHelper.Download(packetData, cachePath));
-            System.out.println("Downloaded " + allDownloadedSize + " bytes to " + cachePath);
+            //long allDownloadedSize = DownloadHelper.continueDownload(new DownloadHelper.Download(packetData, cachePath));
+            //System.out.println("Downloaded " + allDownloadedSize + " bytes to " + cachePath);
         } catch (URISyntaxException | IOException e) {
             throw new RuntimeException(e);
         }

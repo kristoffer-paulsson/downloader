@@ -26,11 +26,13 @@ public abstract class Worker<E extends BasePackage> implements Runnable {
     protected final E basePackage;
     protected final DownloadHelper.Download downloadTask;
     protected final Logger logger;
+    protected final DownloadLogger downloadLogger;
     protected final AtomicBoolean isRunning;
 
     public Worker(E basePackage, DownloadHelper.Download downloadTask, DownloadLogger logger) {
         this.basePackage = basePackage;
         this.downloadTask = downloadTask;
+        this.downloadLogger = logger;
         this.logger = logger.getLogger();
         this.isRunning = new AtomicBoolean(false);
     }
@@ -52,20 +54,19 @@ public abstract class Worker<E extends BasePackage> implements Runnable {
             return;
         }
 
-        long downloadFullByteSize = Long.parseLong(basePackage.getSize());
+        long downloadFullByteSize = basePackage.getByteSize();
 
         try {
-            long bytesDownloaded = DownloadHelper.continueDownload(downloadTask);
+            long bytesDownloaded = DownloadHelper.continueDownload(downloadTask, downloadLogger);
             long currentByteSize = Files.size(downloadTask.getFilePath());
+
 
             if(downloadTask.hasTimedOut()) {
                 logger.info("Download of " + basePackage.uniqueKey() + " halted due to time out for some reason, continue another time please.");
                 doWhenTimedOut();
-            } else if (!downloadTask.isComplete() && bytesDownloaded > 0) {
-                logger.info("Download of " + basePackage.uniqueKey() + " incomplete due to manual stop, continue another time please.");
-                doWhenDownloadHaltedUnexpectedly();
-            } else if(downloadTask.isComplete() && currentByteSize == downloadFullByteSize) {
+            } else if(currentByteSize == downloadFullByteSize) {
                 logger.info("Download of " + basePackage.uniqueKey() + " completed.");
+                System.out.println("TRÄD");
 
                 boolean digestVerified = Sha256Helper.verifySha256Digest(
                         downloadTask.getFilePath(),
@@ -75,15 +76,19 @@ public abstract class Worker<E extends BasePackage> implements Runnable {
                 if(digestVerified) {
                     logger.info("Download of " + basePackage.uniqueKey() + " sha256 digest verified, download file is intact.");
                     doWhenVerifiedSuccessful();
+                    System.out.println("APA");
                 } else {
                     logger.warning("Download of " + basePackage.uniqueKey() + " file failed sha256 verification");
                     doWhenVerifiedFailed();
+                    System.out.println("VÄSLA");
                 }
+            } else if (bytesDownloaded > 0) {
+                logger.info("Download of " + basePackage.uniqueKey() + " incomplete due to manual stop, continue another time please.");
+                doWhenDownloadHaltedUnexpectedly();
             } else {
                 logger.severe("Download file " + basePackage.uniqueKey() + " marked as complete but file size differ, investigate!");
                 doWhenCompleteWrongFileSize();
             }
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {

@@ -66,6 +66,7 @@ public class BlockChainHelper {
             try {
                 writer = Files.newBufferedWriter(blockchainFile.toPath(), StandardCharsets.UTF_8);
                 writer.write("artifact,metadata,digest,datetime,hash\n");
+                writer.flush();
             } catch (IOException e) {
                 throw new RuntimeException("Failed to start blockchain", e);
             }

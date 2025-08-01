@@ -36,7 +36,7 @@ public class ProgressBar {
         }
         bar.append(ANSI_RESET); // Reset color
         //bar.append(String.format("] %d%%", percent));
-        bar.append(String.format("] %s/%s", total, progress));
+        bar.append(String.format("] %s/%s", progress, total));
 
 
         System.out.print(bar);
