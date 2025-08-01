@@ -22,6 +22,10 @@ public class ProgressBar {
     public static final String ANSI_RESET = "\u001B[0m";
 
     public static void printProgress(long progress, long total, int width, String color) {
+        printProgressMsg(progress, total, width, color, "");
+    }
+
+    public static void printProgressMsg(long progress, long total, int width, String color, String msg) {
         long percent = progress * 100 / total;
         long filled = progress * width / total;
 
@@ -37,7 +41,7 @@ public class ProgressBar {
         bar.append(ANSI_RESET); // Reset color
         //bar.append(String.format("] %d%%", percent));
         bar.append(String.format("] %s/%s", progress, total));
-
+        bar.append(" - ").append(msg);
 
         System.out.print(bar);
         System.out.flush();

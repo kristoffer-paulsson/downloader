@@ -129,13 +129,13 @@ public class WorkerExecutor {
     }
 
     public long getCurrentTotalBytes() {
-        AtomicLong downloadedBytes = new AtomicLong();
-        downloadedBytes.getAndAdd(totalBytesCompleted.get());
+        AtomicLong processedBytes = new AtomicLong();
+        processedBytes.getAndAdd(totalBytesCompleted.get());
 
         synchronized (activeWorkers) {
-            activeWorkers.forEach((w) -> downloadedBytes.addAndGet(w.getCurrentDownloadSize()));
+            activeWorkers.forEach((w) -> processedBytes.addAndGet(w.getCurrentDownloadSize()));
         }
 
-        return downloadedBytes.get();
+        return processedBytes.get();
     }
 }

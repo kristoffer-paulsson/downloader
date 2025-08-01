@@ -28,9 +28,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class JavaMenu extends Menu {
     public JavaMenu(InversionOfControl ioc) {
@@ -57,7 +57,6 @@ public class JavaMenu extends Menu {
         AtomicLong totalSize = new AtomicLong();
         AtomicLong downloadedSize = new AtomicLong();
         HashMap<String, JavaPackage> allPackages = new HashMap<>();
-        List<String> chainedPackages = new ArrayList<>();
 
         JavaParser.filterPackages(jde).forEach((p) -> {
             allPackages.put(p.getSha256Digest(), p);
@@ -68,6 +67,8 @@ public class JavaMenu extends Menu {
 
         ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
+
+
         BlockChainHelper.Blockchain chain = BlockChainHelper.continueBlockchain(
                 Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv")),
                 (row) -> {
@@ -75,9 +76,8 @@ public class JavaMenu extends Menu {
                         Path artifactFile = Path.of(String.format("%s/%s", jde.getDownloadDir(), row.getMetadata()));
                         downloadedSize.getAndAdd(Files.size(artifactFile));
                         allPackages.remove(row.getDigest());
-                        chainedPackages.add(row.getDigest());
 
-                        ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+                        ProgressBar.printProgressMsg(count.get() - allPackages.size(), count.get(), 50, ProgressBar.ANSI_GREEN, "(Sha-256 verify)");
 
                         return Sha256Helper.verifySha256Digest(artifactFile, row.getDigest());
                     } catch (IOException e) {
@@ -85,10 +85,13 @@ public class JavaMenu extends Menu {
                     }
                 }
         );
+        System.out.println();
 
-        chainedPackages.forEach(allPackages::remove);
+        System.out.println("Packages verified on blockchain: " + (count.get() - allPackages.size()));
+        System.out.println("Packages left to download: " + allPackages.size());
 
-        System.out.println("After verification left count: " + allPackages.size());
+
+        allPackages.forEach((s, p) -> System.out.println(p.uniqueKey()));
 
         Thread indicator = new Thread(() -> {
             DownloadLogger logger = ioc.resolve(DownloadLogger.class);
@@ -103,6 +106,7 @@ public class JavaMenu extends Menu {
                     //
                 }
             }
+            executor.shutdown();
             chain.close();
         });
 
