@@ -21,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 public class WorkerExecutor {
@@ -29,6 +31,7 @@ public class WorkerExecutor {
     private final AbstractWorkerIterator<?> workerIterator;
     private final Logger logger;
     private final AtomicBoolean isRunning;
+    private final AtomicLong totalBytesCompleted = new AtomicLong();
     private static final int MAX_CONCURRENT_WORKERS = 8;
 
     public WorkerExecutor(AbstractWorkerIterator<?> workerIterator, DownloadLogger logger) {
@@ -91,6 +94,8 @@ public class WorkerExecutor {
                 worker.run();
                 synchronized (activeWorkers) {
                     activeWorkers.remove(worker);
+                    totalBytesCompleted.getAndAdd(worker.getCurrentDownloadSize());
+
                     submitNewWorkers();
                 }
             });
@@ -113,5 +118,24 @@ public class WorkerExecutor {
 
     public int getActiveWorkerCount() {
         return activeWorkers.size();
+    }
+
+    public float getSpeed() {
+        AtomicReference<Float> speed = new AtomicReference<>((float) 0);
+        synchronized (activeWorkers) {
+            activeWorkers.forEach((w) -> speed.updateAndGet(v -> (v + w.getSpeed())));
+        }
+        return speed.get();
+    }
+
+    public long getCurrentTotalBytes() {
+        AtomicLong downloadedBytes = new AtomicLong();
+        downloadedBytes.getAndAdd(totalBytesCompleted.get());
+
+        synchronized (activeWorkers) {
+            activeWorkers.forEach((w) -> downloadedBytes.addAndGet(w.getCurrentDownloadSize()));
+        }
+
+        return downloadedBytes.get();
     }
 }

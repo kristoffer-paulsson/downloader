@@ -14,12 +14,21 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.java.JavaParser;
+import org.example.downloader.DownloadLogger;
+import org.example.downloader.java.*;
+import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.deb.Menu;
-import org.example.downloader.java.JavaDownloadEnvironment;
+import org.example.downloader.util.Sha256Helper;
+import org.example.downloader.util.WorkerExecutor;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class JavaMenu extends Menu {
     public JavaMenu(InversionOfControl ioc) {
@@ -41,17 +50,59 @@ public class JavaMenu extends Menu {
     }
 
     private void runDownloadWorker() {
-
+        JavaDownloadEnvironment jde = ioc.resolve(JavaDownloadEnvironment.class);
         AtomicInteger count = new AtomicInteger();
-        JavaParser.filterPackages(ioc.resolve(JavaDownloadEnvironment.class)).forEach((p) -> {
-            System.out.println(p.uniqueKey() + ", " + p.getFilename());
+        AtomicLong totalSize = new AtomicLong();
+        AtomicLong downloadedSize = new AtomicLong();
+        AtomicReference<HashMap<String, JavaPackage>> allPackages = new AtomicReference<>(new HashMap<>());
+
+        JavaParser.filterPackages(jde).forEach((p) -> {
+            allPackages.get().put(p.getSha256Digest(), p);
+            totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
         });
 
+        BlockChainHelper.Blockchain chain = BlockChainHelper.continueBlockchain(
+                Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv")),
+                (row) -> {
+                    try {
+                        Path artifactFile = Path.of(String.format("%s/%s", jde.getDownloadDir(), row.getArtifact()));
+                        downloadedSize.getAndAdd(Files.size(artifactFile));
+                        allPackages.get().remove(row.getDigest());
+
+                        ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+
+                        return Sha256Helper.verifySha256Digest(artifactFile, row.getDigest());
+                    } catch (IOException e) {
+                        return false;
+                    }
+                }
+        );
+
+        DownloadLogger logger = ioc.resolve(DownloadLogger.class);
+        WorkerExecutor executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages.get(), chain, logger), logger);
+
+        Thread indicator = new Thread(() -> {
+            while (executor.isRunning()) {
+                try {
+                    Thread.sleep(100);
+                    ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+                } catch (InterruptedException e) {
+                    //
+                }
+            }
+        });
+        indicator.start();
+
+        executor.start();
+
+        try {
+            indicator.interrupt();
+            indicator.join(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         System.out.println(count.get());
-
-        new Thread(() -> {
-
-        }).start();
     }
 }

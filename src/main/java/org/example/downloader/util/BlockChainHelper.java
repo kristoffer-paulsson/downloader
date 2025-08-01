@@ -412,9 +412,9 @@ public class BlockChainHelper {
      * @return a Blockchain instance that continues from the existing file
      */
     public static Blockchain continueBlockchain(Path blockchainFile, Predicate<Row> verificationPredicate) {
-        if (blockchainFile == null || !Files.exists(blockchainFile)) {
+        /*if (blockchainFile == null || !Files.exists(blockchainFile)) {
             throw new IllegalArgumentException("Blockchain file does not exist: " + blockchainFile);
-        }
+        }*/
 
         Blockchain blockchain = new Blockchain(blockchainFile.toFile());
         blockchain.startOrContinue(verificationPredicate);

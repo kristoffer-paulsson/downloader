@@ -63,6 +63,8 @@ public class DownloadHelper {
 
         private float speed = 0.0f;
 
+        private int currentDownloadSize = 0;
+
         /**
          * Constructs a Download object with the specified URL and file path.
          *
@@ -137,6 +139,11 @@ public class DownloadHelper {
         public boolean hasTimedOut() {
             return timedOut;
         }
+
+        private long bytesDownloaded = 0;
+        private long currentByte = 0;
+
+        public long totalBytesDownloaded() { return bytesDownloaded + currentByte; }
     }
 
     /**
@@ -147,12 +154,9 @@ public class DownloadHelper {
      * @throws RuntimeException if an error occurs while continuing the download.
      */
     public static long continueDownload(Download download) {
-        long bytesDownloaded = 0;
-
         try {
-            long currentByte = 0;
             if (Files.exists(download.filePath)) {
-                currentByte = Files.size(download.filePath);
+                download.currentByte = Files.size(download.filePath);
             } else {
                 Files.createDirectories(download.filePath.getParent());
                 Files.createFile(download.filePath);
@@ -161,8 +165,8 @@ public class DownloadHelper {
             download.startTime = System.currentTimeMillis();
             HttpURLConnection connection = (HttpURLConnection) download.url.openConnection();
             try {
-                if (currentByte > 0) {
-                    connection.setRequestProperty("Range", "bytes=" + currentByte + "-");
+                if (download.currentByte > 0) {
+                    connection.setRequestProperty("Range", "bytes=" + download.currentByte + "-");
                 }
                 connection.setConnectTimeout(CONNECT_TIMEOUT);
                 connection.setReadTimeout(READ_TIMEOUT);
@@ -172,23 +176,23 @@ public class DownloadHelper {
                     throw new IOException("HTTP error code: " + responseCode + " for " + download.url);
                 }
 
-                long totalSize = connection.getContentLengthLong() + currentByte;
+                long totalSize = connection.getContentLengthLong() + download.currentByte;
 
                 try (
                         InputStream inputStream = connection.getInputStream();
                         RandomAccessFile outputFile = new RandomAccessFile(download.filePath.toFile(), "rw")
                 ) {
-                    outputFile.seek(currentByte);
+                    outputFile.seek(download.currentByte);
 
                     byte[] buffer = new byte[BUFFER_SIZE];
                     int bytesRead;
                     while ((bytesRead = inputStream.read(buffer)) != -1 && !download.hasExited) {
                         outputFile.write(buffer, 0, bytesRead);
-                        bytesDownloaded += bytesRead;
-                        download.speed = bytesDownloaded / download.getTime();
+                        download.bytesDownloaded += bytesRead;
+                        download.speed = download.bytesDownloaded / download.getTime();
                     }
                 }
-                if(bytesDownloaded + currentByte == totalSize) {
+                if(download.bytesDownloaded + download.currentByte == totalSize) {
                     download.isComplete = true;
                 }
             } catch (SocketTimeoutException e) {
@@ -199,7 +203,7 @@ public class DownloadHelper {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return bytesDownloaded;
+        return download.bytesDownloaded;
     }
 
     public static String downloadSmallData(URL url) {

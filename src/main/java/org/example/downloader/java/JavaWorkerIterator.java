@@ -16,12 +16,14 @@ package org.example.downloader.java;
 
 import org.example.downloader.DownloadLogger;
 import org.example.downloader.util.AbstractWorkerIterator;
+import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.Worker;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Iterator;
 
 public class JavaWorkerIterator extends AbstractWorkerIterator<JavaPackage> {
@@ -29,19 +31,33 @@ public class JavaWorkerIterator extends AbstractWorkerIterator<JavaPackage> {
     private final JavaDownloadEnvironment jde;
     private final Iterator<JavaPackage> packageIterator;
     private final DownloadLogger logger;
+    private final BlockChainHelper.Blockchain chain;
 
-    JavaWorkerIterator(JavaDownloadEnvironment jde, DownloadLogger logger) {
+    public JavaWorkerIterator(JavaDownloadEnvironment jde, DownloadLogger logger) {
         this.jde = jde;
         this.packageIterator = JavaParser.filterPackages(jde).iterator();
+        this.logger = logger;
+        this.chain = null;
+    }
+
+    public JavaWorkerIterator(
+            JavaDownloadEnvironment jde,
+            HashMap<String, JavaPackage> packages,
+            BlockChainHelper.Blockchain chain,
+            DownloadLogger logger
+    ) {
+        this.jde = jde;
+        this.packageIterator = packages.values().iterator();
+        this.chain = chain;
         this.logger = logger;
     }
 
     @Override
-    protected Worker<JavaPackage> createWorker() {
+    protected JavaWorker createWorker() {
         JavaPackage pkg = packageIterator.next();
         try {
             Path downloadPath = Path.of(String.format("%s/%s", jde.getDownloadDir(), pkg.getFilename()));
-            return new Worker<>(pkg, new DownloadHelper.Download(pkg.getRealUrl(), downloadPath), logger);
+            return new JavaWorker(pkg, new DownloadHelper.Download(pkg.getRealUrl(), downloadPath), chain, logger);
         } catch (MalformedURLException | URISyntaxException e) {
             throw new RuntimeException(e);
         }

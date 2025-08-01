@@ -21,12 +21,12 @@ import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
-public class Worker<E extends BasePackage> implements Runnable {
+public abstract class Worker<E extends BasePackage> implements Runnable {
 
-    private final E basePackage;
-    private final DownloadHelper.Download downloadTask;
-    private final Logger logger;
-    private final AtomicBoolean isRunning;
+    protected final E basePackage;
+    protected final DownloadHelper.Download downloadTask;
+    protected final Logger logger;
+    protected final AtomicBoolean isRunning;
 
     public Worker(E basePackage, DownloadHelper.Download downloadTask, DownloadLogger logger) {
         this.basePackage = basePackage;
@@ -35,26 +35,15 @@ public class Worker<E extends BasePackage> implements Runnable {
         this.isRunning = new AtomicBoolean(false);
     }
 
-    protected void doWhenTimedOut() {
+    protected abstract void doWhenTimedOut() throws IOException;
 
-    }
+    protected abstract void doWhenDownloadHaltedUnexpectedly() throws IOException;
 
-    protected void doWhenDownloadHaltedUnexpectedly() {
+    protected abstract void doWhenVerifiedSuccessful() throws IOException;
 
-    }
+    protected abstract void doWhenVerifiedFailed() throws IOException;
 
-    protected void doWhenVerifiedSuccessful() throws IOException {
-
-    }
-
-    protected void doWhenVerifiedFailed() throws IOException {
-        Files.deleteIfExists(downloadTask.getFilePath());
-        logger.info("Deleted failed download file");
-    }
-
-    protected void doWhenCompleteWrongFileSize() throws IOException {
-
-    }
+    protected abstract void doWhenCompleteWrongFileSize() throws IOException;
 
     @Override
     public void run() {
@@ -110,6 +99,11 @@ public class Worker<E extends BasePackage> implements Runnable {
 
     public float getSpeed() { return downloadTask.getSpeed(); }
     public float getTime() { return downloadTask.getTime(); }
+    public long getCurrentDownloadSize() {
+        synchronized (downloadTask) {
+            return downloadTask.totalBytesDownloaded();
+        }
+    }
 
     public boolean isRunning() { return isRunning.get() && !isCompleted(); }
     public boolean isCompleted() { return downloadTask.isComplete(); }
