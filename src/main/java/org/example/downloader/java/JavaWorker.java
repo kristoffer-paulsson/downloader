@@ -47,7 +47,7 @@ public class JavaWorker extends Worker<JavaPackage> {
     @Override
     protected void doWhenVerifiedSuccessful() throws IOException {
         if(chain != null) {
-            chain.addRow(basePackage.uniqueKey(), basePackage.getSha256Digest());
+            chain.addRow(basePackage.uniqueKey(), basePackage.getFilename(), basePackage.getSha256Digest());
             logger.warning("Download of " + basePackage.uniqueKey() + " registered to blockchain.");
         }
     }

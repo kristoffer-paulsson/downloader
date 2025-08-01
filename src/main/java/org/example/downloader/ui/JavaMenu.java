@@ -25,7 +25,9 @@ import org.example.downloader.util.WorkerExecutor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -54,21 +56,15 @@ public class JavaMenu extends Menu {
         AtomicInteger count = new AtomicInteger();
         AtomicLong totalSize = new AtomicLong();
         AtomicLong downloadedSize = new AtomicLong();
-        AtomicReference<HashMap<String, JavaPackage>> allPackages = new AtomicReference<>(new HashMap<>());
+        HashMap<String, JavaPackage> allPackages = new HashMap<>();
+        List<String> chainedPackages = new ArrayList<>();
 
         JavaParser.filterPackages(jde).forEach((p) -> {
-            allPackages.get().put(p.getSha256Digest(), p);
+            allPackages.put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
         });
-        System.out.println("Total package count: " + allPackages.get().size());
-
-        /*JavaPackage p = JavaParser.filterPackages(jde).get(0);
-        allPackages.get().put(p.getSha256Digest(), p);
-        totalSize.getAndAdd(p.getByteSize());
-        System.out.println("Total size: " + totalSize.get());*/
-
-        count.getAndIncrement();
+        System.out.println("Total batch count: " + allPackages.size());
 
         ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
@@ -76,9 +72,10 @@ public class JavaMenu extends Menu {
                 Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv")),
                 (row) -> {
                     try {
-                        Path artifactFile = Path.of(String.format("%s/%s", jde.getDownloadDir(), row.getArtifact()));
+                        Path artifactFile = Path.of(String.format("%s/%s", jde.getDownloadDir(), row.getMetadata()));
                         downloadedSize.getAndAdd(Files.size(artifactFile));
-                        allPackages.get().remove(row.getDigest());
+                        allPackages.remove(row.getDigest());
+                        chainedPackages.add(row.getDigest());
 
                         ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
@@ -89,12 +86,14 @@ public class JavaMenu extends Menu {
                 }
         );
 
-        //System.out.println("After blockchain verify package count: " + allPackages.get().size());
+        chainedPackages.forEach(allPackages::remove);
 
-        DownloadLogger logger = ioc.resolve(DownloadLogger.class);
-        WorkerExecutor executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages.get(), chain, logger), logger);
+        System.out.println("After verification left count: " + allPackages.size());
 
         Thread indicator = new Thread(() -> {
+            DownloadLogger logger = ioc.resolve(DownloadLogger.class);
+            WorkerExecutor executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages, chain, logger), logger);
+
             executor.start();
             while (executor.isRunning()) {
                 try {
@@ -113,7 +112,5 @@ public class JavaMenu extends Menu {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
-        System.out.println(count.get());
     }
 }

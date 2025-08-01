@@ -130,7 +130,7 @@ public class BlockChainHelper {
             }
 
             // Check if the last row is the end-of-blockchain marker
-            if (lastRow != null && lastRow.get().artifact.equals("end-of-blockchain")) {
+            if (lastRow.get() != null && lastRow.get().artifact.equals("end-of-blockchain")) {
                 return true; // Blockchain is finalized
             } else {
                 return false; // Blockchain is not finalized
@@ -165,7 +165,7 @@ public class BlockChainHelper {
          * @param digest   the digest of the artifact
          */
         public void addRow(String artifact, String digest) {
-            addRow(artifact, "", digest);
+            addRow(artifact, "n/a", digest);
         }
 
         public void addRow(String artifact, String metadata, String digest) {
