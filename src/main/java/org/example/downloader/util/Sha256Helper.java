@@ -26,7 +26,7 @@ public class Sha256Helper {
      */
     public static boolean verifySha256Digest(Path filePath, String sha256digest) throws IOException {
         try {
-            if (!isValid32CharHex(sha256digest)) {
+            if (!isValid64CharHex(sha256digest)) {
                 throw new IllegalArgumentException("Invalid SHA-256 digest format. Must be a 32-character hexadecimal string.");
             }
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
@@ -94,8 +94,7 @@ public class Sha256Helper {
      * @param input the string to validate
      * @return true if the string is a valid 32-character hex, false otherwise
      */
-    public static boolean isValid32CharHex(String input) {
-        // Check if string is exactly 32 characters long and contains only hex characters
-        return input != null && input.matches("^[0-9a-fA-F]{32}$");
+    public static boolean isValid64CharHex(String input) {
+        return input != null && input.matches("^[0-9a-fA-F]{64}$");
     }
 }

@@ -45,7 +45,7 @@ public abstract class Worker<E extends BasePackage> implements Runnable {
 
     protected abstract void doWhenVerifiedFailed() throws IOException;
 
-    protected abstract void doWhenCompleteWrongFileSize() throws IOException;
+    protected abstract void doSomethingUnknownError() throws IOException;
 
     @Override
     public void run() {
@@ -66,7 +66,6 @@ public abstract class Worker<E extends BasePackage> implements Runnable {
                 doWhenTimedOut();
             } else if(currentByteSize == downloadFullByteSize) {
                 logger.info("Download of " + basePackage.uniqueKey() + " completed.");
-                System.out.println("TRÄD");
 
                 boolean digestVerified = Sha256Helper.verifySha256Digest(
                         downloadTask.getFilePath(),
@@ -76,18 +75,16 @@ public abstract class Worker<E extends BasePackage> implements Runnable {
                 if(digestVerified) {
                     logger.info("Download of " + basePackage.uniqueKey() + " sha256 digest verified, download file is intact.");
                     doWhenVerifiedSuccessful();
-                    System.out.println("APA");
                 } else {
                     logger.warning("Download of " + basePackage.uniqueKey() + " file failed sha256 verification");
                     doWhenVerifiedFailed();
-                    System.out.println("VÄSLA");
                 }
             } else if (bytesDownloaded > 0) {
                 logger.info("Download of " + basePackage.uniqueKey() + " incomplete due to manual stop, continue another time please.");
                 doWhenDownloadHaltedUnexpectedly();
             } else {
                 logger.severe("Download file " + basePackage.uniqueKey() + " marked as complete but file size differ, investigate!");
-                doWhenCompleteWrongFileSize();
+                doSomethingUnknownError();
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

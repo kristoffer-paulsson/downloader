@@ -110,7 +110,7 @@ public class BlockChainHelper {
             }
 
             lastHash = computeHash(blockchainFile.getName());
-            AtomicReference<Row> lastRow = null;
+            AtomicReference<Row> lastRow = new AtomicReference<>();
 
             try {
                 Files.lines(blockchainFile.toPath()).skip(1).forEach(line -> {
@@ -322,7 +322,7 @@ public class BlockChainHelper {
          * @return the computed hash as a 32-character hexadecimal string
          */
         public String buildRowHash(String previousHash) {
-            if(!Sha256Helper.isValid32CharHex(previousHash)) {
+            if(!Sha256Helper.isValid64CharHex(previousHash)) {
                 throw new IllegalArgumentException("Invalid previous hash: " + previousHash);
             }
             String newBlock = String.format("%s,%s,%s,%s,%s", previousHash.trim(), artifact, metadata, digest, datetime);

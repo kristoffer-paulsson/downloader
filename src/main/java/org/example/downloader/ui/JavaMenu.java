@@ -56,20 +56,21 @@ public class JavaMenu extends Menu {
         AtomicLong downloadedSize = new AtomicLong();
         AtomicReference<HashMap<String, JavaPackage>> allPackages = new AtomicReference<>(new HashMap<>());
 
-        /*JavaParser.filterPackages(jde).forEach((p) -> {
+        JavaParser.filterPackages(jde).forEach((p) -> {
             allPackages.get().put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
-        });*/
+        });
+        System.out.println("Total package count: " + allPackages.get().size());
 
-        JavaPackage p = JavaParser.filterPackages(jde).get(0);
+        /*JavaPackage p = JavaParser.filterPackages(jde).get(0);
         allPackages.get().put(p.getSha256Digest(), p);
         totalSize.getAndAdd(p.getByteSize());
-        System.out.println("Total size: " + totalSize.get());
+        System.out.println("Total size: " + totalSize.get());*/
 
         count.getAndIncrement();
 
-        //ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+        ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
         BlockChainHelper.Blockchain chain = BlockChainHelper.continueBlockchain(
                 Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv")),
@@ -79,7 +80,7 @@ public class JavaMenu extends Menu {
                         downloadedSize.getAndAdd(Files.size(artifactFile));
                         allPackages.get().remove(row.getDigest());
 
-                        //ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+                        ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
                         return Sha256Helper.verifySha256Digest(artifactFile, row.getDigest());
                     } catch (IOException e) {
@@ -88,31 +89,30 @@ public class JavaMenu extends Menu {
                 }
         );
 
+        //System.out.println("After blockchain verify package count: " + allPackages.get().size());
+
         DownloadLogger logger = ioc.resolve(DownloadLogger.class);
         WorkerExecutor executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages.get(), chain, logger), logger);
 
-        /*Thread indicator = new Thread(() -> {
+        Thread indicator = new Thread(() -> {
+            executor.start();
             while (executor.isRunning()) {
                 try {
                     Thread.sleep(100);
-                    //ProgressBar.printProgress(downloadedSize.get() + executor.getCurrentTotalBytes(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+                    ProgressBar.printProgress(downloadedSize.get() + executor.getCurrentTotalBytes(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
                 } catch (InterruptedException e) {
                     //
                 }
             }
+            chain.close();
         });
-        indicator.start();*/
 
-        executor.start();
-
-        chain.close();
-
-        /*try {
-            indicator.interrupt();
-            indicator.join(1000);
+        try {
+            indicator.start();
+            indicator.join();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }*/
+        }
 
         System.out.println(count.get());
     }

@@ -38,19 +38,17 @@ public class JavaWorker extends Worker<JavaPackage> {
 
     @Override
     protected void doWhenTimedOut() throws IOException {
-        System.out.println("Download for " + basePackage.uniqueKey() + " timed out.");
     }
 
     @Override
     protected void doWhenDownloadHaltedUnexpectedly() {
-        System.out.println("Download for " + basePackage.uniqueKey() + " halted unexpectedly.");
     }
 
     @Override
     protected void doWhenVerifiedSuccessful() throws IOException {
         if(chain != null) {
             chain.addRow(basePackage.uniqueKey(), basePackage.getSha256Digest());
-            logger.warning("Download of " + basePackage.uniqueKey() + " regietered to blockchain.");
+            logger.warning("Download of " + basePackage.uniqueKey() + " registered to blockchain.");
         }
     }
 
@@ -61,7 +59,6 @@ public class JavaWorker extends Worker<JavaPackage> {
     }
 
     @Override
-    protected void doWhenCompleteWrongFileSize() throws IOException {
-        System.out.println("Download for " + basePackage.uniqueKey() + " completed but wrong file size.");
+    protected void doSomethingUnknownError() throws IOException {
     }
 }
