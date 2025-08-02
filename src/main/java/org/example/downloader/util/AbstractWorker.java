@@ -14,18 +14,18 @@
  */
 package org.example.downloader.util;
 
-import org.example.downloader.DownloadLogger;
+import org.example.downloader.WorkLogger;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public abstract class AbstractWorker implements Runnable {
 
-    protected final DownloadLogger workLogger;
+    protected final WorkLogger workLogger;
     protected final Logger logger;
     protected final AtomicBoolean isRunning;
 
-    public AbstractWorker(DownloadLogger workLogger) {
+    public AbstractWorker(WorkLogger workLogger) {
         this.workLogger = workLogger;
         this.logger = workLogger.getLogger();
         this.isRunning = new AtomicBoolean(false);

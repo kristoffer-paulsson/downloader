@@ -14,7 +14,7 @@
  */
 package org.example.downloader.util;
 
-import org.example.downloader.DownloadLogger;
+import org.example.downloader.WorkLogger;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -34,7 +34,7 @@ public class WorkerExecutor {
     private final AtomicLong totalBytesCompleted = new AtomicLong();
     private static final int MAX_CONCURRENT_WORKERS = 8;
 
-    public WorkerExecutor(AbstractWorkerIterator<?> workerIterator, DownloadLogger logger) {
+    public WorkerExecutor(AbstractWorkerIterator<?> workerIterator, WorkLogger logger) {
         this.logger = logger.getLogger();
         this.executorService = Executors.newFixedThreadPool(MAX_CONCURRENT_WORKERS);
         this.activeWorkers = Collections.synchronizedList(new ArrayList<>());

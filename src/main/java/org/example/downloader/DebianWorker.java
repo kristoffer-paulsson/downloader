@@ -48,7 +48,7 @@ public class DebianWorker implements Runnable {
         this.debianPackage = debianPackage;
         this.ioc = ioc;
         this.configManager = ioc.resolve(ConfigManager.class);
-        this.logger = ioc.resolve(DownloadLogger.class).getLogger();
+        this.logger = ioc.resolve(WorkLogger.class).getLogger();
         this.baseUrl = ioc.resolve(DebianMirrorCache.class).getNextMirror();
         this.isRunning = new AtomicBoolean(false);
         this.isPaused = new AtomicBoolean(false);

@@ -20,12 +20,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.*;
 
-public class DownloadLogger {
+public class WorkLogger {
     private final Logger logger;
     private final Path logFile;
     private final long maxFileSize = 16 * 1024 * 1024; // 5MB
 
-    DownloadLogger(ConfigManager configManager) throws IOException {
+    WorkLogger(ConfigManager configManager) throws IOException {
         Path logDir = Paths.get(configManager.get(ConfigManager.DIR_CACHE), "logs");
         Files.createDirectories(logDir);
         this.logFile = logDir.resolve("downloader.log");

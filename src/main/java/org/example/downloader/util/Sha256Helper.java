@@ -29,7 +29,7 @@ public class Sha256Helper {
 
         private int currentProcessSize = 0;
 
-        public Verifier(Path filePath,  String sha256digest) {
+        public Verifier(Path filePath, String sha256digest) {
             this.filePath = filePath;
             this.sha256digest = sha256digest;
         }
@@ -53,6 +53,10 @@ public class Sha256Helper {
 
         public float getSpeed() {
             return speed;
+        }
+
+        public void forceComplete() {
+            isComplete = true;
         }
 
         public boolean isComplete() {

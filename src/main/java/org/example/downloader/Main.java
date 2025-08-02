@@ -53,7 +53,7 @@ public class Main {
     }
 
     private void setIdleExecutor() {
-        this.executor = new DebianWorkerExecutor(new DebianWorkerIterator(ioc, List.of()), ioc.resolve(DownloadLogger.class));
+        this.executor = new DebianWorkerExecutor(new DebianWorkerIterator(ioc, List.of()), ioc.resolve(WorkLogger.class));
     }
 
     public void setExecutor(DebianWorkerIterator iterator, WorkerTask task) {
@@ -62,7 +62,7 @@ public class Main {
         }
         this.task = WorkerTask.DOWNLOAD;
 
-        this.executor = new DebianWorkerExecutor(iterator, ioc.resolve(DownloadLogger.class));
+        this.executor = new DebianWorkerExecutor(iterator, ioc.resolve(WorkLogger.class));
         this.executor.start();
     }
 
@@ -70,7 +70,7 @@ public class Main {
         if (ioc != null) {
             ioc.resolve(Main.class).executor.shutdown();
             try {
-                ioc.resolve(DownloadLogger.class).rotateLogFile(true);
+                ioc.resolve(WorkLogger.class).rotateLogFile(true);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -89,9 +89,9 @@ public class Main {
             }
         });
 
-        ioc.register(DownloadLogger.class, () -> {
+        ioc.register(WorkLogger.class, () -> {
             try {
-                return new DownloadLogger(ioc.resolve(ConfigManager.class));
+                return new WorkLogger(ioc.resolve(ConfigManager.class));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

@@ -14,7 +14,7 @@
  */
 package org.example.downloader.java;
 
-import org.example.downloader.DownloadLogger;
+import org.example.downloader.WorkLogger;
 import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.Worker;
@@ -30,7 +30,7 @@ public class JavaWorker extends Worker<JavaPackage> {
             JavaPackage basePackage,
             DownloadHelper.Download downloadTask,
             BlockChainHelper.Blockchain chain,
-            DownloadLogger logger
+            WorkLogger logger
     ) {
         super(basePackage, downloadTask, logger);
         this.chain = chain;

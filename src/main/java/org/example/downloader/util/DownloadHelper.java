@@ -14,7 +14,7 @@
  */
 package org.example.downloader.util;
 
-import org.example.downloader.DownloadLogger;
+import org.example.downloader.WorkLogger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -164,7 +164,7 @@ public class DownloadHelper {
      * @return The number of bytes downloaded during this continuation.
      * @throws RuntimeException if an error occurs while continuing the download.
      */
-    public static long continueDownload(Download download, DownloadLogger logger) {
+    public static long continueDownload(Download download, WorkLogger logger) {
         try {
             if (Files.exists(download.filePath)) {
                 download.currentByte = Files.size(download.filePath);

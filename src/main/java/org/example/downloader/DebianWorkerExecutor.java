@@ -31,7 +31,7 @@ public class DebianWorkerExecutor {
     private final AtomicBoolean isPaused;
     private static final int MAX_CONCURRENT_WORKERS = 8;
 
-    public DebianWorkerExecutor(DebianWorkerIterator workerIterator, DownloadLogger logger) {
+    public DebianWorkerExecutor(DebianWorkerIterator workerIterator, WorkLogger logger) {
         this.logger = logger.getLogger();
         this.executorService = Executors.newFixedThreadPool(MAX_CONCURRENT_WORKERS);
         this.activeWorkers = Collections.synchronizedList(new ArrayList<>());

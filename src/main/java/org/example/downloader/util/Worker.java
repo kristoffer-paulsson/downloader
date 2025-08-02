@@ -24,7 +24,7 @@ public abstract class Worker<E extends BasePackage> extends AbstractWorker {
     protected final E basePackage;
     protected final DownloadHelper.Download downloadTask;
 
-    public Worker(E basePackage, DownloadHelper.Download downloadTask, DownloadLogger logger) {
+    public Worker(E basePackage, DownloadHelper.Download downloadTask, WorkLogger logger) {
         super(logger);
         this.basePackage = basePackage;
         this.downloadTask = downloadTask;

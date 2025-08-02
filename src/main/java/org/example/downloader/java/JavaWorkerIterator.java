@@ -14,7 +14,7 @@
  */
 package org.example.downloader.java;
 
-import org.example.downloader.DownloadLogger;
+import org.example.downloader.WorkLogger;
 import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.WorkerIterator;
@@ -29,10 +29,10 @@ public class JavaWorkerIterator extends WorkerIterator<JavaPackage> {
 
     private final JavaDownloadEnvironment jde;
     private final Iterator<JavaPackage> packageIterator;
-    private final DownloadLogger logger;
+    private final WorkLogger logger;
     private final BlockChainHelper.Blockchain chain;
 
-    public JavaWorkerIterator(JavaDownloadEnvironment jde, DownloadLogger logger) {
+    public JavaWorkerIterator(JavaDownloadEnvironment jde, WorkLogger logger) {
         this.jde = jde;
         this.packageIterator = JavaParser.filterPackages(jde).iterator();
         this.logger = logger;
@@ -43,7 +43,7 @@ public class JavaWorkerIterator extends WorkerIterator<JavaPackage> {
             JavaDownloadEnvironment jde,
             HashMap<String, JavaPackage> packages,
             BlockChainHelper.Blockchain chain,
-            DownloadLogger logger
+            WorkLogger logger
     ) {
         this.jde = jde;
         this.packageIterator = packages.values().iterator();

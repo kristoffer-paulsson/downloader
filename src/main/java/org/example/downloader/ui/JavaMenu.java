@@ -14,7 +14,7 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.DownloadLogger;
+import org.example.downloader.WorkLogger;
 import org.example.downloader.java.*;
 import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.InversionOfControl;
@@ -25,10 +25,7 @@ import org.example.downloader.util.WorkerExecutor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -94,7 +91,7 @@ public class JavaMenu extends Menu {
         allPackages.forEach((s, p) -> System.out.println(p.uniqueKey()));
 
         Thread indicator = new Thread(() -> {
-            DownloadLogger logger = ioc.resolve(DownloadLogger.class);
+            WorkLogger logger = ioc.resolve(WorkLogger.class);
             WorkerExecutor executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages, chain, logger), logger);
 
             executor.start();
