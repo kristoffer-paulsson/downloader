@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 
 public class WorkerExecutor {
     private final ExecutorService executorService;
-    private final List<Worker<?>> activeWorkers;
+    private final List<AbstractWorker> activeWorkers;
     private final AbstractWorkerIterator<?> workerIterator;
     private final Logger logger;
     private final AtomicBoolean isRunning;
@@ -58,9 +58,9 @@ public class WorkerExecutor {
         isRunning.set(false);
 
         synchronized (activeWorkers) {
-            for (Worker<?> worker : activeWorkers) {
+            for (AbstractWorker worker : activeWorkers) {
                 if (worker.isRunning()) {
-                    worker.stopDownload();
+                    worker.stopProcessing();
                 }
             }
             activeWorkers.clear();
@@ -88,13 +88,13 @@ public class WorkerExecutor {
         checkCompletion();
     }
 
-    private void submitWorker(Worker<?> worker) {
+    private void submitWorker(AbstractWorker worker) {
         if (!worker.isCompleted()) {
             executorService.submit(() -> {
                 worker.run();
                 synchronized (activeWorkers) {
                     activeWorkers.remove(worker);
-                    totalBytesCompleted.getAndAdd(worker.getCurrentDownloadSize());
+                    totalBytesCompleted.getAndAdd(worker.getCurrentProcessSize());
 
                     submitNewWorkers();
                 }
@@ -133,7 +133,7 @@ public class WorkerExecutor {
         processedBytes.getAndAdd(totalBytesCompleted.get());
 
         synchronized (activeWorkers) {
-            activeWorkers.forEach((w) -> processedBytes.addAndGet(w.getCurrentDownloadSize()));
+            activeWorkers.forEach((w) -> processedBytes.addAndGet(w.getCurrentProcessSize()));
         }
 
         return processedBytes.get();

@@ -15,10 +15,9 @@
 package org.example.downloader.java;
 
 import org.example.downloader.DownloadLogger;
-import org.example.downloader.util.AbstractWorkerIterator;
 import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.DownloadHelper;
-import org.example.downloader.util.Worker;
+import org.example.downloader.util.WorkerIterator;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -26,7 +25,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 
-public class JavaWorkerIterator extends AbstractWorkerIterator<JavaPackage> {
+public class JavaWorkerIterator extends WorkerIterator<JavaPackage> {
 
     private final JavaDownloadEnvironment jde;
     private final Iterator<JavaPackage> packageIterator;

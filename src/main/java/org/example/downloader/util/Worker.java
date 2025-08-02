@@ -18,23 +18,16 @@ import org.example.downloader.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
 
-public abstract class Worker<E extends BasePackage> implements Runnable {
+public abstract class Worker<E extends BasePackage> extends AbstractWorker {
 
     protected final E basePackage;
     protected final DownloadHelper.Download downloadTask;
-    protected final Logger logger;
-    protected final DownloadLogger downloadLogger;
-    protected final AtomicBoolean isRunning;
 
     public Worker(E basePackage, DownloadHelper.Download downloadTask, DownloadLogger logger) {
+        super(logger);
         this.basePackage = basePackage;
         this.downloadTask = downloadTask;
-        this.downloadLogger = logger;
-        this.logger = logger.getLogger();
-        this.isRunning = new AtomicBoolean(false);
     }
 
     protected abstract void doWhenTimedOut() throws IOException;
@@ -57,7 +50,7 @@ public abstract class Worker<E extends BasePackage> implements Runnable {
         long downloadFullByteSize = basePackage.getByteSize();
 
         try {
-            long bytesDownloaded = DownloadHelper.continueDownload(downloadTask, downloadLogger);
+            long bytesDownloaded = DownloadHelper.continueDownload(downloadTask, workLogger);
             long currentByteSize = Files.size(downloadTask.getFilePath());
 
 
@@ -93,15 +86,15 @@ public abstract class Worker<E extends BasePackage> implements Runnable {
         }
     }
 
-    public void stopDownload() {
+
+    protected void stopProcessImpl() {
         downloadTask.stop();
-        isRunning.set(false);
         logger.info("Download stopped for " + basePackage.uniqueKey());
     }
 
     public float getSpeed() { return downloadTask.getSpeed(); }
     public float getTime() { return downloadTask.getTime(); }
-    public long getCurrentDownloadSize() {
+    public long getCurrentProcessSize() {
         synchronized (downloadTask) {
             return downloadTask.totalBytesDownloaded();
         }

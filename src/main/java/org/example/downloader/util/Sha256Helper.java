@@ -82,7 +82,7 @@ public class Sha256Helper {
             task.totalSize = Files.size(task.filePath);
             try (InputStream inputStream = Files.newInputStream(task.filePath)) {
                 int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                while ((bytesRead = inputStream.read(buffer)) != -1 && !task.hasExited) {
                     sha256.update(buffer, 0, bytesRead);
                     task.bytesProcessed += bytesRead;
                 }
