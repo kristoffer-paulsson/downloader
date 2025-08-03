@@ -60,6 +60,7 @@ public class WorkerExecutor {
             return;
         }
         isRunning.set(false);
+        this.endTime = System.currentTimeMillis();
 
         synchronized (activeWorkers) {
             for (AbstractWorker worker : activeWorkers) {
@@ -69,7 +70,6 @@ public class WorkerExecutor {
             }
             activeWorkers.clear();
         }
-        this.endTime = System.currentTimeMillis();
 
         executorService.shutdown();
         try {
@@ -133,8 +133,7 @@ public class WorkerExecutor {
     }
 
     public float getSpeed() {
-        float seconds = (System.currentTimeMillis() - startTime) / 1000.0f;
-        return getCurrentTotalBytes() / seconds;
+        return getCurrentTotalBytes() / getTime();
     }
 
     public long getCurrentTotalBytes() {

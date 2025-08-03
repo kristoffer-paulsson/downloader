@@ -55,7 +55,7 @@ public class JavaMenu extends Menu {
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
         });
-        System.out.println("Total batch count: " + allPackages.size());
+        System.out.println("Total artifact batch count: " + allPackages.size());
 
         ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
@@ -70,8 +70,9 @@ public class JavaMenu extends Menu {
                 )
         ));
 
+        WorkerExecutor executor = new WorkerExecutor(verifier, logger);
+
         Thread indicator = new Thread(() -> {
-            WorkerExecutor executor = new WorkerExecutor(verifier, logger);
             String color;
 
             executor.start();
@@ -86,7 +87,7 @@ public class JavaMenu extends Menu {
                         color = ProgressBar.ANSI_GREEN;
                     }
                     ProgressBar.printProgressMsg(
-                            downloadedSize.get() + executor.getCurrentTotalBytes(),
+                            executor.getCurrentTotalBytes(),
                             totalSize.get(),
                             50,
                             color,
@@ -102,10 +103,46 @@ public class JavaMenu extends Menu {
         try {
             indicator.start();
             indicator.join();
+            System.out.println();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
+        System.out.println(
+                "Verified " + PrintHelper.formatByteSize(executor.getCurrentTotalBytes()) + " of information in " +
+                        PrintHelper.formatTime(executor.getTime()) + " at a speed of " +
+                        PrintHelper.formatSpeed(executor.getActiveWorkerCount())
+        );
+
+        if(verifier.isBroken()) {
+            System.out.println("The blockchain file is broken, it is recommended to delete the file and try again.");
+        } else {
+            System.out.println("The blockchain file is intact!");
+        }
+
+        if(verifier.getBrokenArtifacts().isEmpty()) {
+            System.out.println("All downloaded artifacts was verified intact using SHA-256.");
+        } else {
+            System.out.println("One or several of the artifacts failed SHA-256 verification");
+            verifier.getBrokenArtifacts().forEach((r) -> {
+                String path = String.format(
+                        "%s/%s",
+                        jde.getDownloadDir().toString(),
+                        allPackages.get(r.getDigest()).getFilename()
+                );
+                System.out.println("Delete: " + path);
+            });
+        }
+
+        verifier.getVerifiedArtifacts().forEach((r) -> {
+            allPackages.remove(r.getDigest());
+        });
+        allPackages.forEach((d, p) -> {
+            downloadedSize.addAndGet(p.getByteSize());
+        });
+
+        System.out.println("Totally " + allPackages.size() + " artifacts yet to download for completion.");
+        System.out.println("Approximately up to " + PrintHelper.formatByteSize(downloadedSize.get()) + " of data to download.");
 
         /*BlockChainHelper.Blockchain chain = BlockChainHelper.continueBlockchain(
                 Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv")),

@@ -38,6 +38,7 @@ public class BlockchainVerifier extends AbstractWorkerIterator<BlockchainVerifie
     private final Iterator<String> stringIterator;
     private String lastHash;
 
+    private final AtomicReference<List<BlockChainHelper.Row>> verifiedArtifacts = new AtomicReference<>(new ArrayList<>());
     private final AtomicReference<List<BlockChainHelper.Row>> brokenArtifacts = new AtomicReference<>(new ArrayList<>());
     private final AtomicBoolean brokenChain = new AtomicBoolean(false);
     private final boolean expectFinalized;
@@ -82,6 +83,10 @@ public class BlockchainVerifier extends AbstractWorkerIterator<BlockchainVerifie
         return brokenArtifacts.get();
     }
 
+    public List<BlockChainHelper.Row> getVerifiedArtifacts() {
+        return verifiedArtifacts.get();
+    }
+
     public interface ArtifactPath {
         Path artifactFile(BlockChainHelper.Row r);
     }
@@ -119,6 +124,10 @@ public class BlockchainVerifier extends AbstractWorkerIterator<BlockchainVerifie
                         brokenArtifacts.get().add(row);
                     }
                     logger.severe("Verifying " + artifactFile + " for " + row.getArtifact() + " with sha256 digest of " + row.getDigest() + " failed.");
+                } else if(!verifierTask.hasError() && verifierTask.isComplete()) {
+                    synchronized (verifiedArtifacts) {
+                        verifiedArtifacts.get().add(row);
+                    }
                 }
             }
         }
