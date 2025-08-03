@@ -19,6 +19,7 @@ import org.example.downloader.java.*;
 import org.example.downloader.util.*;
 import org.example.downloader.deb.Menu;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,139 +58,129 @@ public class JavaMenu extends Menu {
         });
         System.out.println("Total artifact batch count: " + allPackages.size());
 
-        ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
+        var executorHolder = new Object() {
+            WorkerExecutor executor;
+            Thread indicator;
+        };
 
         WorkLogger logger = ioc.resolve(WorkLogger.class);
         Path blockchainFile = Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv"));
-        BlockChainHelper.Blockchain chain = new BlockChainHelper.Blockchain(blockchainFile.toFile());
-        BlockchainVerifier verifier = new BlockchainVerifier(chain, logger, false, (r) -> Path.of(
-                String.format(
-                        "%s/%s",
-                        jde.getDownloadDir().toString(),
-                        allPackages.get(r.getDigest()).getFilename()
-                )
-        ));
+        BlockChainHelper.Blockchain chain;
 
-        WorkerExecutor executor = new WorkerExecutor(verifier, logger);
+        if(Files.exists(blockchainFile)) {
+            chain = new BlockChainHelper.Blockchain(blockchainFile.toFile());
 
-        Thread indicator = new Thread(() -> {
-            String color;
+            BlockchainVerifier verifier = new BlockchainVerifier(chain, logger, false, (r) -> Path.of(
+                    String.format(
+                            "%s/%s",
+                            jde.getDownloadDir().toString(),
+                            allPackages.get(r.getDigest()).getFilename()
+                    )
+            ));
 
-            executor.start();
-            while (executor.isRunning()) {
+            executorHolder.executor = new WorkerExecutor(verifier, logger);
+
+            executorHolder.indicator = new Thread(() -> {
+                String color;
+
+                executorHolder.executor.start();
+                while (executorHolder.executor.isRunning()) {
+                    try {
+                        Thread.sleep(10);
+                        if(verifier.isBroken()) {
+                            color = ProgressBar.ANSI_RED;
+                        } else if(!verifier.getBrokenArtifacts().isEmpty()) {
+                            color = ProgressBar.ANSI_YELLOW;
+                        } else {
+                            color = ProgressBar.ANSI_GREEN;
+                        }
+                        ProgressBar.printProgressMsg(
+                                executorHolder.executor.getCurrentTotalBytes(),
+                                totalSize.get(),
+                                50,
+                                color,
+                                "Verifying blockchain " + PrintHelper.formatSpeed(executorHolder.executor.getSpeed())
+                        );
+                    } catch (InterruptedException e) {
+                        //
+                    }
+                }
+                executorHolder.executor.shutdown();
+            });
+
+            try {
+                executorHolder.indicator.start();
+                executorHolder.indicator.join();
+                System.out.println();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            System.out.println(
+                    "Verified " + PrintHelper.formatByteSize(executorHolder.executor.getCurrentTotalBytes()) + " of information in " +
+                            PrintHelper.formatTime(executorHolder.executor.getTime()) + " at a speed of " +
+                            PrintHelper.formatSpeed(executorHolder.executor.getActiveWorkerCount())
+            );
+
+            if(verifier.isBroken()) {
+                System.out.println("The blockchain file is broken, it is recommended to delete the file and try again.");
+            } else {
+                System.out.println("The blockchain file is intact!");
+            }
+
+            if(verifier.getBrokenArtifacts().isEmpty()) {
+                System.out.println("All downloaded artifacts was verified intact using SHA-256.");
+            } else {
+                System.out.println("One or several of the artifacts failed SHA-256 verification");
+                verifier.getBrokenArtifacts().forEach((r) -> {
+                    String path = String.format(
+                            "%s/%s",
+                            jde.getDownloadDir().toString(),
+                            allPackages.get(r.getDigest()).getFilename()
+                    );
+                    System.out.println("Delete: " + path);
+                });
+            }
+
+            verifier.getVerifiedArtifacts().forEach((r) -> {
+                JavaPackage jp = allPackages.remove(r.getDigest());
+                downloadedSize.addAndGet(jp.getByteSize());
+            });
+        } else {
+            chain = BlockChainHelper.startBlockchain(blockchainFile);
+        }
+
+
+        System.out.println("Totally " + allPackages.size() + " artifacts yet to download for completion.");
+        System.out.println("Approximately up to " + PrintHelper.formatByteSize(totalSize.get() - downloadedSize.get()) + " of data to download.");
+
+        executorHolder.executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages, chain, logger), logger);
+        executorHolder.indicator = new Thread(() -> {
+
+            executorHolder.executor.start();
+            while (executorHolder.executor.isRunning()) {
                 try {
                     Thread.sleep(10);
-                    if(verifier.isBroken()) {
-                        color = ProgressBar.ANSI_RED;
-                    } else if(!verifier.getBrokenArtifacts().isEmpty()) {
-                        color = ProgressBar.ANSI_YELLOW;
-                    } else {
-                        color = ProgressBar.ANSI_GREEN;
-                    }
                     ProgressBar.printProgressMsg(
-                            executor.getCurrentTotalBytes(),
-                            totalSize.get(),
+                            executorHolder.executor.getCurrentTotalBytes(),
+                            totalSize.get() - downloadedSize.get(),
                             50,
-                            color,
-                            "Verifying blockchain " + PrintHelper.formatSpeed(executor.getSpeed())
+                            ProgressBar.ANSI_GREEN,
+                            "Downloading " + PrintHelper.formatByteSize(executorHolder.executor.getCurrentTotalBytes())
                     );
                 } catch (InterruptedException e) {
                     //
                 }
             }
-            executor.shutdown();
-        });
-
-        try {
-            indicator.start();
-            indicator.join();
-            System.out.println();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        System.out.println(
-                "Verified " + PrintHelper.formatByteSize(executor.getCurrentTotalBytes()) + " of information in " +
-                        PrintHelper.formatTime(executor.getTime()) + " at a speed of " +
-                        PrintHelper.formatSpeed(executor.getActiveWorkerCount())
-        );
-
-        if(verifier.isBroken()) {
-            System.out.println("The blockchain file is broken, it is recommended to delete the file and try again.");
-        } else {
-            System.out.println("The blockchain file is intact!");
-        }
-
-        if(verifier.getBrokenArtifacts().isEmpty()) {
-            System.out.println("All downloaded artifacts was verified intact using SHA-256.");
-        } else {
-            System.out.println("One or several of the artifacts failed SHA-256 verification");
-            verifier.getBrokenArtifacts().forEach((r) -> {
-                String path = String.format(
-                        "%s/%s",
-                        jde.getDownloadDir().toString(),
-                        allPackages.get(r.getDigest()).getFilename()
-                );
-                System.out.println("Delete: " + path);
-            });
-        }
-
-        verifier.getVerifiedArtifacts().forEach((r) -> {
-            allPackages.remove(r.getDigest());
-        });
-        allPackages.forEach((d, p) -> {
-            downloadedSize.addAndGet(p.getByteSize());
-        });
-
-        System.out.println("Totally " + allPackages.size() + " artifacts yet to download for completion.");
-        System.out.println("Approximately up to " + PrintHelper.formatByteSize(downloadedSize.get()) + " of data to download.");
-
-        /*BlockChainHelper.Blockchain chain = BlockChainHelper.continueBlockchain(
-                Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv")),
-                (row) -> {
-                    try {
-                        Path artifactFile = Path.of(String.format("%s/%s", jde.getDownloadDir(), row.getMetadata()));
-                        downloadedSize.getAndAdd(Files.size(artifactFile));
-                        allPackages.remove(row.getDigest());
-
-                        ProgressBar.printProgressMsg(count.get() - allPackages.size(), count.get(), 50, ProgressBar.ANSI_GREEN, "(Sha-256 verify)");
-
-                        return Sha256Helper.verifySha256Digest(artifactFile, row.getDigest());
-                    } catch (IOException e) {
-                        return false;
-                    }
-                }
-        );
-        System.out.println();
-
-        System.out.println("Packages verified on blockchain: " + (count.get() - allPackages.size()));
-        System.out.println("Packages left to download: " + allPackages.size());*/
-
-
-        /*allPackages.forEach((s, p) -> System.out.println(p.uniqueKey()));
-
-        Thread indicator = new Thread(() -> {
-            WorkLogger logger = ioc.resolve(WorkLogger.class);
-            WorkerExecutor executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages, chain, logger), logger);
-
-            executor.start();
-            while (executor.isRunning()) {
-                try {
-                    Thread.sleep(100);
-                    ProgressBar.printProgress(downloadedSize.get() + executor.getCurrentTotalBytes(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
-                } catch (InterruptedException e) {
-                    //
-                }
-            }
-            executor.shutdown();
+            executorHolder.executor.shutdown();
             chain.close();
         });
 
         try {
-            indicator.start();
-            indicator.join();
+            executorHolder.indicator.start();
+            executorHolder.indicator.join();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }*/
+        }
     }
 }

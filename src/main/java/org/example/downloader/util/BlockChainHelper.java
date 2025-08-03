@@ -384,13 +384,10 @@ public class BlockChainHelper {
      * @param name          the unique name of the blockchain
      * @return a new Blockchain instance
      */
-    public static Blockchain startBlockchain(Path blockchainDir, String name) {
-        if (name == null || name.length() < 4) {
-            throw new IllegalArgumentException("Blockchain name must be at least 4 characters long");
-        }
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-        String timestamp = LocalDateTime.now().format(dateTimeFormatter);
-        Path blockchainFile = blockchainDir.resolve(name + "-" + timestamp + ".csv");
+    public static Blockchain startBlockchain(Path blockchainFile) {
+        //DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        //String timestamp = LocalDateTime.now().format(dateTimeFormatter);
+        //Path blockchainFile = blockchainDir.resolve(name + "-" + timestamp + ".csv");
 
         try {
             Files.createDirectories(blockchainFile.getParent());
