@@ -33,6 +33,9 @@ public class WorkerExecutor {
     private final AtomicBoolean isRunning;
     private final AtomicLong totalBytesCompleted = new AtomicLong();
     private static final int MAX_CONCURRENT_WORKERS = 8;
+    private long startTime;
+    private long endTime = -1;
+
 
     public WorkerExecutor(AbstractWorkerIterator<?> workerIterator, WorkLogger logger) {
         this.logger = logger.getLogger();
@@ -47,6 +50,7 @@ public class WorkerExecutor {
             logger.warning("Executor already running");
             return;
         }
+        this.startTime = System.currentTimeMillis();
         submitNewWorkers();
     }
 
@@ -65,6 +69,7 @@ public class WorkerExecutor {
             }
             activeWorkers.clear();
         }
+        this.endTime = System.currentTimeMillis();
 
         executorService.shutdown();
         try {
@@ -120,12 +125,16 @@ public class WorkerExecutor {
         return activeWorkers.size();
     }
 
+    public float getTime() {
+        if(endTime == -1)
+            return (System.currentTimeMillis() - startTime) / 1000.0f;
+        else
+            return (endTime - startTime) / 1000.0f;
+    }
+
     public float getSpeed() {
-        AtomicReference<Float> speed = new AtomicReference<>((float) 0);
-        synchronized (activeWorkers) {
-            activeWorkers.forEach((w) -> speed.updateAndGet(v -> (v + w.getSpeed())));
-        }
-        return speed.get();
+        float seconds = (System.currentTimeMillis() - startTime) / 1000.0f;
+        return getCurrentTotalBytes() / seconds;
     }
 
     public long getCurrentTotalBytes() {

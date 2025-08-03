@@ -16,14 +16,9 @@ package org.example.downloader.ui;
 
 import org.example.downloader.WorkLogger;
 import org.example.downloader.java.*;
-import org.example.downloader.util.BlockChainHelper;
-import org.example.downloader.util.InversionOfControl;
+import org.example.downloader.util.*;
 import org.example.downloader.deb.Menu;
-import org.example.downloader.util.Sha256Helper;
-import org.example.downloader.util.WorkerExecutor;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,9 +59,55 @@ public class JavaMenu extends Menu {
 
         ProgressBar.printProgress(downloadedSize.get(), totalSize.get(), 50, ProgressBar.ANSI_GREEN);
 
+        WorkLogger logger = ioc.resolve(WorkLogger.class);
+        Path blockchainFile = Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv"));
+        BlockChainHelper.Blockchain chain = new BlockChainHelper.Blockchain(blockchainFile.toFile());
+        BlockchainVerifier verifier = new BlockchainVerifier(chain, logger, false, (r) -> Path.of(
+                String.format(
+                        "%s/%s",
+                        jde.getDownloadDir().toString(),
+                        allPackages.get(r.getDigest()).getFilename()
+                )
+        ));
+
+        Thread indicator = new Thread(() -> {
+            WorkerExecutor executor = new WorkerExecutor(verifier, logger);
+            String color;
+
+            executor.start();
+            while (executor.isRunning()) {
+                try {
+                    Thread.sleep(10);
+                    if(verifier.isBroken()) {
+                        color = ProgressBar.ANSI_RED;
+                    } else if(!verifier.getBrokenArtifacts().isEmpty()) {
+                        color = ProgressBar.ANSI_YELLOW;
+                    } else {
+                        color = ProgressBar.ANSI_GREEN;
+                    }
+                    ProgressBar.printProgressMsg(
+                            downloadedSize.get() + executor.getCurrentTotalBytes(),
+                            totalSize.get(),
+                            50,
+                            color,
+                            "Verifying blockchain " + PrintHelper.formatSpeed(executor.getSpeed())
+                    );
+                } catch (InterruptedException e) {
+                    //
+                }
+            }
+            executor.shutdown();
+        });
+
+        try {
+            indicator.start();
+            indicator.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
 
-        BlockChainHelper.Blockchain chain = BlockChainHelper.continueBlockchain(
+        /*BlockChainHelper.Blockchain chain = BlockChainHelper.continueBlockchain(
                 Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv")),
                 (row) -> {
                     try {
@@ -85,10 +126,10 @@ public class JavaMenu extends Menu {
         System.out.println();
 
         System.out.println("Packages verified on blockchain: " + (count.get() - allPackages.size()));
-        System.out.println("Packages left to download: " + allPackages.size());
+        System.out.println("Packages left to download: " + allPackages.size());*/
 
 
-        allPackages.forEach((s, p) -> System.out.println(p.uniqueKey()));
+        /*allPackages.forEach((s, p) -> System.out.println(p.uniqueKey()));
 
         Thread indicator = new Thread(() -> {
             WorkLogger logger = ioc.resolve(WorkLogger.class);
@@ -112,6 +153,6 @@ public class JavaMenu extends Menu {
             indicator.join();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }
+        }*/
     }
 }
