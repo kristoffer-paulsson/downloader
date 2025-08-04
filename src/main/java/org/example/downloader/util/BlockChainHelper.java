@@ -17,6 +17,7 @@ package org.example.downloader.util;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +25,8 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
@@ -36,6 +39,7 @@ public class BlockChainHelper {
 
     public static class Blockchain {
         private final File blockchainFile;
+        private boolean isFinalized = false;
         private String lastHash = null;
 
         private BufferedWriter writer = null;
@@ -48,7 +52,23 @@ public class BlockChainHelper {
          */
         public Blockchain(File blockchainFile) {
             this.blockchainFile = blockchainFile;
-            this.lastHash = computeHash(blockchainFile.getName());
+            try {
+                String lastLine = readLastLine(blockchainFile.toPath());
+                if(lastLine == null) {
+                    this.lastHash = computeHash(blockchainFile.getName());
+                }
+                else {
+                    Row lastRow = rowFromString(lastLine);
+                    this.lastHash = lastRow.hash;
+                    this.isFinalized = lastRow.artifact.equals("end-of-blockchain");
+                }
+            } catch (IOException e) {
+                this.lastHash = computeHash(blockchainFile.getName());
+            }
+        }
+
+        public boolean isFinalized() {
+            return isFinalized;
         }
 
         /**
@@ -406,6 +426,26 @@ public class BlockChainHelper {
                 }));
     }
 
+    public static String readLastLine(Path filePath) throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(filePath.toFile(), "r")) {
+            long fileLength = file.length() - 1;
+            if (fileLength < 0) return null;
+
+            StringBuilder sb = new StringBuilder();
+            for (long pointer = fileLength; pointer >= 0; pointer--) {
+                file.seek(pointer);
+                char c = (char) file.read();
+                if (c == '\n' || c == '\r') {
+                    if (pointer != fileLength) {
+                        break;
+                    }
+                }
+                sb.append(c);
+            }
+            return sb.reverse().toString().trim();
+        }
+    }
+
     /**
      * Starts a new blockchain with the given name in the specified directory.
      * The name must be at least 4 characters long, a timestamp will be appended
@@ -434,8 +474,8 @@ public class BlockChainHelper {
         Path blockchainFile = null;
         try {
             blockchainFile = globLatestFile(blockchainDir, name).get();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (IOException | NoSuchElementException e) {
+            throw new IllegalStateException("Blockchain file does not exist: " + blockchainFile);
         }
 
         if (!Files.exists(blockchainFile)) {

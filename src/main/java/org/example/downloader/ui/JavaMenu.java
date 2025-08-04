@@ -58,6 +58,7 @@ public class JavaMenu extends Menu {
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
         });
+        System.out.println("Estimated total size: " + PrintHelper.formatByteSize(totalSize.get()));
         System.out.println("Total artifact batch count: " + allPackages.size());
 
         var executorHolder = new Object() {
@@ -81,7 +82,6 @@ public class JavaMenu extends Menu {
             ));
 
             executorHolder.executor = new WorkerExecutor(verifier, logger);
-
             executorHolder.indicator = new Thread(() -> {
                 String color;
 
