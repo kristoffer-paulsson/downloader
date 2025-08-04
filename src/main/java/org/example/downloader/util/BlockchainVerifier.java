@@ -41,13 +41,10 @@ public class BlockchainVerifier extends AbstractWorkerIterator<BlockchainVerifie
     private final AtomicReference<List<BlockChainHelper.Row>> verifiedArtifacts = new AtomicReference<>(new ArrayList<>());
     private final AtomicReference<List<BlockChainHelper.Row>> brokenArtifacts = new AtomicReference<>(new ArrayList<>());
     private final AtomicBoolean brokenChain = new AtomicBoolean(false);
-    private final boolean expectFinalized;
-    private final AtomicBoolean isFinalized = new AtomicBoolean(false);
 
-    public BlockchainVerifier(BlockChainHelper.Blockchain blockchain, WorkLogger workLogger, boolean expectFinalized, ArtifactPath artifactPath) {
+    public BlockchainVerifier(BlockChainHelper.Blockchain blockchain, WorkLogger workLogger, ArtifactPath artifactPath) {
         this.blockchain = blockchain;
         this.workLogger = workLogger;
-        this.expectFinalized = expectFinalized;
         this.artifactPath = artifactPath;
         this.lastHash = computeHash(blockchain.getBlockchainFile().toFile().getName());
 
@@ -67,7 +64,7 @@ public class BlockchainVerifier extends AbstractWorkerIterator<BlockchainVerifie
         }
 
         lastHash = lastRow.get().hash;
-        return new VerifyTask(workLogger, lastRow.get(), expectFinalized, artifactPath.artifactFile(lastRow.get()));
+        return new VerifyTask(workLogger, lastRow.get(), blockchain.isFinalized(), artifactPath.artifactFile(lastRow.get()));
     }
 
     @Override
@@ -96,21 +93,20 @@ public class BlockchainVerifier extends AbstractWorkerIterator<BlockchainVerifie
         private final BlockChainHelper.Row row;
         private final Path artifactFile;
         private final Sha256Helper.Verifier verifierTask;
-        private final boolean expectFinalized;
+        private final boolean isFinalized;
 
-        public VerifyTask(WorkLogger workLogger, BlockChainHelper.Row row, boolean expectFinalized, Path artifactFile) {
+        public VerifyTask(WorkLogger workLogger, BlockChainHelper.Row row, boolean isFinalized, Path artifactFile) {
             super(workLogger);
             this.row = row;
-            this.expectFinalized = expectFinalized;
             this.artifactFile = artifactFile;
+            this.isFinalized = isFinalized;
             this.verifierTask = new Sha256Helper.Verifier(artifactFile, row.getDigest());
         }
 
         @Override
         public void run() {
-            if(expectFinalized && row.artifact.equals("end-of-blockchain")) {
-                isFinalized.compareAndSet(false, true);
-                verifierTask.isComplete();
+            if(isFinalized && row.artifact.equals("end-of-blockchain")) {
+                verifierTask.forceComplete();
                 logger.info("Verification of blockchain " + blockchain.getBlockchainFile() + " has reached EOF properly");
             } else {
                 try {

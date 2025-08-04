@@ -21,6 +21,7 @@ import org.example.downloader.deb.Menu;
 
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -70,10 +71,20 @@ public class JavaMenu extends Menu {
         BlockChainHelper.Blockchain chain;
 
         try {
-            chain = BlockChainHelper.resumeBlockchain(jde.getDownloadDir(), FILENAME);
+            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(jde.getDownloadDir(), FILENAME);
+            if(blockchain.isPresent()) {
+                chain = blockchain.get();
+                if(chain.isFinalized()) {
+                    showMessageAndWait("Blockchain is finalized and can only be verified");
+                    return;
+                }
+            } else {
+                throw new IllegalStateException("No blockchain available");
+            }
+
             System.out.println("Found latest blockchain: " + chain.getBlockchainFile());
 
-            BlockchainVerifier verifier = new BlockchainVerifier(chain, logger, false, (r) -> Path.of(
+            BlockchainVerifier verifier = new BlockchainVerifier(chain, logger, (r) -> Path.of(
                     String.format(
                             "%s/%s",
                             jde.getDownloadDir().toString(),
