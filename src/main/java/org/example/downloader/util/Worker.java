@@ -18,6 +18,7 @@ import org.example.downloader.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 public abstract class Worker<E extends BasePackage> extends AbstractWorker {
 
@@ -30,15 +31,22 @@ public abstract class Worker<E extends BasePackage> extends AbstractWorker {
         this.downloadTask = downloadTask;
     }
 
+    protected abstract void doWhenDownloadVerifiedSuccessful() throws IOException;
+
+    protected abstract void doWhenDownloadVerifiedFailure() throws IOException;
+
     protected abstract void doWhenTimedOut() throws IOException;
 
-    protected abstract void doWhenDownloadHaltedUnexpectedly() throws IOException;
+    protected abstract void doWhenError() throws IOException;
 
-    protected abstract void doWhenVerifiedSuccessful() throws IOException;
+    protected abstract void doWhenUnexpected() throws IOException;
 
-    protected abstract void doWhenVerifiedFailed() throws IOException;
-
-    protected abstract void doSomethingUnknownError() throws IOException;
+    protected boolean verifySha256Digest() throws IOException {
+        return Sha256Helper.verifySha256Digest(
+                downloadTask.getFilePath(),
+                basePackage.getSha256Digest()
+        );
+    }
 
     @Override
     public void run() {
@@ -47,37 +55,50 @@ public abstract class Worker<E extends BasePackage> extends AbstractWorker {
             return;
         }
 
-        long downloadFullByteSize = basePackage.getByteSize();
-
         try {
+            Path downloadPath = downloadTask.getFilePath();
+
+            if (Files.exists(downloadPath)) {
+                long downloadedSize = Files.size(downloadPath);
+
+                if(downloadedSize >= basePackage.getByteSize()) {
+                    if(verifySha256Digest()) {
+                        doWhenDownloadVerifiedSuccessful();
+                        downloadTask.enforceComplete();
+                    } else {
+                        doWhenDownloadVerifiedFailure();
+                    }
+                    isRunning.set(false);
+                    return;
+                }
+
+                logger.info("Resuming download for " + basePackage.uniqueKey());
+            } else {
+                logger.info("Starting download for " + basePackage.uniqueKey());
+            }
+
             long bytesDownloaded = DownloadHelper.continueDownload(downloadTask, workLogger);
             long currentByteSize = Files.size(downloadTask.getFilePath());
-
 
             if(downloadTask.hasTimedOut()) {
                 logger.info("Download of " + basePackage.uniqueKey() + " halted due to time out for some reason, continue another time please.");
                 doWhenTimedOut();
-            } else if(currentByteSize == downloadFullByteSize) {
+            } else if(downloadTask.httpError()) {
+                logger.severe("Download file " + basePackage.uniqueKey() + " marked as complete but file size differ, investigate!");
+                doWhenError();
+            } else if(currentByteSize >= basePackage.getByteSize()) {
                 logger.info("Download of " + basePackage.uniqueKey() + " completed.");
 
-                boolean digestVerified = Sha256Helper.verifySha256Digest(
-                        downloadTask.getFilePath(),
-                        basePackage.getSha256Digest()
-                );
-
-                if(digestVerified) {
+                if(verifySha256Digest()) {
                     logger.info("Download of " + basePackage.uniqueKey() + " sha256 digest verified, download file is intact.");
-                    doWhenVerifiedSuccessful();
+                    doWhenDownloadVerifiedSuccessful();
                 } else {
                     logger.warning("Download of " + basePackage.uniqueKey() + " file failed sha256 verification");
-                    doWhenVerifiedFailed();
+                    doWhenDownloadVerifiedFailure();
                 }
-            } else if (bytesDownloaded > 0) {
-                logger.info("Download of " + basePackage.uniqueKey() + " incomplete due to manual stop, continue another time please.");
-                doWhenDownloadHaltedUnexpectedly();
             } else {
-                logger.severe("Download file " + basePackage.uniqueKey() + " marked as complete but file size differ, investigate!");
-                doSomethingUnknownError();
+                logger.info("Download of " + basePackage.uniqueKey() + " incomplete due to manual stop, continue another time please.");
+                doWhenUnexpected();
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -85,7 +106,6 @@ public abstract class Worker<E extends BasePackage> extends AbstractWorker {
             isRunning.set(false);
         }
     }
-
 
     protected void stopProcessImpl() {
         downloadTask.stop();

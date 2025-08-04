@@ -23,6 +23,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
@@ -92,6 +94,14 @@ public class BlockChainHelper {
                 }
             } else {
                 start();
+            }
+        }
+
+        private void resume() {
+            try {
+                writer = Files.newBufferedWriter(blockchainFile.toPath(), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
 
@@ -375,6 +385,27 @@ public class BlockChainHelper {
         return new Row(artifact, metadata, digest, LocalDateTime.now().format(dateTimeFormatter));
     }
 
+    public static Path createNewFilename(Path blockchainDir, String name) {
+        if (name == null || name.length() < 4) {
+            throw new IllegalArgumentException("Blockchain name must be at least 4 characters long");
+        }
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        String timestamp = LocalDateTime.now().format(dateTimeFormatter);
+        return blockchainDir.resolve(name + "-" + timestamp + ".csv");
+    }
+
+    public static Optional<Path>globLatestFile(Path blockchainDir, String name) throws IOException {
+        // Glob pattern: matches <name>-<any digits>.csv
+        String globPattern = name + "-[0-9]{14}.csv";
+        return Files.list(blockchainDir)
+                .filter(path -> path.getFileName().toString().matches(globPattern))
+                .max(Comparator.comparing(path -> {
+                    // Extract timestamp from file name (e.g., blockchain-20250804144233.csv -> 20250804144233)
+                    String fileName = path.getFileName().toString();
+                    return fileName.substring(name.length() + 1, fileName.length() - 4);
+                }));
+    }
+
     /**
      * Starts a new blockchain with the given name in the specified directory.
      * The name must be at least 4 characters long, a timestamp will be appended
@@ -384,10 +415,8 @@ public class BlockChainHelper {
      * @param name          the unique name of the blockchain
      * @return a new Blockchain instance
      */
-    public static Blockchain startBlockchain(Path blockchainFile) {
-        //DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-        //String timestamp = LocalDateTime.now().format(dateTimeFormatter);
-        //Path blockchainFile = blockchainDir.resolve(name + "-" + timestamp + ".csv");
+    public static Blockchain startBlockchain(Path blockchainDir, String name) {
+        Path blockchainFile = createNewFilename(blockchainDir, name);
 
         try {
             Files.createDirectories(blockchainFile.getParent());
@@ -401,21 +430,20 @@ public class BlockChainHelper {
         return blockchain;
     }
 
-    /**
-     * Continues an existing blockchain by appending new rows to the specified file.
-     * The file must exist, and the verification predicate is used to validate each row.
-     *
-     * @param blockchainFile      the path to the existing blockchain file
-     * @param verificationPredicate a predicate to verify each row in the blockchain
-     * @return a Blockchain instance that continues from the existing file
-     */
-    public static Blockchain continueBlockchain(Path blockchainFile, Predicate<Row> verificationPredicate) {
-        /*if (blockchainFile == null || !Files.exists(blockchainFile)) {
-            throw new IllegalArgumentException("Blockchain file does not exist: " + blockchainFile);
-        }*/
+    public static Blockchain resumeBlockchain(Path blockchainDir, String name) {
+        Path blockchainFile = null;
+        try {
+            blockchainFile = globLatestFile(blockchainDir, name).get();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (!Files.exists(blockchainFile)) {
+            throw new IllegalStateException("Blockchain file does not exist: " + blockchainFile);
+        }
 
         Blockchain blockchain = new Blockchain(blockchainFile.toFile());
-        blockchain.startOrContinue(verificationPredicate);
+        blockchain.resume();
         return blockchain;
     }
 

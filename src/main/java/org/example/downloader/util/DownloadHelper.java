@@ -125,6 +125,11 @@ public class DownloadHelper {
             return speed;
         }
 
+
+        public void enforceComplete() {
+            isComplete = true;
+        }
+
         /**
          * Checks if the download is complete or partial.
          *

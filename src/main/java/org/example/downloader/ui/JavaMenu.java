@@ -19,13 +19,15 @@ import org.example.downloader.java.*;
 import org.example.downloader.util.*;
 import org.example.downloader.deb.Menu;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class JavaMenu extends Menu {
+
+    public static String FILENAME = "java_download";
+
     public JavaMenu(InversionOfControl ioc) {
         super(ioc, "Java Downloader CLI");
         ioc.register(JavaDownloadEnvironment.class, () -> new JavaDownloadEnvironment("./"));
@@ -64,11 +66,11 @@ public class JavaMenu extends Menu {
         };
 
         WorkLogger logger = ioc.resolve(WorkLogger.class);
-        Path blockchainFile = Path.of(String.format("%s/%s", jde.getDownloadDir(), "java_download_chain.csv"));
         BlockChainHelper.Blockchain chain;
 
-        if(Files.exists(blockchainFile)) {
-            chain = new BlockChainHelper.Blockchain(blockchainFile.toFile());
+        try {
+            chain = BlockChainHelper.resumeBlockchain(jde.getDownloadDir(), FILENAME);
+            System.out.println("Found latest blockchain: " + chain.getBlockchainFile());
 
             BlockchainVerifier verifier = new BlockchainVerifier(chain, logger, false, (r) -> Path.of(
                     String.format(
@@ -146,15 +148,16 @@ public class JavaMenu extends Menu {
                 JavaPackage jp = allPackages.remove(r.getDigest());
                 downloadedSize.addAndGet(jp.getByteSize());
             });
-        } else {
-            chain = BlockChainHelper.startBlockchain(blockchainFile);
+        } catch (IllegalStateException e) {
+            chain = BlockChainHelper.startBlockchain(jde.getDownloadDir(), FILENAME);
+            System.out.println("Created new blockchain: " + chain.getBlockchainFile());
         }
-
 
         System.out.println("Totally " + allPackages.size() + " artifacts yet to download for completion.");
         System.out.println("Approximately up to " + PrintHelper.formatByteSize(totalSize.get() - downloadedSize.get()) + " of data to download.");
 
-        executorHolder.executor = new WorkerExecutor(new JavaWorkerIterator(jde, allPackages, chain, logger), logger);
+        JavaWorkerIterator javaDownloader = new JavaWorkerIterator(jde, allPackages, chain, logger);
+        executorHolder.executor = new WorkerExecutor(javaDownloader, logger);
         executorHolder.indicator = new Thread(() -> {
 
             executorHolder.executor.start();
@@ -173,14 +176,23 @@ public class JavaMenu extends Menu {
                 }
             }
             executorHolder.executor.shutdown();
-            chain.close();
         });
 
         try {
             executorHolder.indicator.start();
             executorHolder.indicator.join();
+            System.out.println();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+        if(javaDownloader.getIncompleteDownloads().isEmpty()) {
+            System.out.println("No incomplete downloads, finalizing blockchain!");
+            chain.finalizeBlockchain();
+        } else {
+            System.out.println("Number of incomplete downloads are " + javaDownloader.getIncompleteDownloads().size() + ", try to download again.");
+        }
+
+        chain.close();
     }
 }

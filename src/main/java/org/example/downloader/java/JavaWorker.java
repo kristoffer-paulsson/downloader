@@ -22,7 +22,7 @@ import org.example.downloader.util.Worker;
 import java.io.IOException;
 import java.nio.file.Files;
 
-public class JavaWorker extends Worker<JavaPackage> {
+/*public class JavaWorker extends Worker<JavaPackage> {
 
     private final BlockChainHelper.Blockchain chain;
 
@@ -37,15 +37,7 @@ public class JavaWorker extends Worker<JavaPackage> {
     }
 
     @Override
-    protected void doWhenTimedOut() throws IOException {
-    }
-
-    @Override
-    protected void doWhenDownloadHaltedUnexpectedly() {
-    }
-
-    @Override
-    protected void doWhenVerifiedSuccessful() throws IOException {
+    protected void doWhenDownloadVerifiedSuccessful() throws IOException {
         if(chain != null) {
             chain.addRow(basePackage.uniqueKey(), basePackage.getFilename(), basePackage.getSha256Digest());
             logger.warning("Download of " + basePackage.uniqueKey() + " registered to blockchain.");
@@ -53,12 +45,24 @@ public class JavaWorker extends Worker<JavaPackage> {
     }
 
     @Override
-    protected void doWhenVerifiedFailed() throws IOException {
+    protected void doWhenDownloadVerifiedFailure() throws IOException {
         Files.deleteIfExists(downloadTask.getFilePath());
         logger.warning("File of download " + basePackage.uniqueKey() + " deleted due to failed verification.");
     }
 
     @Override
-    protected void doSomethingUnknownError() throws IOException {
+    protected void doWhenTimedOut() throws IOException {
+        System.out.println("Download timed out for " + basePackage.uniqueKey());
     }
-}
+
+    @Override
+    protected void doWhenError() throws IOException {
+        System.out.println("Download errored for " + basePackage.uniqueKey());
+    }
+
+    @Override
+    protected void doWhenUnexpected() throws IOException {
+        System.out.println("Something unexpected for " + basePackage.uniqueKey());
+
+    }
+}*/
