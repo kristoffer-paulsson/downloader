@@ -84,7 +84,7 @@ public class BlockChainHelper {
          * Starts the blockchain by creating a new file and writing the header.
          * This method should only be called once to initialize the blockchain.
          */
-        private void start() {
+        public void start() {
             if(isFinalized)
                 throw new IllegalStateException("Blockchain already finalized");
             try {
@@ -119,7 +119,7 @@ public class BlockChainHelper {
             }
         }
 
-        private void resume() {
+        public void resume() {
             if(isFinalized)
                 throw new IllegalStateException("Blockchain already finalized");
             try {

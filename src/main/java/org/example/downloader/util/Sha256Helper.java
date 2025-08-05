@@ -89,7 +89,7 @@ public class Sha256Helper {
         public long totalBytesProcessed() { return bytesProcessed + currentByte; }
     }
 
-    public static boolean verifySha256(Verifier task) throws IOException {
+    public static boolean verifySha256(Verifier task) {
         try {
             if (!isValid64CharHex(task.sha256digest)) {
                 throw new IllegalArgumentException("Invalid SHA-256 digest format. Must be a 32-character hexadecimal string.");
@@ -111,10 +111,13 @@ public class Sha256Helper {
                 task.isComplete = true;
             String computedDigest = bytesToHex(computedHash);
             task.hasError = !computedDigest.equalsIgnoreCase(task.sha256digest);
-            return !task.hasError();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IOException("SHA-256 algorithm not available", e);
+
+        } catch (NoSuchAlgorithmException  e) {
+            throw new RuntimeException("SHA-256 hash algorithm not available!", e);
+        } catch (IOException e) {
+            task.hasError = true;
         }
+        return !task.hasError();
     }
 
     /**
@@ -125,7 +128,7 @@ public class Sha256Helper {
      * @return true if the computed digest matches the provided digest, false otherwise
      * @throws IOException if an I/O error occurs
      */
-    public static boolean verifySha256Digest(Path filePath, String sha256digest) throws IOException {
+    public static boolean verifySha256Digest(Path filePath, String sha256digest) {
         return verifySha256(new Verifier(filePath, sha256digest));
     }
 

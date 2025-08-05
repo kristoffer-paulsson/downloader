@@ -128,6 +128,6 @@ public class JavaDownloadEnvironment extends EnvironmentManager {
         streamSort(getVendors(), config);
         streamSort(getVersions(), config);
 
-        return Sha256Helper.computeHash(String.join(",", config).toLowerCase()).substring(48).toUpperCase();
+        return Sha256Helper.computeHash(String.join(",", config).toLowerCase()).substring(56).toUpperCase();
     }
 }

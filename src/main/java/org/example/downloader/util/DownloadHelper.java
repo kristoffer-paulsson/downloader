@@ -130,6 +130,10 @@ public class DownloadHelper {
             isComplete = true;
         }
 
+        public void enforceCurrentByte(long currentByte) {
+            this.currentByte = currentByte;
+        }
+
         /**
          * Checks if the download is complete or partial.
          *

@@ -65,6 +65,7 @@ public abstract class Worker<E extends BasePackage> extends AbstractWorker {
                     if(verifySha256Digest()) {
                         doWhenDownloadVerifiedSuccessful();
                         downloadTask.enforceComplete();
+                        downloadTask.enforceCurrentByte(downloadedSize);
                     } else {
                         doWhenDownloadVerifiedFailure();
                     }
@@ -72,6 +73,7 @@ public abstract class Worker<E extends BasePackage> extends AbstractWorker {
                     return;
                 }
 
+                downloadTask.enforceCurrentByte(downloadedSize);
                 logger.info("Resuming download for " + basePackage.uniqueKey());
             } else {
                 logger.info("Starting download for " + basePackage.uniqueKey());

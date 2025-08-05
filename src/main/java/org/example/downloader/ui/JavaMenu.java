@@ -14,7 +14,6 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.ConfigManager;
 import org.example.downloader.GeneralEnvironment;
 import org.example.downloader.WorkLogger;
 import org.example.downloader.java.*;
@@ -29,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class JavaMenu extends Menu {
 
-    public static String FILENAME = "java_download";
+    public static String FILENAME = "java_download-%s";
 
     public JavaMenu(InversionOfControl ioc) {
         super(ioc, "Java Downloader CLI");
@@ -76,9 +75,13 @@ public class JavaMenu extends Menu {
         BlockChainHelper.Blockchain chain;
 
         try {
-            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(ge.getChainDir(), FILENAME);
+            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
+                    ge.getChainDir(),
+                    String.format(FILENAME, jde.hashOfConfiguration())
+            );
             if(blockchain.isPresent()) {
                 chain = blockchain.get();
+                System.out.println("Found latest blockchain: " + chain.getBlockchainFile());
                 if(chain.isFinalized()) {
                     showMessageAndWait("Blockchain is finalized and can only be verified");
                     return;
@@ -86,8 +89,6 @@ public class JavaMenu extends Menu {
             } else {
                 throw new IllegalStateException("No blockchain available");
             }
-
-            System.out.println("Found latest blockchain: " + chain.getBlockchainFile());
 
             BlockchainVerifier verifier = new BlockchainVerifier(chain, logger, (r) -> Path.of(
                     String.format(
@@ -165,7 +166,11 @@ public class JavaMenu extends Menu {
                 downloadedSize.addAndGet(jp.getByteSize());
             });
         } catch (IllegalStateException e) {
-            chain = BlockChainHelper.startBlockchain(ge.getChainDir(), FILENAME);
+            chain = BlockChainHelper.startBlockchain(
+                    ge.getChainDir(),
+                    String.format(FILENAME, jde.hashOfConfiguration())
+            );
+            chain.start();
             System.out.println("Created new blockchain: " + chain.getBlockchainFile());
         }
 
@@ -220,8 +225,6 @@ public class JavaMenu extends Menu {
         AtomicLong downloadedSize = new AtomicLong();
         HashMap<String, JavaPackage> allPackages = new HashMap<>();
 
-        System.out.println(jde.hashOfConfiguration());
-
         JavaParser.filterPackages(jde).forEach((p) -> {
             allPackages.put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
@@ -239,7 +242,10 @@ public class JavaMenu extends Menu {
         BlockChainHelper.Blockchain chain;
 
         try {
-            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(ge.getChainDir(), FILENAME);
+            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
+                    ge.getChainDir(),
+                    String.format(FILENAME, jde.hashOfConfiguration())
+            );
             if(blockchain.isPresent()) {
                 chain = blockchain.get();
                 System.out.println("Found latest blockchain: " + chain.getBlockchainFile());

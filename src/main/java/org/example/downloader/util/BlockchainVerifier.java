@@ -109,11 +109,7 @@ public class BlockchainVerifier extends AbstractWorkerIterator<BlockchainVerifie
                 verifierTask.forceComplete();
                 logger.info("Verification of blockchain " + blockchain.getBlockchainFile() + " has reached EOF properly");
             } else {
-                try {
-                    Sha256Helper.verifySha256(verifierTask);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                Sha256Helper.verifySha256(verifierTask);
 
                 if(verifierTask.hasError() || !verifierTask.isComplete()) {
                     synchronized (brokenArtifacts) {
