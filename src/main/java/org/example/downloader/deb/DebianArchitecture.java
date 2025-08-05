@@ -14,6 +14,8 @@
  */
 package org.example.downloader.deb;
 
+import org.example.downloader.java.JavaArchitecture;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,5 +50,14 @@ public enum DebianArchitecture {
             archList.add(genericArch.getArch());
         });
         return archList;
+    }
+
+    public static DebianArchitecture fromString(String arch) {
+        for (DebianArchitecture architecture : DebianArchitecture.values()) {
+            if (architecture.arch.equalsIgnoreCase(arch)) {
+                return architecture;
+            }
+        }
+        return ALL;
     }
 }

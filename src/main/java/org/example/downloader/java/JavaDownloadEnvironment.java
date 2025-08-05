@@ -111,12 +111,6 @@ public class JavaDownloadEnvironment extends EnvironmentManager {
         return getMulti(EnvironmentKey.VERSION.getKey(), JavaVersion::fromString);
     }
 
-    protected <T> void streamSort(List<T> values, List<String> collection) {
-        Arrays.stream(values.toArray()).sorted().iterator().forEachRemaining(value -> {
-            collection.add(value.toString());
-        });
-    }
-
     public String hashOfConfiguration() {
         List<String> config = new ArrayList<>();
 

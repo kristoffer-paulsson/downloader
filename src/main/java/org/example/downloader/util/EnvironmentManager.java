@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -122,6 +123,12 @@ public class EnvironmentManager {
 
     public void set(String key, String value) {
         properties.setProperty(key, value);
+    }
+
+    protected <T> void streamSort(List<T> values, List<String> collection) {
+        Arrays.stream(values.toArray()).sorted().iterator().forEachRemaining(value -> {
+            collection.add(value.toString());
+        });
     }
 
     public void save() throws IOException {

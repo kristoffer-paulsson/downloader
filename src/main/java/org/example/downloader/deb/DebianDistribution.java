@@ -43,4 +43,13 @@ public enum DebianDistribution {
         });
         return distList;
     }
+
+    public static DebianDistribution fromString(String distro) {
+        for (DebianDistribution distribution : DebianDistribution.values()) {
+            if (distribution.dist.equalsIgnoreCase(distro)) {
+                return distribution;
+            }
+        }
+        throw new IllegalArgumentException("Debian distribution " + distro + " doesn't exist.");
+    }
 }

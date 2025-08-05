@@ -30,6 +30,5 @@ public class MainMenu extends Menu {
         registerOption("Workers", option -> new WorkerMenu(ioc).runMenu());
         registerOption("Java Downloading", option -> new JavaMenu(ioc).runMenu());
         registerOption("Debian Downloading", option -> new DebianMenu(ioc).runMenu());
-
     }
 }
