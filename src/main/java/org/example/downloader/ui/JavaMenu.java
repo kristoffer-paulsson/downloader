@@ -38,7 +38,9 @@ public class JavaMenu extends Menu {
     protected void setupMenu() {
         registerOption("Setup environment", option -> new JavaForm(ioc.resolve(JavaDownloadEnvironment.class), ioc).runForm());
         registerOption("View environment", option -> reviewConfig(ioc.resolve(JavaDownloadEnvironment.class)));
-        registerOption("Download Worker", option -> runDownloadWorker());
+        registerOption("Downloader", option -> runDownloadWorker());
+        registerOption("Blockchain Verifier", option -> runVerifierWorker());
+
     }
 
     private void reviewConfig(JavaDownloadEnvironment jds) {
@@ -205,5 +207,126 @@ public class JavaMenu extends Menu {
         }
 
         chain.close();
+    }
+
+    private void runVerifierWorker() {
+        JavaDownloadEnvironment jde = ioc.resolve(JavaDownloadEnvironment.class);
+        AtomicInteger count = new AtomicInteger();
+        AtomicLong totalSize = new AtomicLong();
+        AtomicLong downloadedSize = new AtomicLong();
+        HashMap<String, JavaPackage> allPackages = new HashMap<>();
+
+        JavaParser.filterPackages(jde).forEach((p) -> {
+            allPackages.put(p.getSha256Digest(), p);
+            totalSize.getAndAdd(p.getByteSize());
+            count.getAndIncrement();
+        });
+        System.out.println("Estimated total size: " + PrintHelper.formatByteSize(totalSize.get()));
+        System.out.println("Total artifact batch count: " + allPackages.size());
+
+        var executorHolder = new Object() {
+            WorkerExecutor executor;
+            Thread indicator;
+        };
+
+        WorkLogger logger = ioc.resolve(WorkLogger.class);
+        BlockChainHelper.Blockchain chain;
+
+        try {
+            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(jde.getDownloadDir(), FILENAME);
+            if(blockchain.isPresent()) {
+                chain = blockchain.get();
+                System.out.println("Found latest blockchain: " + chain.getBlockchainFile());
+                if(!chain.isFinalized()) {
+                    showMessageAndWait("Blockchain is expected to be finalized");
+                    return;
+                }
+            } else {
+                throw new IllegalStateException("No blockchain available");
+            }
+
+            BlockchainVerifier verifier = new BlockchainVerifier(chain, logger, (r) -> Path.of(
+                    String.format(
+                            "%s/%s",
+                            jde.getDownloadDir().toString(),
+                            allPackages.get(r.getDigest()).getFilename()
+                    )
+            ));
+
+            executorHolder.executor = new WorkerExecutor(verifier, logger);
+            executorHolder.indicator = new Thread(() -> {
+                String color;
+
+                executorHolder.executor.start();
+                while (executorHolder.executor.isRunning()) {
+                    try {
+                        Thread.sleep(10);
+                        if(verifier.isBroken()) {
+                            color = ProgressBar.ANSI_RED;
+                        } else if(!verifier.getBrokenArtifacts().isEmpty()) {
+                            color = ProgressBar.ANSI_YELLOW;
+                        } else {
+                            color = ProgressBar.ANSI_GREEN;
+                        }
+                        ProgressBar.printProgressMsg(
+                                executorHolder.executor.getCurrentTotalBytes(),
+                                totalSize.get(),
+                                50,
+                                color,
+                                "Verifying blockchain " + PrintHelper.formatSpeed(executorHolder.executor.getSpeed())
+                        );
+                    } catch (InterruptedException e) {
+                        //
+                    }
+                }
+                executorHolder.executor.shutdown();
+            });
+
+            try {
+                executorHolder.indicator.start();
+                executorHolder.indicator.join();
+                System.out.println();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            System.out.println(
+                    "Verified " + PrintHelper.formatByteSize(executorHolder.executor.getCurrentTotalBytes()) + " of information in " +
+                            PrintHelper.formatTime(executorHolder.executor.getTime()) + " at a speed of " +
+                            PrintHelper.formatSpeed(executorHolder.executor.getActiveWorkerCount())
+            );
+
+            if(verifier.isBroken()) {
+                System.out.println("The blockchain file is broken, it is recommended to delete the file and try again.");
+            } else {
+                System.out.println("The blockchain file is intact!");
+            }
+
+            if(verifier.getBrokenArtifacts().isEmpty()) {
+                System.out.println("All downloaded artifacts was verified intact using SHA-256.");
+            } else {
+                System.out.println("One or several of the artifacts failed SHA-256 verification");
+                verifier.getBrokenArtifacts().forEach((r) -> {
+                    String path = String.format(
+                            "%s/%s",
+                            jde.getDownloadDir().toString(),
+                            allPackages.get(r.getDigest()).getFilename()
+                    );
+                    System.out.println("Delete: " + path);
+                });
+            }
+
+            verifier.getVerifiedArtifacts().forEach((r) -> {
+                JavaPackage jp = allPackages.remove(r.getDigest());
+                downloadedSize.addAndGet(jp.getByteSize());
+            });
+
+
+
+        } catch (IllegalStateException e) {
+            System.out.println("Failed to verify blockchain because of " + e.getMessage());
+        }
+
+        System.out.println("Totally " + allPackages.size() + " artifacts needs yet to be downloaded for completion.");
     }
 }
