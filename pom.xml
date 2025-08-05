@@ -84,14 +84,14 @@
                 </configuration>
             </plugin>
 
-            <!-- Maven Resources Plugin to copy the Bash script -->
+            <!-- Maven Resources Plugin to copy scripts -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.3.1</version>
                 <executions>
                     <execution>
-                        <id>copy-script</id>
+                        <id>copy-scripts</id>
                         <phase>prepare-package</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -103,6 +103,7 @@
                                     <directory>${project.basedir}/src/main/resources</directory>
                                     <includes>
                                         <include>run-downloader.sh</include>
+                                        <include>run-downloader.bat</include>
                                     </includes>
                                 </resource>
                             </resources>

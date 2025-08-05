@@ -19,13 +19,21 @@ import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 public abstract class AbstractFileParser<E extends BasePackage> implements Iterator<E>, AutoCloseable {
-    private final BufferedReader reader;
+    private BufferedReader reader;
     private Map<String, StringBuilder> currentPackage;
     private String nextLine;
     private String currentField;
 
     public AbstractFileParser(String filePath) throws IOException {
         InputStream fileStream = new FileInputStream(filePath);
+        initialize(fileStream);
+    }
+
+    public AbstractFileParser(InputStream fileStream) throws IOException {
+        initialize(fileStream);
+    }
+
+    protected void initialize(InputStream fileStream) throws IOException {
         GZIPInputStream gzipStream = new GZIPInputStream(fileStream);
         reader = new BufferedReader(new InputStreamReader(gzipStream));
         currentPackage = new HashMap<>();

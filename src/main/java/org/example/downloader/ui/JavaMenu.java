@@ -321,8 +321,6 @@ public class JavaMenu extends Menu {
                 downloadedSize.addAndGet(jp.getByteSize());
             });
 
-
-
         } catch (IllegalStateException e) {
             System.out.println("Failed to verify blockchain because of " + e.getMessage());
         }

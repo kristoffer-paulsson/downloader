@@ -17,6 +17,7 @@ package org.example.downloader.java;
 import org.example.downloader.util.AbstractFileParser;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.module.ModuleDescriptor;
 import java.util.*;
 
@@ -57,6 +58,10 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
 
     public JavaParser(String filePath) throws IOException {
         super(filePath);
+    }
+
+    public JavaParser(InputStream fileStream) throws IOException {
+        super(fileStream);
     }
 
     @Override
@@ -167,7 +172,7 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
         Filter filter = createFilter(jde);
 
         try {
-            JavaParser parser = new JavaParser("Java.gz");
+            JavaParser parser = new JavaParser(ClassLoader.getSystemResourceAsStream("Java.gz"));
 
             while (parser.hasNext()) {
                 JavaPackage pkg = parser.next();

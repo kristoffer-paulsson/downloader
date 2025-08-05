@@ -9,10 +9,9 @@
     <fileSets>
         <fileSet>
             <directory>${project.build.directory}/jpackage-input</directory>
-            <outputDirectory>${project.artifactId}-${project.version}</outputDirectory>
+            <outputDirectory>/</outputDirectory>
             <includes>
                 <include>*.jar</include>
-                <include>run-downloader.sh</include>
                 <include>run-downloader.bat</include>
             </includes>
             <fileMode>0644</fileMode>
@@ -20,12 +19,12 @@
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}/jpackage-input</directory>
-            <outputDirectory>${project.artifactId}-${project.version}</outputDirectory>
+            <outputDirectory>/</outputDirectory>
             <includes>
                 <include>run-downloader.sh</include>
-                <include>run-downloader.bat</include>
             </includes>
-            <fileMode>0755</fileMode> <!-- Make script executable -->
+            <fileMode>0755</fileMode> <!-- Executable for Unix scripts -->
+            <directoryMode>0755</directoryMode>
         </fileSet>
     </fileSets>
 </assembly>
