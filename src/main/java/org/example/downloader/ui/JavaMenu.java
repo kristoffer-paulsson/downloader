@@ -165,6 +165,8 @@ public class JavaMenu extends Menu {
                 JavaPackage jp = allPackages.remove(r.getDigest());
                 downloadedSize.addAndGet(jp.getByteSize());
             });
+
+            chain.resume();
         } catch (IllegalStateException e) {
             chain = BlockChainHelper.startBlockchain(
                     ge.getChainDir(),

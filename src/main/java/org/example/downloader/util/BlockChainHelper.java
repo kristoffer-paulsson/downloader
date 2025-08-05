@@ -52,19 +52,7 @@ public class BlockChainHelper {
          */
         public Blockchain(File blockchainFile) {
             this.blockchainFile = blockchainFile;
-            try {
-                String lastLine = readLastLine(blockchainFile.toPath());
-                if(lastLine == null) {
-                    this.lastHash = computeHash(blockchainFile.getName());
-                }
-                else {
-                    Row lastRow = rowFromString(lastLine);
-                    this.lastHash = lastRow.hash;
-                    this.isFinalized = lastRow.artifact.equals("end-of-blockchain");
-                }
-            } catch (IOException e) {
-                this.lastHash = computeHash(blockchainFile.getName());
-            }
+            setCorrectLastHash();
         }
 
         public boolean isFinalized() {
@@ -123,6 +111,7 @@ public class BlockChainHelper {
             if(isFinalized)
                 throw new IllegalStateException("Blockchain already finalized");
             try {
+                setCorrectLastHash();
                 writer = Files.newBufferedWriter(blockchainFile.toPath(), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -232,6 +221,21 @@ public class BlockChainHelper {
             close();
         }
 
+        protected void setCorrectLastHash(){
+            try {
+                String lastLine = readLastLine(blockchainFile.toPath());
+                if(lastLine == null) {
+                    this.lastHash = computeHash(blockchainFile.getName());
+                }
+                else {
+                    Row lastRow = rowFromString(lastLine);
+                    this.lastHash = lastRow.hash;
+                    this.isFinalized = lastRow.artifact.equals("end-of-blockchain");
+                }
+            } catch (IOException e) {
+                this.lastHash = computeHash(blockchainFile.getName());
+            }
+        }
 
         /**
          * Closes the blockchain writer. This should be called when done with the blockchain
