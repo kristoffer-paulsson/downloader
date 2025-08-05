@@ -1,7 +1,7 @@
 package org.example.downloader.ui;
 
 import org.example.downloader.util.InversionOfControl;
-import org.example.downloader.deb.Form;
+import org.example.downloader.util.Form;
 import org.example.downloader.java.*;
 
 import java.io.IOException;

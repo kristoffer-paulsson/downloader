@@ -16,7 +16,7 @@ package org.example.downloader.ui;
 
 import org.example.downloader.*;
 import org.example.downloader.deb.DebianComponent;
-import org.example.downloader.deb.Menu;
+import org.example.downloader.util.Menu;
 import org.example.downloader.util.InversionOfControl;
 
 import java.io.IOException;

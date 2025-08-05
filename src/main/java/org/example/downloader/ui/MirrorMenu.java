@@ -17,7 +17,7 @@ package org.example.downloader.ui;
 import org.example.downloader.ConfigManager;
 import org.example.downloader.DebianMirrorCache;
 import org.example.downloader.util.InversionOfControl;
-import org.example.downloader.deb.Menu;
+import org.example.downloader.util.Menu;
 
 public class MirrorMenu extends Menu {
     public MirrorMenu(InversionOfControl ioc) {

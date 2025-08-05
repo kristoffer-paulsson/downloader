@@ -12,9 +12,7 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
-package org.example.downloader.deb;
-
-import org.example.downloader.util.InversionOfControl;
+package org.example.downloader.util;
 
 import java.util.ArrayList;
 import java.util.List;

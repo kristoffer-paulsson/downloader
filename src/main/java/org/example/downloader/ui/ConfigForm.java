@@ -19,12 +19,9 @@ import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.deb.DebianArchitecture;
 import org.example.downloader.deb.DebianComponent;
 import org.example.downloader.deb.DebianDistribution;
-import org.example.downloader.deb.Form;
+import org.example.downloader.util.Form;
 
 import java.io.IOException;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 /**

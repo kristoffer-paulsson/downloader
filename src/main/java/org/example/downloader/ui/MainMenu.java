@@ -15,7 +15,7 @@
 package org.example.downloader.ui;
 
 import org.example.downloader.util.InversionOfControl;
-import org.example.downloader.deb.Menu;
+import org.example.downloader.util.Menu;
 
 public class MainMenu extends Menu {
     public MainMenu(InversionOfControl ioc) {

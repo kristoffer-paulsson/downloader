@@ -17,7 +17,7 @@ package org.example.downloader.ui;
 import org.example.downloader.ConfigManager;
 import org.example.downloader.DebianPackageBlockchain;
 import org.example.downloader.util.InversionOfControl;
-import org.example.downloader.deb.Form;
+import org.example.downloader.util.Form;
 
 import java.io.IOException;
 import java.util.ArrayList;
