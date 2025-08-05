@@ -14,19 +14,10 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.GeneralEnvironment;
-import org.example.downloader.WorkLogger;
-import org.example.downloader.java.JavaDownloadEnvironment;
-import org.example.downloader.java.JavaPackage;
-import org.example.downloader.java.JavaParser;
 import org.example.downloader.java.JavaWorkerIterator;
 import org.example.downloader.util.*;
 
-import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 public class JavaDownloadAction extends JavaVerifyAction {

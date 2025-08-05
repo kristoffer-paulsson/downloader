@@ -14,15 +14,15 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.java.*;
-import org.example.downloader.util.*;
+import org.example.downloader.java.JavaDownloadEnvironment;
+import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.util.Menu;
 
 
-public class JavaMenu extends Menu {
+public class DebianMenu extends Menu {
 
-    public JavaMenu(InversionOfControl ioc) {
-        super(ioc, "Java Downloader CLI");
+    public DebianMenu(InversionOfControl ioc) {
+        super(ioc, "Debian Downloader CLI");
         ioc.register(JavaDownloadEnvironment.class, () -> new JavaDownloadEnvironment("./"));
     }
 
