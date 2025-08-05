@@ -15,9 +15,12 @@
 package org.example.downloader.java;
 
 import org.example.downloader.util.EnvironmentManager;
+import org.example.downloader.util.Sha256Helper;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class JavaDownloadEnvironment extends EnvironmentManager {
@@ -106,5 +109,25 @@ public class JavaDownloadEnvironment extends EnvironmentManager {
 
     public List<JavaVersion> getVersions() {
         return getMulti(EnvironmentKey.VERSION.getKey(), JavaVersion::fromString);
+    }
+
+    protected <T> void streamSort(List<T> values, List<String> collection) {
+        Arrays.stream(values.toArray()).sorted().iterator().forEachRemaining(value -> {
+            collection.add(value.toString());
+        });
+    }
+
+    public String hashOfConfiguration() {
+        List<String> config = new ArrayList<>();
+
+        streamSort(getArchitectures(), config);
+        streamSort(getImages(), config);
+        streamSort(getImplementations(), config);
+        streamSort(getInstallers(), config);
+        streamSort(getPlatforms(), config);
+        streamSort(getVendors(), config);
+        streamSort(getVersions(), config);
+
+        return Sha256Helper.computeHash(String.join(",", config).toLowerCase()).substring(48).toUpperCase();
     }
 }

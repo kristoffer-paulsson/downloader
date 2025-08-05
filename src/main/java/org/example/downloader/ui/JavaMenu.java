@@ -14,6 +14,8 @@
  */
 package org.example.downloader.ui;
 
+import org.example.downloader.ConfigManager;
+import org.example.downloader.GeneralEnvironment;
 import org.example.downloader.WorkLogger;
 import org.example.downloader.java.*;
 import org.example.downloader.util.*;
@@ -50,6 +52,7 @@ public class JavaMenu extends Menu {
     }
 
     private void runDownloadWorker() {
+        GeneralEnvironment ge = ioc.resolve(GeneralEnvironment.class);
         JavaDownloadEnvironment jde = ioc.resolve(JavaDownloadEnvironment.class);
         AtomicInteger count = new AtomicInteger();
         AtomicLong totalSize = new AtomicLong();
@@ -73,7 +76,7 @@ public class JavaMenu extends Menu {
         BlockChainHelper.Blockchain chain;
 
         try {
-            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(jde.getDownloadDir(), FILENAME);
+            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(ge.getChainDir(), FILENAME);
             if(blockchain.isPresent()) {
                 chain = blockchain.get();
                 if(chain.isFinalized()) {
@@ -162,7 +165,7 @@ public class JavaMenu extends Menu {
                 downloadedSize.addAndGet(jp.getByteSize());
             });
         } catch (IllegalStateException e) {
-            chain = BlockChainHelper.startBlockchain(jde.getDownloadDir(), FILENAME);
+            chain = BlockChainHelper.startBlockchain(ge.getChainDir(), FILENAME);
             System.out.println("Created new blockchain: " + chain.getBlockchainFile());
         }
 
@@ -210,11 +213,14 @@ public class JavaMenu extends Menu {
     }
 
     private void runVerifierWorker() {
+        GeneralEnvironment ge = ioc.resolve(GeneralEnvironment.class);
         JavaDownloadEnvironment jde = ioc.resolve(JavaDownloadEnvironment.class);
         AtomicInteger count = new AtomicInteger();
         AtomicLong totalSize = new AtomicLong();
         AtomicLong downloadedSize = new AtomicLong();
         HashMap<String, JavaPackage> allPackages = new HashMap<>();
+
+        System.out.println(jde.hashOfConfiguration());
 
         JavaParser.filterPackages(jde).forEach((p) -> {
             allPackages.put(p.getSha256Digest(), p);
@@ -233,7 +239,7 @@ public class JavaMenu extends Menu {
         BlockChainHelper.Blockchain chain;
 
         try {
-            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(jde.getDownloadDir(), FILENAME);
+            Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(ge.getChainDir(), FILENAME);
             if(blockchain.isPresent()) {
                 chain = blockchain.get();
                 System.out.println("Found latest blockchain: " + chain.getBlockchainFile());

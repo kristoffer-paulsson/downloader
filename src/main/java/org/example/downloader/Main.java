@@ -19,6 +19,7 @@ import org.example.downloader.ui.MainMenu;
 import org.example.downloader.util.InversionOfControl;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Scanner;
 
@@ -81,6 +82,8 @@ public class Main {
         ioc = new InversionOfControl();
 
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
+
+        // To be deprecated
         ioc.register(ConfigManager.class, () -> {
             try {
                 return new ConfigManager(configPath);
@@ -88,6 +91,8 @@ public class Main {
                 throw new RuntimeException(e);
             }
         });
+
+        ioc.register(GeneralEnvironment.class, () -> new GeneralEnvironment(Path.of(configPath)));
 
         ioc.register(WorkLogger.class, () -> {
             try {

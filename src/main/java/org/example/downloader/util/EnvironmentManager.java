@@ -48,22 +48,30 @@ public class EnvironmentManager {
     }
 
     public Path getDownloadDir(String defaultDir) {
-        String downloadDir = get(DIR_DOWNLOAD, defaultDir);
-        if (downloadDir == null || downloadDir.isEmpty()) {
-            throw new IllegalStateException("Download directory is not set in the environment");
-        }
-        return Paths.get(downloadDir);
+        return getDirectory(DIR_DOWNLOAD, defaultDir);
     }
 
     public void setDownloadDir(Path downloadDir) {
-        if (downloadDir == null || !Files.isDirectory(downloadDir)) {
-            throw new IllegalArgumentException("Download directory must be a valid directory");
-        }
-        set(DIR_DOWNLOAD, downloadDir.toString());
+        setDirectory(DIR_DOWNLOAD, downloadDir);
     }
 
     public interface ToString<E> {
         String stringify(E e);
+    }
+
+    public Path getDirectory(String property, String defaultDir) {
+        String someDir = get(property, defaultDir);
+        if (someDir == null || someDir.isEmpty()) {
+            throw new IllegalStateException("Download directory is not set in the environment");
+        }
+        return Paths.get(someDir);
+    }
+
+    public void setDirectory(String property, Path someDir) {
+        if (someDir == null || !Files.isDirectory(someDir)) {
+            throw new IllegalArgumentException("Download directory must be a valid directory");
+        }
+        set(property, someDir.toString());
     }
 
     public <E> void setMulti(String key, List<E> multi, ToString<E> name) {
