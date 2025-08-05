@@ -14,6 +14,7 @@
  */
 package org.example.downloader.ui;
 
+import org.example.downloader.deb.DebianDownloadEnvironment;
 import org.example.downloader.java.JavaDownloadEnvironment;
 import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.util.Menu;
@@ -23,20 +24,20 @@ public class DebianMenu extends Menu {
 
     public DebianMenu(InversionOfControl ioc) {
         super(ioc, "Debian Downloader CLI");
-        ioc.register(JavaDownloadEnvironment.class, () -> new JavaDownloadEnvironment("./"));
+        ioc.register(DebianDownloadEnvironment.class, () -> new DebianDownloadEnvironment("./"));
     }
 
     @Override
     protected void setupMenu() {
-        registerOption("Setup environment", option -> new JavaForm(ioc.resolve(JavaDownloadEnvironment.class), ioc).runForm());
-        registerOption("View environment", option -> reviewConfig(ioc.resolve(JavaDownloadEnvironment.class)));
+        registerOption("Setup environment", option -> new DebianForm(ioc.resolve(DebianDownloadEnvironment.class), ioc).runForm());
+        registerOption("View environment", option -> reviewConfig(ioc.resolve(DebianDownloadEnvironment.class)));
         registerOption("Downloader", option -> new JavaDownloadAction(ioc, "Downloader").runAction());
         registerOption("Blockchain Verifier", option -> new JavaVerifyAction(ioc, "Blockchain Verifier").runAction());
     }
 
-    private void reviewConfig(JavaDownloadEnvironment jds) {
+    private void reviewConfig(DebianDownloadEnvironment dde) {
         System.out.println("\n=== Current config ===");
-        jds.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
+        dde.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
         showMessageAndWait(" ");
     }
 }
