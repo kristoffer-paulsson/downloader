@@ -14,32 +14,25 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.GeneralEnvironment;
-import org.example.downloader.WorkLogger;
 import org.example.downloader.deb.DebianDownloadEnvironment;
-import org.example.downloader.java.JavaPackage;
-import org.example.downloader.java.JavaParser;
+import org.example.downloader.deb.DebianPackage;
 import org.example.downloader.util.*;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 
-public class DebianVerifyAction extends Action {
+public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvironment, DebianPackage> {
 
     public static String FILENAME = "debian_%s_%s_%s_%s-";
 
-    protected GeneralEnvironment ge;
+    /*protected GeneralEnvironment ge;
     protected DebianDownloadEnvironment dde;
     protected AtomicInteger count;
     protected AtomicLong totalSize;
     protected AtomicLong downloadedSize;
     protected HashMap<String, JavaPackage> allPackages;
     protected MyObject executorHolder;
-    WorkLogger logger;
+    WorkLogger logger;*/
 
     BlockChainHelper.Blockchain chain;
 
@@ -47,7 +40,7 @@ public class DebianVerifyAction extends Action {
         super(ioc, name);
     }
 
-    @Override
+    /*@Override
     protected void setupAction() {
         ge = ioc.resolve(GeneralEnvironment.class);
         dde = ioc.resolve(DebianDownloadEnvironment.class);
@@ -57,6 +50,11 @@ public class DebianVerifyAction extends Action {
         allPackages = new HashMap<>();
         executorHolder = new MyObject();
         logger = ioc.resolve(WorkLogger.class);
+    }*/
+
+    @Override
+    protected DebianDownloadEnvironment getEnvironmentManager() {
+        return ioc.resolve(DebianDownloadEnvironment.class);
     }
 
     @Override
@@ -83,21 +81,26 @@ public class DebianVerifyAction extends Action {
         System.out.println("Totally " + allPackages.size() + " artifacts needs yet to be downloaded for completion.");
     }
 
-    protected void artifactInventory() {
-        /*JavaParser.filterPackages(dde).forEach((p) -> {
+    @Override
+    protected void loadArtifactInventory() {
+
+    }
+
+    /*protected void artifactInventory() {
+        JavaParser.filterPackages(dde).forEach((p) -> {
             allPackages.put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
-        });*/
+        });
         System.out.println("Estimated total size: " + PrintHelper.formatByteSize(totalSize.get()));
         System.out.println("Total artifact batch count: " + allPackages.size());
-    }
+    }*/
 
     protected String generateBlockchainFilename() {
-        return String.format(FILENAME, dde.getDistribution(), dde.getArchitecture(), dde.getChunks(), dde.getPiece());
+        return String.format(FILENAME, em.getDistribution(), em.getArchitecture(), em.getChunks(), em.getPiece());
     }
 
-    protected boolean prepareResumeBlockchain() {
+    /*protected boolean prepareResumeBlockchain() {
         Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
                 ge.getChainDir(),
                 generateBlockchainFilename()
@@ -113,13 +116,13 @@ public class DebianVerifyAction extends Action {
             throw new IllegalStateException("No blockchain available");
         }
         return true;
-    }
+    }*/
 
     protected String generateArtifactPath(BlockChainHelper.Row r) {
         return String.format(
                 "%s/%s",
-                dde.getDownloadDir().toString(),
-                allPackages.get(r.getDigest()).getFilename()
+                em.getDownloadDir().toString(),
+                allPackages.get(r.getDigest()).filename // TODO
         );
     }
 
@@ -127,7 +130,7 @@ public class DebianVerifyAction extends Action {
         return new BlockchainVerifier(chain, logger, (r) -> Path.of(generateArtifactPath(r)));
     }
 
-    protected void verifierThread(
+    /*protected void verifierThread(
             MyObject executorHolder,
             BlockchainVerifier verifier,
             WorkLogger logger,
@@ -169,9 +172,9 @@ public class DebianVerifyAction extends Action {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }
+    }*/
 
-    protected void postVerificationAnalyze(
+    /*protected void postVerificationAnalyze(
             MyObject executorHolder,
             BlockchainVerifier verifier
     ) {
@@ -201,10 +204,10 @@ public class DebianVerifyAction extends Action {
             JavaPackage jp = allPackages.remove(r.getDigest());
             downloadedSize.addAndGet(jp.getByteSize());
         });
-    }
+    }*/
 
-    protected static class MyObject {
+    /*protected static class MyObject {
         WorkerExecutor executor;
         Thread indicator;
-    }
+    }*/
 }

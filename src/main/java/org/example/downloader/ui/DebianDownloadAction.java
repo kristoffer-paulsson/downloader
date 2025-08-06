@@ -102,7 +102,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
     protected boolean prepareResumeBlockchain() {
         Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
                 ge.getChainDir(),
-                String.format(FILENAME, dde.hashOfConfiguration())
+                String.format(FILENAME, em.hashOfConfiguration())
         );
         if(blockchain.isPresent()) {
             chain = blockchain.get();

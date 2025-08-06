@@ -1,0 +1,127 @@
+/**
+ * Copyright (c) 2025 by Kristoffer Paulsson <kristoffer.paulsson@talenten.se>.
+ *
+ * This software is available under the terms of the MIT license. Parts are licensed
+ * under different terms if stated. The legal terms are attached to the LICENSE file
+ * and are made available on:
+ *
+ *      https://opensource.org/licenses/MIT
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Contributors:
+ *      Kristoffer Paulsson - initial implementation
+ */
+package org.example.downloader.deb;
+
+import org.example.downloader.ConfigManager;
+import org.example.downloader.util.BasePackage;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+public class DebianPackage implements BasePackage {
+
+    public final String packageName;
+    public final String version;
+    public final String architecture;
+    public final String filename;
+    public final long size;
+    public final String sha256digest;
+    public final String distribution;
+
+    DebianPackage(
+            String packageName, String version, String architecture,
+            String filename, long size, String sha256digest,
+            String distribution
+    ) {
+        this.packageName = packageName;
+        this.version = version;
+        this.architecture = architecture;
+        this.filename = filename;
+        this.size = size;
+        this.sha256digest = sha256digest;
+        this.distribution = distribution;
+    }
+
+    public String buildDownloadUrl(String baseUrl) {
+        return String.format("%s/%s", baseUrl, filename);
+    }
+
+    public Path buildSavePath(ConfigManager configManager) {
+        return Paths.get(String.format("%s/%s", configManager.get("package_dir"), filename));
+    }
+
+    @Override
+    public String getFilename() {
+        return filename;
+    }
+
+    public String getSize() {
+        return Long.toString(size);
+    }
+
+    @Override
+    public String getSha256Digest() {
+        return sha256digest;
+    }
+
+    @Override
+    public String uniqueKey() {
+        return ""; // TODO
+    }
+
+    public DebianFile getFileStatus(Path filePath) {
+        if (!Files.exists(filePath)) {
+            return DebianFile.NONE;
+        }
+        try {
+            long fileSize = Files.size(filePath);
+            if (fileSize == size) {
+                return DebianFile.COMPLETE;
+            } else if (fileSize < size) {
+                return DebianFile.PARTIAL;
+            }
+        } catch (IOException e) {
+            // Handle the exception as needed
+        }
+        return DebianFile.NONE;
+    }
+
+    public boolean verifySha256Digest(Path filePath) throws IOException {
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+
+            try (InputStream inputStream = Files.newInputStream(filePath)) {
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    sha256.update(buffer, 0, bytesRead);
+                }
+            }
+
+            byte[] computedHash = sha256.digest();
+            String computedDigest = bytesToHex(computedHash);
+            return computedDigest.equalsIgnoreCase(sha256digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("SHA-256 algorithm not available", e);
+        }
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : bytes) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+}
