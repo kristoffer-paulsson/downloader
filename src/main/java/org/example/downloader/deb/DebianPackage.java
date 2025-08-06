@@ -53,8 +53,8 @@ public class DebianPackage implements BasePackage {
         return String.format("%s/%s", baseUrl, filename);
     }
 
-    public Path buildSavePath(ConfigManager configManager) {
-        return Paths.get(String.format("%s/%s", configManager.get("package_dir"), filename));
+    public Path buildSavePath(DebianDownloadEnvironment dde) {
+        return Paths.get(String.format("%s/%s", dde.getDownloadDir(), filename));
     }
 
     @Override
@@ -91,37 +91,5 @@ public class DebianPackage implements BasePackage {
             // Handle the exception as needed
         }
         return DebianFile.NONE;
-    }
-
-    public boolean verifySha256Digest(Path filePath) throws IOException {
-        try {
-            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[8192];
-
-            try (InputStream inputStream = Files.newInputStream(filePath)) {
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    sha256.update(buffer, 0, bytesRead);
-                }
-            }
-
-            byte[] computedHash = sha256.digest();
-            String computedDigest = bytesToHex(computedHash);
-            return computedDigest.equalsIgnoreCase(sha256digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IOException("SHA-256 algorithm not available", e);
-        }
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) {
-                hexString.append('0');
-            }
-            hexString.append(hex);
-        }
-        return hexString.toString();
     }
 }

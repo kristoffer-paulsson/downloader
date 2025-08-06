@@ -83,7 +83,7 @@ public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvir
 
     @Override
     protected void loadArtifactInventory() {
-
+        // TODO
     }
 
     /*protected void artifactInventory() {
@@ -119,11 +119,7 @@ public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvir
     }*/
 
     protected String generateArtifactPath(BlockChainHelper.Row r) {
-        return String.format(
-                "%s/%s",
-                em.getDownloadDir().toString(),
-                allPackages.get(r.getDigest()).filename // TODO
-        );
+        return allPackages.get(r.getDigest()).buildSavePath(em).toString();
     }
 
     protected BlockchainVerifier createBlockchainVerifier() {
