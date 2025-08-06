@@ -15,7 +15,6 @@
 package org.example.downloader.ui;
 
 import org.example.downloader.deb.DebianDownloadEnvironment;
-import org.example.downloader.java.JavaDownloadEnvironment;
 import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.util.Menu;
 
@@ -36,7 +35,7 @@ public class DebianMenu extends Menu {
     }
 
     private void reviewConfig(DebianDownloadEnvironment dde) {
-        System.out.println("\n=== Current config ===");
+        System.out.println("\n=== Current environment ===");
         dde.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
         showMessageAndWait(" ");
     }

@@ -48,6 +48,8 @@ public class EnvironmentManager {
         }
     }
 
+    public Path getDownloadDir() { return null; }
+
     public Path getDownloadDir(String defaultDir) {
         return getDirectory(DIR_DOWNLOAD, defaultDir);
     }

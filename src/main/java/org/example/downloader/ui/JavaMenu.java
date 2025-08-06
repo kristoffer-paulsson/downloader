@@ -35,7 +35,7 @@ public class JavaMenu extends Menu {
     }
 
     private void reviewConfig(JavaDownloadEnvironment jds) {
-        System.out.println("\n=== Current config ===");
+        System.out.println("\n=== Current environment ===");
         jds.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
         showMessageAndWait(" ");
     }
