@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class AbstractVerifyAction<E extends EnvironmentManager, P extends BasePackage> extends Action {
 
     protected GeneralEnvironment ge;
-    protected E dde;
+    protected E em;
     protected AtomicInteger count;
     protected AtomicLong totalSize;
     protected AtomicLong downloadedSize;
@@ -45,7 +45,7 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
     @Override
     protected void setupAction() {
         ge = ioc.resolve(GeneralEnvironment.class);
-        dde = getEnvironmentManager();
+        em = getEnvironmentManager();
         count = new AtomicInteger();
         totalSize = new AtomicLong();
         downloadedSize = new AtomicLong();
@@ -108,13 +108,13 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
         return true;
     }
 
-    protected String generateArtifactPath(BlockChainHelper.Row r) {
+    protected abstract String generateArtifactPath(BlockChainHelper.Row r); /* {
         return String.format(
                 "%s/%s",
-                dde.getDownloadDir().toString(),
+                em.getDownloadDir().toString(),
                 allPackages.get(r.getDigest()).getFilename()
         );
-    }
+    }*/
 
     protected BlockchainVerifier createBlockchainVerifier() {
         return new BlockchainVerifier(chain, logger, (r) -> Path.of(generateArtifactPath(r)));

@@ -48,7 +48,7 @@ public class JavaDownloadAction extends JavaVerifyAction {
         } catch (IllegalStateException e) {
             chain = BlockChainHelper.startBlockchain(
                     ge.getChainDir(),
-                    String.format(FILENAME, jde.hashOfConfiguration())
+                    String.format(FILENAME, em.hashOfConfiguration())
             );
             chain.start();
             System.out.println("Created new blockchain: " + chain.getBlockchainFile());
@@ -57,7 +57,7 @@ public class JavaDownloadAction extends JavaVerifyAction {
         System.out.println("Totally " + allPackages.size() + " artifacts yet to download for completion.");
         System.out.println("Approximately up to " + PrintHelper.formatByteSize(totalSize.get() - downloadedSize.get()) + " of data to download.");
 
-        JavaWorkerIterator javaDownloader = new JavaWorkerIterator(jde, allPackages, chain, logger);
+        JavaWorkerIterator javaDownloader = new JavaWorkerIterator(em, allPackages, chain, logger);
 
 
         executorHolder.executor = new WorkerExecutor(javaDownloader, logger);
@@ -103,7 +103,8 @@ public class JavaDownloadAction extends JavaVerifyAction {
     protected boolean prepareResumeBlockchain() {
         Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
                 ge.getChainDir(),
-                String.format(FILENAME, jde.hashOfConfiguration())
+                generateBlockchainFilename()
+                //String.format(FILENAME, em.hashOfConfiguration())
         );
         if(blockchain.isPresent()) {
             chain = blockchain.get();

@@ -28,7 +28,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
 
     @Override
     public void runAction() {
-        setupAction();
+        /*setupAction();
 
         artifactInventory();
 
@@ -95,7 +95,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
             System.out.println("Number of incomplete downloads are " + javaDownloader.getIncompleteDownloads().size() + ", try to download again.");
         }
 
-        chain.close();
+        chain.close();*/
     }
 
     @Override

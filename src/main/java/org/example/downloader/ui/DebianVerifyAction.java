@@ -84,11 +84,11 @@ public class DebianVerifyAction extends Action {
     }
 
     protected void artifactInventory() {
-        JavaParser.filterPackages(dde).forEach((p) -> {
+        /*JavaParser.filterPackages(dde).forEach((p) -> {
             allPackages.put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
-        });
+        });*/
         System.out.println("Estimated total size: " + PrintHelper.formatByteSize(totalSize.get()));
         System.out.println("Total artifact batch count: " + allPackages.size());
     }

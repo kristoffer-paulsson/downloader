@@ -28,18 +28,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-public class JavaVerifyAction extends Action {
+public class JavaVerifyAction extends AbstractVerifyAction<JavaDownloadEnvironment, JavaPackage> {
 
     public static String FILENAME = "java_download-%s";
 
-    protected GeneralEnvironment ge;
+    /*protected GeneralEnvironment ge;
     protected JavaDownloadEnvironment jde;
     protected AtomicInteger count;
     protected AtomicLong totalSize;
     protected AtomicLong downloadedSize;
     protected HashMap<String, JavaPackage> allPackages;
     protected MyObject executorHolder;
-    WorkLogger logger;
+    WorkLogger logger;*/
 
     BlockChainHelper.Blockchain chain;
 
@@ -47,7 +47,7 @@ public class JavaVerifyAction extends Action {
         super(ioc, name);
     }
 
-    @Override
+    /*@Override
     protected void setupAction() {
         ge = ioc.resolve(GeneralEnvironment.class);
         jde = ioc.resolve(JavaDownloadEnvironment.class);
@@ -57,6 +57,11 @@ public class JavaVerifyAction extends Action {
         allPackages = new HashMap<>();
         executorHolder = new MyObject();
         logger = ioc.resolve(WorkLogger.class);
+    }*/
+
+    @Override
+    protected JavaDownloadEnvironment getEnvironmentManager() {
+        return ioc.resolve(JavaDownloadEnvironment.class);
     }
 
     @Override
@@ -83,7 +88,16 @@ public class JavaVerifyAction extends Action {
         System.out.println("Totally " + allPackages.size() + " artifacts needs yet to be downloaded for completion.");
     }
 
-    protected void artifactInventory() {
+    @Override
+    protected void loadArtifactInventory() {
+        JavaParser.filterPackages(em).forEach((p) -> {
+            allPackages.put(p.getSha256Digest(), p);
+            totalSize.getAndAdd(p.getByteSize());
+            count.getAndIncrement();
+        });
+    }
+
+    /*protected void artifactInventory() {
         JavaParser.filterPackages(jde).forEach((p) -> {
             allPackages.put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
@@ -91,12 +105,17 @@ public class JavaVerifyAction extends Action {
         });
         System.out.println("Estimated total size: " + PrintHelper.formatByteSize(totalSize.get()));
         System.out.println("Total artifact batch count: " + allPackages.size());
+    }*/
+
+    @Override
+    protected String generateBlockchainFilename() {
+        return String.format(FILENAME, em.hashOfConfiguration());
     }
 
-    protected boolean prepareResumeBlockchain() {
+    /*protected boolean prepareResumeBlockchain() {
         Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
                 ge.getChainDir(),
-                String.format(FILENAME, jde.hashOfConfiguration())
+                String.format(FILENAME, em.hashOfConfiguration())
         );
         if(blockchain.isPresent()) {
             chain = blockchain.get();
@@ -109,19 +128,27 @@ public class JavaVerifyAction extends Action {
             throw new IllegalStateException("No blockchain available");
         }
         return true;
+    }*/
+
+    protected String generateArtifactPath(BlockChainHelper.Row r) {
+        return String.format(
+                "%s/%s",
+                em.getDownloadDir().toString(),
+                allPackages.get(r.getDigest()).getFilename()
+        );
     }
 
-    protected BlockchainVerifier createBlockchainVerifier() {
+    /*protected BlockchainVerifier createBlockchainVerifier() {
         return new BlockchainVerifier(chain, logger, (r) -> Path.of(
                 String.format(
                         "%s/%s",
-                        jde.getDownloadDir().toString(),
+                        em.getDownloadDir().toString(),
                         allPackages.get(r.getDigest()).getFilename()
                 )
         ));
-    }
+    }*/
 
-    protected void verifierThread(
+    /*protected void verifierThread(
             MyObject executorHolder,
             BlockchainVerifier verifier,
             WorkLogger logger,
@@ -163,9 +190,9 @@ public class JavaVerifyAction extends Action {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }
+    }*/
 
-    protected void postVerificationAnalyze(
+    /*protected void postVerificationAnalyze(
             MyObject executorHolder,
             BlockchainVerifier verifier
     ) {
@@ -188,7 +215,7 @@ public class JavaVerifyAction extends Action {
             verifier.getBrokenArtifacts().forEach((r) -> {
                 String path = String.format(
                         "%s/%s",
-                        jde.getDownloadDir().toString(),
+                        em.getDownloadDir().toString(),
                         allPackages.get(r.getDigest()).getFilename()
                 );
                 System.out.println("Delete: " + path);
@@ -199,10 +226,10 @@ public class JavaVerifyAction extends Action {
             JavaPackage jp = allPackages.remove(r.getDigest());
             downloadedSize.addAndGet(jp.getByteSize());
         });
-    }
+    }*/
 
-    protected static class MyObject {
+    /*protected static class MyObject {
         WorkerExecutor executor;
         Thread indicator;
-    }
+    }*/
 }
