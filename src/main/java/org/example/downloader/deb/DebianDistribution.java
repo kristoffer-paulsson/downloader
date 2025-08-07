@@ -24,7 +24,8 @@ public enum DebianDistribution {
     STRETCH("stretch"),
     BUSTER("buster"),
     BULLSEYE("bullseye"),
-    BOOKWORM("bookworm");
+    BOOKWORM("bookworm"),
+    UNKNOWN("unknown");
 
     final String dist;
 
@@ -50,6 +51,6 @@ public enum DebianDistribution {
                 return distribution;
             }
         }
-        throw new IllegalArgumentException("Debian distribution " + distro + " doesn't exist.");
+        return UNKNOWN;
     }
 }

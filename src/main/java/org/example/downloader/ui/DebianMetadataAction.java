@@ -17,6 +17,7 @@ package org.example.downloader.ui;
 import org.example.downloader.GeneralEnvironment;
 import org.example.downloader.WorkLogger;
 import org.example.downloader.deb.DebianDownloadEnvironment;
+import org.example.downloader.deb.DebianMetadataDownloader;
 import org.example.downloader.deb.DebianMirrorCache;
 import org.example.downloader.util.Action;
 import org.example.downloader.util.BlockChainHelper;
@@ -59,6 +60,18 @@ public class DebianMetadataAction extends Action {
 
         checkBadMirrors();
         checkMirrors();
+
+        DebianMetadataDownloader metadataDownloader = new DebianMetadataDownloader(ge, dde, logger);
+
+        progressWorker(executorHolder, metadataDownloader, logger, (eh) -> {
+            ProgressBar.printProgressMsg(
+                    executorHolder.executor.getCurrentTotalBytes(),
+                    100 * 1024 * 1024,
+                    50,
+                    ProgressBar.ANSI_GREEN,
+                    "Downloading packages lists " + PrintHelper.formatByteSize(executorHolder.executor.getCurrentTotalBytes())
+            );
+        });
 
     }
 

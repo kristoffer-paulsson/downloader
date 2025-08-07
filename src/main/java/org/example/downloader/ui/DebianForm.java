@@ -57,20 +57,20 @@ public class DebianForm extends Form {
         registerQuestion(() -> askMultipleChoiceQuestion(
                 "Enter distribution",
                 DebianDistribution.toStringList(),
-                dde.get(DebianDownloadEnvironment.EnvironmentKey.DISTRO.getKey()),
+                dde.getDistribution().getDist(),
                 System.out::println
         ));
 
         registerQuestion(() -> askMultipleChoiceQuestion(
                 "Enter architecture",
                 DebianArchitecture.toStringList(),
-                dde.get(DebianDownloadEnvironment.EnvironmentKey.ARCH.getKey()),
+                dde.getArchitecture().getArch(),
                 System.out::println
         ));
 
         registerQuestion(() -> askQuestion(
                 "Number of chunk partitions",
-                dde.get(DebianDownloadEnvironment.EnvironmentKey.CHUNKS.getKey()),
+                Integer.toString(dde.getChunks()),
                 this::validateInt,
                 System.out::println
         ));
@@ -78,7 +78,7 @@ public class DebianForm extends Form {
         registerQuestion(() -> askMultipleChoiceQuestion(
                 "Download which partition",
                 createRange(Integer.parseInt(String.valueOf(getAnswers().get(3).getResponse()))),
-                dde.get(DebianDownloadEnvironment.EnvironmentKey.PIECE.getKey()),
+                Integer.toString(dde.getPiece()),
                 System.out::println
         ));
     }
@@ -106,10 +106,10 @@ public class DebianForm extends Form {
         List<Answer> answers = getAnswers();
 
         dde.setDownloadDir(Paths.get(answers.get(0).getResponse()));
-        dde.set(DebianDownloadEnvironment.EnvironmentKey.ARCH.getKey(), answers.get(1).getResponse());
-        dde.set(DebianDownloadEnvironment.EnvironmentKey.DISTRO.getKey(), answers.get(2).getResponse());
-        dde.set(DebianDownloadEnvironment.EnvironmentKey.CHUNKS.getKey(), answers.get(3).getResponse());
-        dde.set(DebianDownloadEnvironment.EnvironmentKey.PIECE.getKey(), answers.get(4).getResponse());
+        dde.setDistribution(DebianDistribution.fromString(answers.get(1).getResponse()));
+        dde.setArchitecture(DebianArchitecture.fromString(answers.get(2).getResponse()));
+        dde.setChunks(Integer.parseInt(answers.get(3).getResponse()));
+        dde.setPiece(Integer.parseInt(answers.get(4).getResponse()));
 
         try {
             dde.save();

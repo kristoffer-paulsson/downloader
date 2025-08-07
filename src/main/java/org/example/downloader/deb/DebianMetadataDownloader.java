@@ -99,6 +99,11 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
         }
 
         @Override
+        protected boolean verifySha256Digest() throws IOException {
+            return Files.exists(downloadTask.getFilePath());
+        }
+
+        @Override
         protected void doWhenDownloadVerifiedSuccessful() throws IOException {
             logger.warning("Download of " + basePackage.uniqueKey() + " registered to blockchain.");
         }

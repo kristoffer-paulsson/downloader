@@ -58,7 +58,7 @@ public class DebianDownloadEnvironment extends EnvironmentManager {
     }
 
     public DebianArchitecture getArchitecture() {
-        return DebianArchitecture.fromString(get(EnvironmentKey.ARCH.getKey()));
+        return DebianArchitecture.fromString(get(EnvironmentKey.ARCH.getKey(), DebianArchitecture.ALL.getArch()));
     }
 
     public void setDistribution(DebianDistribution distribution) {
@@ -66,11 +66,11 @@ public class DebianDownloadEnvironment extends EnvironmentManager {
     }
 
     public DebianDistribution getDistribution() {
-        return DebianDistribution.fromString(get(EnvironmentKey.DISTRO.getKey()));
+        return DebianDistribution.fromString(get(EnvironmentKey.DISTRO.getKey(), DebianDistribution.UNKNOWN.getDist()));
     }
 
     public int getChunks() {
-        return Integer.parseInt(get(EnvironmentKey.CHUNKS.getKey()));
+        return Integer.parseInt(get(EnvironmentKey.CHUNKS.getKey(), "1"));
     }
 
     public void setChunks(int piece) {
@@ -78,7 +78,7 @@ public class DebianDownloadEnvironment extends EnvironmentManager {
     }
 
     public int getPiece() {
-        return Integer.parseInt(get(EnvironmentKey.PIECE.getKey()));
+        return Integer.parseInt(get(EnvironmentKey.PIECE.getKey(), "1"));
     }
 
     public void setPiece(int piece) {
