@@ -30,8 +30,8 @@ public class DebianMenu extends Menu {
     protected void setupMenu() {
         registerOption("Setup environment", option -> new DebianForm(ioc.resolve(DebianDownloadEnvironment.class), ioc).runForm());
         registerOption("View environment", option -> reviewConfig(ioc.resolve(DebianDownloadEnvironment.class)));
-        registerOption("Downloader", option -> new JavaDownloadAction(ioc, "Downloader").runAction());
-        registerOption("Blockchain Verifier", option -> new JavaVerifyAction(ioc, "Blockchain Verifier").runAction());
+        registerOption("Downloader", option -> new DebianDownloadAction(ioc, "Downloader").runAction());
+        registerOption("Blockchain Verifier", option -> new DebianVerifyAction(ioc, "Blockchain Verifier").runAction());
     }
 
     private void reviewConfig(DebianDownloadEnvironment dde) {

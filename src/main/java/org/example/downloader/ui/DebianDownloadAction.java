@@ -28,7 +28,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
 
     @Override
     public void runAction() {
-        /*setupAction();
+        setupAction();
 
         artifactInventory();
 
@@ -47,7 +47,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
         } catch (IllegalStateException e) {
             chain = BlockChainHelper.startBlockchain(
                     ge.getChainDir(),
-                    String.format(FILENAME, dde.hashOfConfiguration())
+                    String.format(FILENAME, em.hashOfConfiguration())
             );
             chain.start();
             System.out.println("Created new blockchain: " + chain.getBlockchainFile());
@@ -56,7 +56,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
         System.out.println("Totally " + allPackages.size() + " artifacts yet to download for completion.");
         System.out.println("Approximately up to " + PrintHelper.formatByteSize(totalSize.get() - downloadedSize.get()) + " of data to download.");
 
-        JavaWorkerIterator javaDownloader = new JavaWorkerIterator(dde, allPackages, chain, logger);
+        JavaWorkerIterator javaDownloader = new JavaWorkerIterator(em, allPackages, chain, logger);
 
 
         executorHolder.executor = new WorkerExecutor(javaDownloader, logger);
@@ -95,14 +95,15 @@ public class DebianDownloadAction extends DebianVerifyAction {
             System.out.println("Number of incomplete downloads are " + javaDownloader.getIncompleteDownloads().size() + ", try to download again.");
         }
 
-        chain.close();*/
+        chain.close();
     }
 
     @Override
     protected boolean prepareResumeBlockchain() {
         Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
                 ge.getChainDir(),
-                String.format(FILENAME, em.hashOfConfiguration())
+                generateBlockchainFilename()
+                //String.format(FILENAME, em.hashOfConfiguration())
         );
         if(blockchain.isPresent()) {
             chain = blockchain.get();
