@@ -30,16 +30,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetadataDownloader.MetadataWorker> {
 
-    private static final String MIRROR_URL = "https://www.debian.org/mirror/list-full";
     private static final String PACKAGE_URL = "http://deb.debian.org/debian/dists/%s/%s/binary-%s/Packages.gz";
     private static final String PACKAGE_REPO = "dists/%s/%s/binary-%s/Packages.gz";
-
 
     private final GeneralEnvironment ge;
     private final DebianDownloadEnvironment dde;
     private final WorkLogger workLogger;
 
-    private final List<Pair<BasePackageImpl, DownloadHelper.Download>> metadataTasks = new ArrayList<>();
+    private Iterator<Pair<BasePackageImpl, DownloadHelper.Download>> metadataTasks;
 
     private final AtomicReference<List<DownloadHelper.Download>> incompleteDownloads = new AtomicReference<>(new ArrayList<>());
 
@@ -47,26 +45,22 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
         this.ge = ge;
         this.dde = dde;
         this.workLogger = workLogger;
-
+        prepareMetadataTasks();
     }
 
     @Override
     protected MetadataWorker createWorker() {
-        if (!lastRow.get().verifyRowHash(lastHash)) {
-            brokenChain.compareAndSet(false, true);
-            throw new IllegalStateException("Invalid row hash: " + lastRow.get().hash);
-        }
-
-        lastHash = lastRow.get().hash;
-        return new BlockchainVerifier.VerifyTask(workLogger, lastRow.get(), blockchain.isFinalized(), artifactPath.artifactFile(lastRow.get()));
+        Pair<BasePackageImpl, DownloadHelper.Download> pair = metadataTasks.next();
+        return new MetadataWorker(pair.getFirst(), pair.getSecond(), workLogger);
     }
 
     @Override
     public boolean hasNext() {
-        return stringIterator.hasNext() && !brokenChain.get();
+        return metadataTasks.hasNext();
     }
 
-    public void prepareMetadataTasks() throws Exception {
+    public void prepareMetadataTasks() {
+        List<Pair<BasePackageImpl, DownloadHelper.Download>> metadataTasks = new ArrayList<>();
         Iterator<String> components = DebianComponent.toStringList().iterator();
 
         components.forEachRemaining((comp) ->{
@@ -87,6 +81,7 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
                 throw new RuntimeException(e);
             }
         });
+        this.metadataTasks = metadataTasks.iterator();
     }
 
     public List<DownloadHelper.Download> getIncompleteDownloads() {

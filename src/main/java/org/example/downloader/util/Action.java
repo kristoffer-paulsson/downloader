@@ -14,8 +14,8 @@
  */
 package org.example.downloader.util;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.example.downloader.WorkLogger;
+
 import java.util.Scanner;
 import java.util.function.Consumer;
 
@@ -39,11 +39,49 @@ public abstract class Action {
     protected abstract void setupAction();
 
 
-    public abstract void runAction(); /* {
-        boolean isRunning = true;
+    public abstract void runAction();
 
-        close();
-    }*/
+    public <E extends AbstractWorker> void progressWorker(
+            MyObject executorHolder,
+            AbstractWorkerIterator<E> workerIterator,
+            WorkLogger logger,
+            Consumer<MyObject> updater
+    ) {
+        executorHolder.executor = new WorkerExecutor(workerIterator, logger);
+        executorHolder.indicator = new Thread(() -> {
+
+            executorHolder.executor.start();
+            while (executorHolder.executor.isRunning()) {
+                try {
+                    Thread.sleep(10);
+                    updater.accept(executorHolder);
+                    /*ProgressBar.printProgressMsg(
+                            executorHolder.executor.getCurrentTotalBytes(),
+                            totalSize.get() - downloadedSize.get(),
+                            50,
+                            ProgressBar.ANSI_GREEN,
+                            "Downloading " + PrintHelper.formatByteSize(executorHolder.executor.getCurrentTotalBytes())
+                    );*/
+                } catch (InterruptedException e) {
+                    //
+                }
+            }
+            executorHolder.executor.shutdown();
+        });
+
+        try {
+            executorHolder.indicator.start();
+            executorHolder.indicator.join();
+            System.out.println();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static class MyObject {
+        WorkerExecutor executor;
+        Thread indicator;
+    }
 
     /**
      * Clears the console screen. Uses ANSI escape codes for Unix-like systems.
