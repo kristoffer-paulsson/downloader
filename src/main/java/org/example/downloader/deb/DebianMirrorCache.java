@@ -16,10 +16,7 @@ package org.example.downloader.deb;
 
 import org.example.downloader.GeneralEnvironment;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,8 +31,8 @@ import static java.util.regex.Pattern.compile;
 public class DebianMirrorCache {
 
     private static final String MIRROR_LIST_URL = "https://www.debian.org/mirror/list-full";
-    private final String CACHE_FILE = "mirror.txt";
-    private final String BAD_MIRRORS_FILE = "bad-mirrors.txt";
+    private static final String CACHE_FILE = "mirror.txt";
+    private static final String BAD_MIRRORS_FILE = "bad-mirrors.txt";
 
     private List<String> mirrors;
     private List<String> badMirrors;
@@ -43,7 +40,7 @@ public class DebianMirrorCache {
 
     private final Path cacheDir;
 
-    DebianMirrorCache(GeneralEnvironment ge) {
+    public DebianMirrorCache(GeneralEnvironment ge) {
         this.cacheDir = ge.getCacheDir();
         this.badMirrors = new ArrayList<>();
         loadCachedMirrors(false);
@@ -166,5 +163,13 @@ public class DebianMirrorCache {
         } catch (IOException e) {
             System.err.println("Error writing bad mirror: " + e.getMessage());
         }
+    }
+
+    public static Path mirrorFile(GeneralEnvironment ge) {
+        return ge.getCacheDir().resolve(CACHE_FILE);
+    }
+
+    public static Path badMirrorFile(GeneralEnvironment ge) {
+        return ge.getCacheDir().resolve(BAD_MIRRORS_FILE);
     }
 }

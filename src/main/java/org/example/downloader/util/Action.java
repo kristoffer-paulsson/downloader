@@ -125,6 +125,30 @@ public abstract class Action {
         scanner.nextLine();
     }
 
+    public boolean promptYesNo(String prompt, String yesString, char yes, String noString, char no) {
+        while (true) {
+            System.out.println(prompt);
+            System.out.print(yesString + " [" + yes + "] or, " + noString + " [" + no + "]: ");
+
+            System.out.flush(); // Ensure prompt appears immediately
+            try {
+                String input = scanner.nextLine().trim().toLowerCase(); // Read and normalize input
+                System.out.println();
+                if (input.equals(String.valueOf(yes))) {
+                    return true;
+                } else if (input.equals(String.valueOf(no))) {
+                    return false;
+                } else {
+                    System.out.println("Invalid input.");
+                    showMessageAndWait(""); // Pause before re-prompting
+                }
+            } catch (IllegalStateException e) {
+                System.err.println("Error: Input stream is closed.");
+                return false; // Default to false on error
+            }
+        }
+    }
+
     /**
      * Closes the scanner to free resources.
      */
