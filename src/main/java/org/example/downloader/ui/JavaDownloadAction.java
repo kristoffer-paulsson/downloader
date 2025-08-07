@@ -59,8 +59,18 @@ public class JavaDownloadAction extends JavaVerifyAction {
 
         JavaWorkerIterator javaDownloader = new JavaWorkerIterator(em, allPackages, chain, logger);
 
+        progressWorker(executorHolder, javaDownloader, logger, (eh) -> {
+            ProgressBar.printProgressMsg(
+                    eh.executor.getCurrentTotalBytes(),
+                    totalSize.get() - downloadedSize.get(),
+                    50,
+                    ProgressBar.ANSI_GREEN,
+                    "Downloading " + PrintHelper.formatByteSize(eh.executor.getCurrentTotalBytes())
+            );
+        });
 
-        executorHolder.executor = new WorkerExecutor(javaDownloader, logger);
+
+       /* executorHolder.executor = new WorkerExecutor(javaDownloader, logger);
         executorHolder.indicator = new Thread(() -> {
 
             executorHolder.executor.start();
@@ -87,7 +97,7 @@ public class JavaDownloadAction extends JavaVerifyAction {
             System.out.println();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }
+        }*/
 
         if(javaDownloader.getIncompleteDownloads().isEmpty()) {
             System.out.println("No incomplete downloads, finalizing blockchain!");

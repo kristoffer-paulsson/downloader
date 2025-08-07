@@ -14,9 +14,7 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.java.JavaWorkerIterator;
 import org.example.downloader.util.*;
-
 import java.util.Optional;
 
 
@@ -56,7 +54,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
         System.out.println("Totally " + allPackages.size() + " artifacts yet to download for completion.");
         System.out.println("Approximately up to " + PrintHelper.formatByteSize(totalSize.get() - downloadedSize.get()) + " of data to download.");
 
-        JavaWorkerIterator javaDownloader = new JavaWorkerIterator(em, allPackages, chain, logger);
+        /*JavaWorkerIterator javaDownloader = new JavaWorkerIterator(em, allPackages, chain, logger);
 
 
         executorHolder.executor = new WorkerExecutor(javaDownloader, logger);
@@ -86,14 +84,14 @@ public class DebianDownloadAction extends DebianVerifyAction {
             System.out.println();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }
+        }*/
 
-        if(javaDownloader.getIncompleteDownloads().isEmpty()) {
+        /*if(javaDownloader.getIncompleteDownloads().isEmpty()) {
             System.out.println("No incomplete downloads, finalizing blockchain!");
             chain.finalizeBlockchain();
         } else {
             System.out.println("Number of incomplete downloads are " + javaDownloader.getIncompleteDownloads().size() + ", try to download again.");
-        }
+        }*/
 
         chain.close();
     }
