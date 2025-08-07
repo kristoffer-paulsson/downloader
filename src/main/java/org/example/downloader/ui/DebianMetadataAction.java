@@ -60,19 +60,7 @@ public class DebianMetadataAction extends Action {
 
         checkBadMirrors();
         checkMirrors();
-
-        DebianMetadataDownloader metadataDownloader = new DebianMetadataDownloader(ge, dde, logger);
-
-        progressWorker(executorHolder, metadataDownloader, logger, (eh) -> {
-            ProgressBar.printProgressMsg(
-                    executorHolder.executor.getCurrentTotalBytes(),
-                    100 * 1024 * 1024,
-                    50,
-                    ProgressBar.ANSI_GREEN,
-                    "Downloading packages lists " + PrintHelper.formatByteSize(executorHolder.executor.getCurrentTotalBytes())
-            );
-        });
-
+        downloadPackageLists();
     }
 
     private void checkBadMirrors() {
@@ -108,6 +96,30 @@ public class DebianMetadataAction extends Action {
             DebianMirrorCache dmc = new DebianMirrorCache(ge);
             dmc.loadCachedMirrors(false);
             System.out.println("There are " + PrintHelper.coloredMessage(String.valueOf(dmc.mirrorCount()), PrintHelper.ANSI_BLUE) + " Debian mirrors available.");
+        }
+    }
+
+    private void downloadPackageLists() {
+        System.out.println("Will download the package lists");
+        DebianMetadataDownloader metadataDownloader = new DebianMetadataDownloader(ge, dde, logger);
+
+        progressWorker(executorHolder, metadataDownloader, logger, (eh) -> {
+            ProgressBar.printProgressMsg(
+                    eh.executor.getCurrentTotalBytes(),
+                    metadataDownloader.getTotalBytes(),
+                    50,
+                    ProgressBar.ANSI_GREEN,
+                    "Downloading packages lists " + PrintHelper.formatByteSize(eh.executor.getCurrentTotalBytes())
+            );
+        });
+
+        if(metadataDownloader.getIncompleteDownloads().isEmpty()) {
+            System.out.println("All packages lists downloaded");
+        } else {
+            System.out.println("The following packages lists failed or didn't complete");
+            metadataDownloader.getIncompleteDownloads().forEach((d) -> {
+                System.out.println("Incomplete: " + d.getUrl());
+            });
         }
     }
 }
