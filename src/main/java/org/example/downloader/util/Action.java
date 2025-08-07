@@ -79,7 +79,7 @@ public abstract class Action {
     }
 
     public static class MyObject {
-        WorkerExecutor executor;
+        public WorkerExecutor executor;
         Thread indicator;
     }
 

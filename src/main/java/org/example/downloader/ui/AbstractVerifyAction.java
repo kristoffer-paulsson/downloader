@@ -126,7 +126,24 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
             WorkLogger logger,
             long totalSize
     ) {
-        executorHolder.executor = new WorkerExecutor(verifier, logger);
+        progressWorker(executorHolder, verifier, logger, (eh) -> {
+            String color;
+            if(verifier.isBroken()) {
+                color = ProgressBar.ANSI_RED;
+            } else if(!verifier.getBrokenArtifacts().isEmpty()) {
+                color = ProgressBar.ANSI_YELLOW;
+            } else {
+                color = ProgressBar.ANSI_GREEN;
+            }
+            ProgressBar.printProgressMsg(
+                    eh.executor.getCurrentTotalBytes(),
+                    totalSize,
+                    50,
+                    color,
+                    "Verifying blockchain " + PrintHelper.formatSpeed(eh.executor.getSpeed())
+            );
+        });
+        /*executorHolder.executor = new WorkerExecutor(verifier, logger);
         executorHolder.indicator = new Thread(() -> {
             String color;
 
@@ -161,7 +178,7 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
             System.out.println();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }
+        }*/
     }
 
     protected void postVerificationAnalyze(
@@ -196,8 +213,8 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
         });
     }
 
-    protected static class MyObject {
+    /*protected static class MyObject {
         WorkerExecutor executor;
         Thread indicator;
-    }
+    }*/
 }
