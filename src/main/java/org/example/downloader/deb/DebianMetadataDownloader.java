@@ -24,6 +24,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -67,16 +68,15 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
 
     public void prepareMetadataTasks() {
         List<Pair<BasePackageImpl, DownloadHelper.Download>> metadataTasks = new ArrayList<>();
-        Iterator<String> components = DebianComponent.toStringList().iterator();
+        Iterator<DebianComponent> components = Arrays.stream(DebianComponent.values()).iterator();
 
-        components.forEachRemaining((comp) ->{
+        components.forEachRemaining((component) -> {
+            String comp = component.getComp();
             String url = String.format(PACKAGE_URL, dde.getDistribution().getDist(), comp, dde.getArchitecture().getArch());
 
             try {
-                Path cachePath = dde.getDownloadDir();
-                Files.createDirectories(cachePath);
-
-                Path outputFile = cachePath.resolve(String.format(PACKAGE_REPO, dde.getDistribution().getDist(), comp, dde.getArchitecture().getArch()));
+                Path outputFile = repositoryFile(dde, component);
+                Files.createDirectories(dde.getDownloadDir());
                 Files.createDirectories(outputFile.getParent());
 
                 URL realUrl = URI.create(url).toURL();
@@ -93,6 +93,10 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
             }
         });
         this.metadataTasks = metadataTasks.iterator();
+    }
+
+    public static Path repositoryFile(DebianDownloadEnvironment dde, DebianComponent comp) {
+        return dde.getDownloadDir().resolve(String.format(PACKAGE_REPO, dde.getDistribution().getDist(), comp.getComp(), dde.getArchitecture().getArch()));
     }
 
     public List<DownloadHelper.Download> getIncompleteDownloads() {

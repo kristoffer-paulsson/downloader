@@ -20,7 +20,6 @@ import org.example.downloader.deb.DebianDownloadEnvironment;
 import org.example.downloader.deb.DebianMetadataDownloader;
 import org.example.downloader.deb.DebianMirrorCache;
 import org.example.downloader.util.Action;
-import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.util.PrintHelper;
 
@@ -35,8 +34,6 @@ public class DebianMetadataAction extends Action {
     protected DebianDownloadEnvironment dde;
     protected MyObject executorHolder;
     WorkLogger logger;
-
-    BlockChainHelper.Blockchain chain;
 
     public DebianMetadataAction(InversionOfControl ioc, String name) {
         super(ioc, name);

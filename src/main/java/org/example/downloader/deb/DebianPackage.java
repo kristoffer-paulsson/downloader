@@ -14,16 +14,12 @@
  */
 package org.example.downloader.deb;
 
-import org.example.downloader.ConfigManager;
 import org.example.downloader.util.BasePackage;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 public class DebianPackage implements BasePackage {
 

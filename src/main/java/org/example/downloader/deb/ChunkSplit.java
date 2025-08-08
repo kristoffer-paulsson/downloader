@@ -12,7 +12,7 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
-package org.example.downloader;
+package org.example.downloader.deb;
 
 import java.util.List;
 
@@ -22,7 +22,7 @@ public class ChunkSplit {
     public final int chunkNum;
     public final List<DebianPackage> packages;
 
-    public ChunkSplit(List<DebianPackage> packages, int chunkNum, long startIndex, long endIndex) {
+    ChunkSplit(List<DebianPackage> packages, int chunkNum, long startIndex, long endIndex) {
         this.startIndex = startIndex;
         this.endIndex = endIndex;
         this.chunkNum = chunkNum;
