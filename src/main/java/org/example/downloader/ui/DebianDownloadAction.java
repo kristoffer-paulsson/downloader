@@ -14,6 +14,7 @@
  */
 package org.example.downloader.ui;
 
+import org.example.downloader.deb.DebianWorkerIterator;
 import org.example.downloader.util.*;
 import java.util.Optional;
 
@@ -54,44 +55,24 @@ public class DebianDownloadAction extends DebianVerifyAction {
         System.out.println("Totally " + allPackages.size() + " artifacts yet to download for completion.");
         System.out.println("Approximately up to " + PrintHelper.formatByteSize(totalSize.get() - downloadedSize.get()) + " of data to download.");
 
-        /*JavaWorkerIterator javaDownloader = new JavaWorkerIterator(em, allPackages, chain, logger);
+        DebianWorkerIterator debianDownloader = new DebianWorkerIterator(ge, em, allPackages, chain, logger);
 
-
-        executorHolder.executor = new WorkerExecutor(javaDownloader, logger);
-        executorHolder.indicator = new Thread(() -> {
-
-            executorHolder.executor.start();
-            while (executorHolder.executor.isRunning()) {
-                try {
-                    Thread.sleep(10);
-                    ProgressBar.printProgressMsg(
-                            executorHolder.executor.getCurrentTotalBytes(),
-                            totalSize.get() - downloadedSize.get(),
-                            50,
-                            ProgressBar.ANSI_GREEN,
-                            "Downloading " + PrintHelper.formatByteSize(executorHolder.executor.getCurrentTotalBytes())
-                    );
-                } catch (InterruptedException e) {
-                    //
-                }
-            }
-            executorHolder.executor.shutdown();
+        progressWorker(executorHolder, debianDownloader, logger, (eh) -> {
+            ProgressBar.printProgressMsg(
+                    eh.executor.getCurrentTotalBytes(),
+                    totalSize.get() - downloadedSize.get(),
+                    50,
+                    ProgressBar.ANSI_GREEN,
+                    "Downloading " + PrintHelper.formatByteSize(eh.executor.getCurrentTotalBytes())
+            );
         });
 
-        try {
-            executorHolder.indicator.start();
-            executorHolder.indicator.join();
-            System.out.println();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }*/
-
-        /*if(javaDownloader.getIncompleteDownloads().isEmpty()) {
+        if(debianDownloader.getIncompleteDownloads().isEmpty()) {
             System.out.println("No incomplete downloads, finalizing blockchain!");
             chain.finalizeBlockchain();
         } else {
-            System.out.println("Number of incomplete downloads are " + javaDownloader.getIncompleteDownloads().size() + ", try to download again.");
-        }*/
+            System.out.println("Number of incomplete downloads are " + debianDownloader.getIncompleteDownloads().size() + ", try to download again.");
+        }
 
         chain.close();
     }

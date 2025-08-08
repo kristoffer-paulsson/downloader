@@ -16,6 +16,7 @@ package org.example.downloader.ui;
 
 import org.example.downloader.deb.DebianDownloadEnvironment;
 import org.example.downloader.deb.DebianPackage;
+import org.example.downloader.deb.DebianParser;
 import org.example.downloader.util.*;
 
 import java.nio.file.Path;
@@ -83,7 +84,11 @@ public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvir
 
     @Override
     protected void loadArtifactInventory() {
-        // TODO
+        DebianParser.chunkPackages(em).get(em.getPiece()-1).packages.forEach((p) -> {
+            allPackages.put(p.getSha256Digest(), p);
+            totalSize.getAndAdd(p.getByteSize());
+            count.getAndIncrement();
+        });
     }
 
     /*protected void artifactInventory() {
