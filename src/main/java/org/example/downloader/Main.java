@@ -14,13 +14,11 @@
  */
 package org.example.downloader;
 
-import org.example.downloader.deb.WorkerTask;
 import org.example.downloader.ui.MainMenu;
 import org.example.downloader.util.InversionOfControl;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -37,27 +35,26 @@ public class Main {
         cleanup();
     }
 
-    private WorkerTask task = WorkerTask.IDLE;
+    //private WorkerTask task = WorkerTask.IDLE;
 
-    private DebianWorkerExecutor executor;
+    //private DebianWorkerExecutor executor;
 
     Main() {
-        setIdleExecutor();
     }
 
-    public WorkerTask getTask() {
+    /*public WorkerTask getTask() {
         return task;
-    }
+    }*/
 
-    public DebianWorkerExecutor getExecutor() {
+    /*public DebianWorkerExecutor getExecutor() {
         return executor;
-    }
+    }*/
 
-    private void setIdleExecutor() {
+    /*private void setIdleExecutor() {
         this.executor = new DebianWorkerExecutor(new DebianWorkerIterator(ioc, List.of()), ioc.resolve(WorkLogger.class));
-    }
+    }*/
 
-    public void setExecutor(DebianWorkerIterator iterator, WorkerTask task) {
+    /*public void setExecutor(DebianWorkerIterator iterator, WorkerTask task) {
         if(task != WorkerTask.IDLE) {
             executor.shutdown();
         }
@@ -65,11 +62,11 @@ public class Main {
 
         this.executor = new DebianWorkerExecutor(iterator, ioc.resolve(WorkLogger.class));
         this.executor.start();
-    }
+    }*/
 
     private static void cleanup() {
         if (ioc != null) {
-            ioc.resolve(Main.class).executor.shutdown();
+            //ioc.resolve(Main.class).executor.shutdown();
             try {
                 ioc.resolve(WorkLogger.class).rotateLogFile(true);
             } catch (IOException e) {
@@ -84,13 +81,13 @@ public class Main {
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
 
         // To be deprecated
-        ioc.register(ConfigManager.class, () -> {
+        /*ioc.register(ConfigManager.class, () -> {
             try {
                 return new ConfigManager(configPath);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        });*/
 
         ioc.register(GeneralEnvironment.class, () -> new GeneralEnvironment(Path.of(configPath)));
 
@@ -104,11 +101,11 @@ public class Main {
 
         ioc.register(Main.class, Main::new);
 
-        ioc.register(DebianPackagesListCache.class, () -> new DebianPackagesListCache(ioc.resolve(ConfigManager.class)));
+        //ioc.register(DebianPackagesListCache.class, () -> new DebianPackagesListCache(ioc.resolve(ConfigManager.class)));
 
-        ioc.register(DebianPackageChunkSplitter.class, () -> new DebianPackageChunkSplitter(ioc));
+        //ioc.register(DebianPackageChunkSplitter.class, () -> new DebianPackageChunkSplitter(ioc));
 
-        ioc.register(DebianMirrorCache.class, () -> new DebianMirrorCache(ioc.resolve(ConfigManager.class)));
+        //ioc.register(DebianMirrorCache.class, () -> new DebianMirrorCache(ioc.resolve(ConfigManager.class)));
 
         ioc.register(Scanner.class, () -> new Scanner(System.in));
 

@@ -14,11 +14,8 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.ConfigManager;
+import org.example.downloader.GeneralEnvironment;
 import org.example.downloader.util.InversionOfControl;
-import org.example.downloader.deb.DebianArchitecture;
-import org.example.downloader.deb.DebianComponent;
-import org.example.downloader.deb.DebianDistribution;
 import org.example.downloader.util.Form;
 
 import java.io.IOException;
@@ -36,39 +33,11 @@ public class ConfigForm extends Form {
 
     @Override
     protected void setupForm() {
-        ConfigManager configManager = ioc.resolve(ConfigManager.class);
-
-        registerQuestion(() -> askMultipleChoiceQuestion(
-                "Enter distribution",
-                DebianDistribution.toStringList(),
-                configManager.get(ConfigManager.DIST),
-                System.out::println
-        ));
-
-        registerQuestion(() -> askMultipleChoiceQuestion(
-                "Enter architecture",
-                DebianArchitecture.toStringList(),
-                configManager.get(ConfigManager.ARCH),
-                System.out::println
-        ));
-
-        registerQuestion(() -> askMultipleChoiceQuestion(
-                "Enter component",
-                DebianComponent.toStringList(),
-                configManager.get(ConfigManager.COMP),
-                System.out::println
-        ));
+        GeneralEnvironment ge = ioc.resolve(GeneralEnvironment.class);
 
         registerQuestion(() -> askQuestion(
                 "Enter cache directory",
-                configManager.get(ConfigManager.DIR_CACHE, "runtime-cache"),
-                this::validatePath,
-                System.out::println
-        ));
-
-        registerQuestion(() -> askQuestion(
-                "Enter package directory",
-                configManager.get(ConfigManager.DIR_PKG, "package-cache"),
+                ge.get(GeneralEnvironment.DIR_CACHE, "runtime-cache"),
                 this::validatePath,
                 System.out::println
         ));
@@ -76,21 +45,14 @@ public class ConfigForm extends Form {
 
     @Override
     protected void processForm() {
-        ConfigManager configManager = ioc.resolve(ConfigManager.class);
+        GeneralEnvironment ge = ioc.resolve(GeneralEnvironment.class);
         List<Answer> answers = getAnswers();
 
-        configManager.set(ConfigManager.DIST, answers.get(0).getResponse());
-        configManager.set(ConfigManager.ARCH, answers.get(1).getResponse());
-        configManager.set(ConfigManager.COMP, answers.get(2).getResponse());
-        configManager.set(ConfigManager.DIR_CACHE, answers.get(3).getResponse());
-        configManager.set(ConfigManager.DIR_PKG, answers.get(4).getResponse());
-
-        configManager.set(ConfigManager.CHUNKS, configManager.get(ConfigManager.CHUNKS, "1"));
-        configManager.set(ConfigManager.PIECE, configManager.get(ConfigManager.PIECE, "1"));
+        ge.set(GeneralEnvironment.DIR_CACHE, answers.get(0).getResponse());
 
         try {
-            configManager.save();
-            configManager.reload();
+            ge.save();
+            ge.reload();
             System.out.println("Saved and reloaded new configuration.");
         } catch (IOException e) {
             throw new RuntimeException(e);

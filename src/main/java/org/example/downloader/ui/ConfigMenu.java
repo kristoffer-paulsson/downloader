@@ -14,7 +14,7 @@
  */
 package org.example.downloader.ui;
 
-import org.example.downloader.ConfigManager;
+import org.example.downloader.GeneralEnvironment;
 import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.util.Menu;
 
@@ -26,13 +26,12 @@ public class ConfigMenu extends Menu {
     @Override
     protected void setupMenu() {
         registerOption("Setup config", option -> new ConfigForm(ioc).runForm());
-        registerOption("Setup chunks", option -> new ChunkForm(ioc).runForm());
-        registerOption("Review config", option -> reviewConfig(ioc.resolve(ConfigManager.class)));
+        registerOption("Review config", option -> reviewConfig(ioc.resolve(GeneralEnvironment.class)));
     }
 
-    private void reviewConfig(ConfigManager configManager) {
-        System.out.println("\n=== Current config ===");
-        configManager.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
+    private void reviewConfig(GeneralEnvironment ge) {
+        System.out.println("\n=== General environment ===");
+        ge.getProperties().forEach((k, v) -> System.out.println(k + " = " + v));
         showMessageAndWait(" ");
     }
 }
