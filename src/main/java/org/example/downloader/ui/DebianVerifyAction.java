@@ -85,7 +85,6 @@ public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvir
     @Override
     protected void loadArtifactInventory() {
         DebianParser.chunkPackages(em).get(em.getPiece()-1).packages.forEach((p) -> {
-            System.out.println(p.getFilename());
             allPackages.put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
