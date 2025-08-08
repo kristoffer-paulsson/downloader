@@ -108,13 +108,7 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
         return true;
     }
 
-    protected abstract String generateArtifactPath(BlockChainHelper.Row r); /* {
-        return String.format(
-                "%s/%s",
-                em.getDownloadDir().toString(),
-                allPackages.get(r.getDigest()).getFilename()
-        );
-    }*/
+    protected abstract String generateArtifactPath(BlockChainHelper.Row r);
 
     protected BlockchainVerifier createBlockchainVerifier() {
         return new BlockchainVerifier(chain, logger, (r) -> Path.of(generateArtifactPath(r)));
@@ -143,42 +137,6 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
                     "Verifying blockchain " + PrintHelper.formatSpeed(eh.executor.getSpeed())
             );
         });
-        /*executorHolder.executor = new WorkerExecutor(verifier, logger);
-        executorHolder.indicator = new Thread(() -> {
-            String color;
-
-            executorHolder.executor.start();
-            while (executorHolder.executor.isRunning()) {
-                try {
-                    Thread.sleep(10);
-                    if(verifier.isBroken()) {
-                        color = ProgressBar.ANSI_RED;
-                    } else if(!verifier.getBrokenArtifacts().isEmpty()) {
-                        color = ProgressBar.ANSI_YELLOW;
-                    } else {
-                        color = ProgressBar.ANSI_GREEN;
-                    }
-                    ProgressBar.printProgressMsg(
-                            executorHolder.executor.getCurrentTotalBytes(),
-                            totalSize,
-                            50,
-                            color,
-                            "Verifying blockchain " + PrintHelper.formatSpeed(executorHolder.executor.getSpeed())
-                    );
-                } catch (InterruptedException e) {
-                    //
-                }
-            }
-            executorHolder.executor.shutdown();
-        });
-
-        try {
-            executorHolder.indicator.start();
-            executorHolder.indicator.join();
-            System.out.println();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }*/
     }
 
     protected void postVerificationAnalyze(
@@ -212,9 +170,4 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
             downloadedSize.addAndGet(jp.getByteSize());
         });
     }
-
-    /*protected static class MyObject {
-        WorkerExecutor executor;
-        Thread indicator;
-    }*/
 }

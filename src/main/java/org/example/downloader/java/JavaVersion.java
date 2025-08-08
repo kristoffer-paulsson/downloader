@@ -72,23 +72,4 @@ public enum JavaVersion {
         }
         return versionList;
     }
-
-    /*public static void main(String[] args) {
-        int count = 0;
-        // Example usage
-        for (JavaFlavor javaEdition : JavaFlavor.values()) {
-            for (JavaVersion javaVersion : JavaVersion.values()) {
-                for (JavaImage javaType : JavaImage.values()) {
-                    for (JavaPlatform javaEnvironment : JavaPlatform.values()) {
-                        for (JavaArchitecture javaArchitecture : JavaArchitecture.values()) {
-                            for (JavaInstaller javaPackage : JavaInstaller.values()) {
-                                String config = String.join("-", javaEdition.getEdition(), javaVersion.getVersion(), javaType.getType(), javaEnvironment.getOs(), javaArchitecture.getArch(), javaPackage.getPackageType());
-                                System.out.println(++count + ": " + config);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }*/
 }

@@ -71,21 +71,4 @@ public class DebianPackage implements BasePackage {
     public String uniqueKey() {
         return ""; // TODO
     }
-
-    public DebianFile getFileStatus(Path filePath) {
-        if (!Files.exists(filePath)) {
-            return DebianFile.NONE;
-        }
-        try {
-            long fileSize = Files.size(filePath);
-            if (fileSize == size) {
-                return DebianFile.COMPLETE;
-            } else if (fileSize < size) {
-                return DebianFile.PARTIAL;
-            }
-        } catch (IOException e) {
-            // Handle the exception as needed
-        }
-        return DebianFile.NONE;
-    }
 }

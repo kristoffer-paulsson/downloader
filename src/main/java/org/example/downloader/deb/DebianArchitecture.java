@@ -14,12 +14,9 @@
  */
 package org.example.downloader.deb;
 
-import org.example.downloader.java.JavaArchitecture;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 public enum DebianArchitecture {
     AMD_64("amd64"),

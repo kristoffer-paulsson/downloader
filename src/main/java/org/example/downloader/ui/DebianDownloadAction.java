@@ -82,7 +82,6 @@ public class DebianDownloadAction extends DebianVerifyAction {
         Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
                 ge.getChainDir(),
                 generateBlockchainFilename()
-                //String.format(FILENAME, em.hashOfConfiguration())
         );
         if(blockchain.isPresent()) {
             chain = blockchain.get();

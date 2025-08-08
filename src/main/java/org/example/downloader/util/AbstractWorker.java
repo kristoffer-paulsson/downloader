@@ -32,20 +32,7 @@ public abstract class AbstractWorker implements Runnable {
     }
 
     @Override
-    public abstract void run(); /*{
-        if (!isRunning.compareAndSet(false, true)) {
-            logger.warning("Download already in progress for " + downloadTask);
-            return;
-        }
-
-        try {
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } finally {
-            isRunning.set(false);
-        }
-    }*/
+    public abstract void run();
 
     protected abstract void stopProcessImpl();
 

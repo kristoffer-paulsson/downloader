@@ -14,7 +14,6 @@
  */
 package org.example.downloader.util;
 
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 public abstract class WorkerIterator<E extends BasePackage> extends AbstractWorkerIterator<Worker<E>> {

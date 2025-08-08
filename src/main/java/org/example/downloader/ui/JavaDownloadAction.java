@@ -69,36 +69,6 @@ public class JavaDownloadAction extends JavaVerifyAction {
             );
         });
 
-
-       /* executorHolder.executor = new WorkerExecutor(javaDownloader, logger);
-        executorHolder.indicator = new Thread(() -> {
-
-            executorHolder.executor.start();
-            while (executorHolder.executor.isRunning()) {
-                try {
-                    Thread.sleep(10);
-                    ProgressBar.printProgressMsg(
-                            executorHolder.executor.getCurrentTotalBytes(),
-                            totalSize.get() - downloadedSize.get(),
-                            50,
-                            ProgressBar.ANSI_GREEN,
-                            "Downloading " + PrintHelper.formatByteSize(executorHolder.executor.getCurrentTotalBytes())
-                    );
-                } catch (InterruptedException e) {
-                    //
-                }
-            }
-            executorHolder.executor.shutdown();
-        });
-
-        try {
-            executorHolder.indicator.start();
-            executorHolder.indicator.join();
-            System.out.println();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }*/
-
         if(javaDownloader.getIncompleteDownloads().isEmpty()) {
             System.out.println("No incomplete downloads, finalizing blockchain!");
             chain.finalizeBlockchain();
@@ -114,7 +84,6 @@ public class JavaDownloadAction extends JavaVerifyAction {
         Optional<BlockChainHelper.Blockchain> blockchain = BlockChainHelper.resumeBlockchain(
                 ge.getChainDir(),
                 generateBlockchainFilename()
-                //String.format(FILENAME, em.hashOfConfiguration())
         );
         if(blockchain.isPresent()) {
             chain = blockchain.get();

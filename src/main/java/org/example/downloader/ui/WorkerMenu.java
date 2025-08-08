@@ -39,9 +39,6 @@ public class WorkerMenu extends Menu {
         Main main = ioc.resolve(Main.class);
 
         if(main.getTask() != WorkerTask.DOWNLOAD) {
-            // DebianPackageChunkSplitter splitter = ioc.resolve(DebianPackageChunkSplitter.class);
-            // main.setExecutor(splitter.jointWorkerIterator(), WorkerTask.DOWNLOAD);
-
             ioc.register(DebianPackageBlockchain.class, () -> new DebianPackageBlockchain(ioc));
             try {
                 System.out.println("Starting download blockchain worker...");
