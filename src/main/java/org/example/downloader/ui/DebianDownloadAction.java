@@ -46,7 +46,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
         } catch (IllegalStateException e) {
             chain = BlockChainHelper.startBlockchain(
                     ge.getChainDir(),
-                    String.format(FILENAME, em.hashOfConfiguration())
+                    generateBlockchainFilename()
             );
             chain.start();
             System.out.println("Created new blockchain: " + chain.getBlockchainFile());

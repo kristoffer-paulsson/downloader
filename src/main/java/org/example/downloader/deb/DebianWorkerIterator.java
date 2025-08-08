@@ -124,21 +124,21 @@ public class DebianWorkerIterator extends WorkerIterator<DebianPackage> {
         protected void doWhenTimedOut() throws IOException {
             incompleteDownloads.get().add(downloadTask);
             mirrors.reportBadMirror(baseUrl);
-            System.out.println("Download timed out for " + basePackage.uniqueKey());
+            logger.info("Download timed out for " + basePackage.uniqueKey());
         }
 
         @Override
         protected void doWhenError() throws IOException {
             incompleteDownloads.get().add(downloadTask);
             mirrors.reportBadMirror(baseUrl);
-            System.out.println("Download errored for " + basePackage.uniqueKey());
+            logger.warning("Download errored for " + basePackage.uniqueKey());
         }
 
         @Override
         protected void doWhenUnexpected() throws IOException {
             incompleteDownloads.get().add(downloadTask);
             mirrors.reportBadMirror(baseUrl);
-            System.out.println("Something unexpected for " + basePackage.uniqueKey());
+            logger.warning("Something unexpected for " + basePackage.uniqueKey());
         }
     }
 }

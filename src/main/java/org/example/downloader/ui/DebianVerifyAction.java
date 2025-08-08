@@ -24,7 +24,7 @@ import java.nio.file.Path;
 
 public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvironment, DebianPackage> {
 
-    public static String FILENAME = "debian_%s_%s_%s_%s-";
+    public static String FILENAME = "debian_%s_%s_%s_%s";
 
     /*protected GeneralEnvironment ge;
     protected DebianDownloadEnvironment dde;
@@ -85,6 +85,7 @@ public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvir
     @Override
     protected void loadArtifactInventory() {
         DebianParser.chunkPackages(em).get(em.getPiece()-1).packages.forEach((p) -> {
+            System.out.println(p.getFilename());
             allPackages.put(p.getSha256Digest(), p);
             totalSize.getAndAdd(p.getByteSize());
             count.getAndIncrement();
@@ -102,7 +103,7 @@ public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvir
     }*/
 
     protected String generateBlockchainFilename() {
-        return String.format(FILENAME, em.getDistribution(), em.getArchitecture(), em.getChunks(), em.getPiece());
+        return String.format(FILENAME, em.getDistribution().getDist(), em.getArchitecture().getArch(), em.getChunks(), em.getPiece());
     }
 
     /*protected boolean prepareResumeBlockchain() {

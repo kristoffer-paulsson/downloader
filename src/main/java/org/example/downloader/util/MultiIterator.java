@@ -29,7 +29,7 @@ public class MultiIterator<E extends BasePackage> implements Iterator<E>, AutoCl
 
     @Override
     public boolean hasNext() {
-        if (currentIterator == null) {
+        if (currentIterator == null || !currentIterator.hasNext()) {
             if (!iterators.hasNext()) {
                 return false; // No iterators available
             }
