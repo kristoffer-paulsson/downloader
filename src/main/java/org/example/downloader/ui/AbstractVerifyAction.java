@@ -36,7 +36,7 @@ public abstract class AbstractVerifyAction<E extends EnvironmentManager, P exten
     protected MyObject executorHolder;
     WorkLogger logger;
 
-    BlockChainHelper.Blockchain chain;
+    protected BlockChainHelper.Blockchain chain;
 
     public AbstractVerifyAction(InversionOfControl ioc, String name) {
         super(ioc, name);

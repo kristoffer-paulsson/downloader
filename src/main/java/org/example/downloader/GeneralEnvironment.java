@@ -23,6 +23,7 @@ public class GeneralEnvironment extends EnvironmentManager {
 
     public static String DIR_CACHE = "cache_dir";
     public final static String BLOCKCHAIN_DIR = "chain";
+    public final static String LOGS_DIR = "logs";
 
 
     public GeneralEnvironment(Path configFilePath) {
@@ -43,5 +44,9 @@ public class GeneralEnvironment extends EnvironmentManager {
 
     public Path getChainDir() {
         return getCacheDir().resolve(BLOCKCHAIN_DIR);
+    }
+
+    public Path getLogsDir() {
+        return getCacheDir().resolve(LOGS_DIR);
     }
 }

@@ -24,8 +24,6 @@ public class JavaVerifyAction extends AbstractVerifyAction<JavaDownloadEnvironme
 
     public static String FILENAME = "java_download-%s";
 
-    BlockChainHelper.Blockchain chain;
-
     public JavaVerifyAction(InversionOfControl ioc, String name) {
         super(ioc, name);
     }

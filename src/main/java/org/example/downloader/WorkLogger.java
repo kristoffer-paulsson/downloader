@@ -25,8 +25,8 @@ public class WorkLogger {
     private final Path logFile;
     private final long maxFileSize = 16 * 1024 * 1024; // 5MB
 
-    WorkLogger(ConfigManager configManager) throws IOException {
-        Path logDir = Paths.get(configManager.get(ConfigManager.DIR_CACHE), "logs");
+    WorkLogger(GeneralEnvironment ge) throws IOException {
+        Path logDir = ge.getLogsDir();
         Files.createDirectories(logDir);
         this.logFile = logDir.resolve("downloader.log");
 

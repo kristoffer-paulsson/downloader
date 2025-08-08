@@ -69,6 +69,6 @@ public class DebianPackage implements BasePackage {
 
     @Override
     public String uniqueKey() {
-        return ""; // TODO
+        return String.format("%s_%s_%s_%s", packageName, version, distribution, architecture);
     }
 }

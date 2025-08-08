@@ -26,8 +26,6 @@ public class DebianVerifyAction extends AbstractVerifyAction<DebianDownloadEnvir
 
     public static String FILENAME = "debian_%s_%s_%s_%s";
 
-    BlockChainHelper.Blockchain chain;
-
     public DebianVerifyAction(InversionOfControl ioc, String name) {
         super(ioc, name);
     }

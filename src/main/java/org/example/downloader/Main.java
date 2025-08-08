@@ -93,7 +93,7 @@ public class Main {
 
         ioc.register(WorkLogger.class, () -> {
             try {
-                return new WorkLogger(ioc.resolve(ConfigManager.class));
+                return new WorkLogger(ioc.resolve(GeneralEnvironment.class));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

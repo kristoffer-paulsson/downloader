@@ -14,8 +14,6 @@
  */
 package org.example.downloader.java;
 
-import org.example.downloader.util.DownloadHelper;
-
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
