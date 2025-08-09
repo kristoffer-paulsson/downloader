@@ -44,8 +44,8 @@ public class DebianDownloadEnvironment extends EnvironmentManager {
         }
     }
 
-    public DebianDownloadEnvironment(String environmentDirPath){
-        super(Paths.get(environmentDirPath, ENVIRONMENT_FILE));
+    public DebianDownloadEnvironment(Path environmentDirPath){
+        super(environmentDirPath.resolve(ENVIRONMENT_FILE));
     }
 
     @Override

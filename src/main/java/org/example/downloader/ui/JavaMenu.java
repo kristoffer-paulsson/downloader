@@ -14,6 +14,7 @@
  */
 package org.example.downloader.ui;
 
+import org.example.downloader.GeneralEnvironment;
 import org.example.downloader.java.*;
 import org.example.downloader.util.*;
 import org.example.downloader.util.Menu;
@@ -23,7 +24,7 @@ public class JavaMenu extends Menu {
 
     public JavaMenu(InversionOfControl ioc) {
         super(ioc, "Java Downloader CLI");
-        ioc.register(JavaDownloadEnvironment.class, () -> new JavaDownloadEnvironment("./"));
+        ioc.register(JavaDownloadEnvironment.class, () -> new JavaDownloadEnvironment(ioc.resolve(GeneralEnvironment.class).getCacheDir()));
     }
 
     @Override

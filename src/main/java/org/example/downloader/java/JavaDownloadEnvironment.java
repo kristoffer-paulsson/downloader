@@ -46,8 +46,8 @@ public class JavaDownloadEnvironment extends EnvironmentManager {
         }
     }
 
-    public JavaDownloadEnvironment(String environmentDirPath){
-        super(Paths.get(environmentDirPath, ENVIRONMENT_FILE));
+    public JavaDownloadEnvironment(Path environmentDirPath){
+        super(environmentDirPath.resolve(ENVIRONMENT_FILE));
     }
 
     @Override

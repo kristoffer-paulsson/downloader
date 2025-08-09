@@ -14,6 +14,7 @@
  */
 package org.example.downloader.ui;
 
+import org.example.downloader.GeneralEnvironment;
 import org.example.downloader.deb.DebianDownloadEnvironment;
 import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.util.Menu;
@@ -23,7 +24,7 @@ public class DebianMenu extends Menu {
 
     public DebianMenu(InversionOfControl ioc) {
         super(ioc, "Debian Downloader CLI");
-        ioc.register(DebianDownloadEnvironment.class, () -> new DebianDownloadEnvironment("./"));
+        ioc.register(DebianDownloadEnvironment.class, () -> new DebianDownloadEnvironment(ioc.resolve(GeneralEnvironment.class).getCacheDir()));
     }
 
     @Override
