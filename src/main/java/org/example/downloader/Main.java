@@ -22,7 +22,7 @@ import java.nio.file.Path;
 import java.util.Scanner;
 
 public class Main {
-    private static final String DEFAULT_CONFIG = "config.properties";
+    private static final String DEFAULT_CONFIG = "./config.properties";
 
     private static InversionOfControl ioc = null;
 
@@ -79,15 +79,6 @@ public class Main {
         ioc = new InversionOfControl();
 
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG;
-
-        // To be deprecated
-        /*ioc.register(ConfigManager.class, () -> {
-            try {
-                return new ConfigManager(configPath);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });*/
 
         ioc.register(GeneralEnvironment.class, () -> new GeneralEnvironment(Path.of(configPath)));
 

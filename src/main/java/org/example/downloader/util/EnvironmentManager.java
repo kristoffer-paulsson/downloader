@@ -37,6 +37,7 @@ public class EnvironmentManager {
 
         try {
             if (!Files.exists(configPath)) {
+
                 Files.createDirectories(configPath.getParent());
                 Files.createFile(configPath);
             }
