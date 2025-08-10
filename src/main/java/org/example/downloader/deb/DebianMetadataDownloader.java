@@ -35,6 +35,15 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
 
     private static final String PACKAGE_URL = "http://deb.debian.org/debian/dists/%s/%s/binary-%s/Packages.gz";
     private static final String PACKAGE_REPO = "dists/%s/%s/binary-%s/Packages.gz";
+    private static final String PACKAGE_META_URL = "http://deb.debian.org/debian/dists/%s/%s";
+    private static final String PACKAGE_META_REPO = "dists/%s/%s";
+
+    private static final String[] META = {
+            "ChangeLog",
+            "InRelease",
+            "Release",
+            "Release.gpg"
+    };
 
     private final GeneralEnvironment ge;
     private final DebianDownloadEnvironment dde;
@@ -69,6 +78,7 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
     public void prepareMetadataTasks() {
         List<Pair<BasePackageImpl, DownloadHelper.Download>> metadataTasks = new ArrayList<>();
         Iterator<DebianComponent> components = Arrays.stream(DebianComponent.values()).iterator();
+        Iterator<String> metaFiles = Arrays.stream(META).iterator();
 
         components.forEachRemaining((component) -> {
             String comp = component.getComp();
@@ -92,11 +102,37 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
                 throw new RuntimeException(e);
             }
         });
+
+        metaFiles.forEachRemaining((fileName) -> {
+            String url = String.format(PACKAGE_META_URL, dde.getDistribution().getDist(), fileName);
+
+            try {
+                Path outputFile = repositoryFile(dde, fileName);
+                Files.createDirectories(dde.getDownloadDir());
+                Files.createDirectories(outputFile.getParent());
+
+                URL realUrl = URI.create(url).toURL();
+                long byteSize = DownloadHelper.queryUrlFileDownloadSize(realUrl);
+
+                totalBytes.addAndGet(byteSize);
+
+                metadataTasks.add(new Pair<>(
+                        new BasePackageImpl(fileName, String.valueOf(byteSize), "n/a"),
+                        new DownloadHelper.Download(realUrl, outputFile)
+                ));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
         this.metadataTasks = metadataTasks.iterator();
     }
 
     public static Path repositoryFile(DebianDownloadEnvironment dde, DebianComponent comp) {
         return dde.getDownloadDir().resolve(String.format(PACKAGE_REPO, dde.getDistribution().getDist(), comp.getComp(), dde.getArchitecture().getArch()));
+    }
+
+    public static Path repositoryFile(DebianDownloadEnvironment dde, String fileName) {
+        return dde.getDownloadDir().resolve(String.format(PACKAGE_META_REPO, dde.getDistribution().getDist(), fileName));
     }
 
     public List<DownloadHelper.Download> getIncompleteDownloads() {
