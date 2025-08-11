@@ -19,7 +19,6 @@ import org.example.downloader.util.EnvironmentManager;
 import org.example.downloader.util.Sha256Helper;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
