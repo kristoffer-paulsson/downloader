@@ -48,7 +48,7 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
     private static final String RELEASE = "bookworm";
     private static final String[] COMPONENTS = {"main", "contrib", "non-free", "non-free-firmware"};
     private static final String ARCH = "amd64";
-    private static final String[] ICON_SIZES = {"48x48", "64x64", "128x128"};
+    private static final String[] ICON_SIZES = {"48x48", "64x64", "128x128", "48x48@2", "64x64@2", "128x128@2"};
 
     private final GeneralEnvironment ge;
     private final DebianDownloadEnvironment dde;
@@ -109,6 +109,8 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
         try {
             // Download InRelease
             downloadFile("dists/" + dde.getDistribution().getDist() + "/InRelease", metadataTasks);
+            downloadFile("dists/" + dde.getDistribution().getDist() + "/Release", metadataTasks);
+            downloadFile("dists/" + dde.getDistribution().getDist() + "/Release.gpg", metadataTasks);
 
             // Download index files for each component
             for (String component : DebianComponent.toStringList()) {
@@ -116,17 +118,29 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
                 String packagesUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/binary-" + dde.getArchitecture().getArch() + "/Packages.gz";
                 downloadFile(packagesUrl, metadataTasks);
 
+                String packagesAllUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/binary-all/Packages.gz";
+                downloadFile(packagesAllUrl, metadataTasks);
+
+                String releaseAllUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/binary-all/Release";
+                downloadFile(releaseAllUrl, metadataTasks);
+
                 // Translation-en.gz
-                String translationUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/i18n/Translation-en.gz";
+                String translationUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/i18n/Translation-en.xz";
                 downloadFile(translationUrl, metadataTasks);
 
                 // Contents-amd64.gz
                 String contentsUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/Contents-" + dde.getArchitecture().getArch() + ".gz";
                 downloadFile(contentsUrl, metadataTasks);
 
+                String contentsAllUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/Contents-all.gz";
+                downloadFile(contentsAllUrl, metadataTasks);
+
                 // AppStream for GUI support
                 String componentsUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/dep11/Components-" + dde.getArchitecture().getArch() + ".yml.gz";
                 downloadFile(componentsUrl, metadataTasks);
+
+                String cidIndexUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/dep11/CID-Index-" + dde.getArchitecture().getArch() + ".json.gz";
+                downloadFile(cidIndexUrl, metadataTasks);
 
                 for (String size : ICON_SIZES) {
                     String iconsUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/dep11/icons-" + size + ".tar.gz";
