@@ -24,7 +24,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -44,6 +43,12 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
             "Release",
             "Release.gpg"
     };
+
+    private static final String REPO_URL = "https://deb.debian.org/debian/";
+    private static final String RELEASE = "bookworm";
+    private static final String[] COMPONENTS = {"main", "contrib", "non-free", "non-free-firmware"};
+    private static final String ARCH = "amd64";
+    private static final String[] ICON_SIZES = {"48x48", "64x64", "128x128"};
 
     private final GeneralEnvironment ge;
     private final DebianDownloadEnvironment dde;
@@ -75,9 +80,65 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
         return totalBytes.get();
     }
 
+    public void downloadFile(String filePath, List<Pair<BasePackageImpl, DownloadHelper.Download>> metadataTasks) {
+        //String comp = component.getComp();
+        //String url = String.format(PACKAGE_URL, dde.getDistribution().getDist(), comp, dde.getArchitecture().getArch());
+
+        try {
+            Path outputFile = dde.getDownloadDir().resolve(filePath);
+            Files.createDirectories(dde.getDownloadDir());
+            Files.createDirectories(outputFile.getParent());
+
+            URL realUrl = URI.create(REPO_URL + filePath).toURL();
+            long byteSize = DownloadHelper.queryUrlFileDownloadSize(realUrl);
+
+            totalBytes.addAndGet(byteSize);
+
+            metadataTasks.add(new Pair<>(
+                    new BasePackageImpl(filePath, String.valueOf(byteSize), "n/a"),
+                    new DownloadHelper.Download(realUrl, outputFile)
+            ));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void prepareMetadataTasks() {
         List<Pair<BasePackageImpl, DownloadHelper.Download>> metadataTasks = new ArrayList<>();
-        Iterator<DebianComponent> components = Arrays.stream(DebianComponent.values()).iterator();
+
+        try {
+            // Download InRelease
+            downloadFile("dists/" + dde.getDistribution().getDist() + "/InRelease", metadataTasks);
+
+            // Download index files for each component
+            for (String component : DebianComponent.toStringList()) {
+                // Packages.gz (already present, but included for completeness)
+                String packagesUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/binary-" + dde.getArchitecture().getArch() + "/Packages.gz";
+                downloadFile(packagesUrl, metadataTasks);
+
+                // Translation-en.gz
+                String translationUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/i18n/Translation-en.gz";
+                downloadFile(translationUrl, metadataTasks);
+
+                // Contents-amd64.gz
+                String contentsUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/Contents-" + dde.getArchitecture().getArch() + ".gz";
+                downloadFile(contentsUrl, metadataTasks);
+
+                // AppStream for GUI support
+                String componentsUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/dep11/Components-" + dde.getArchitecture().getArch() + ".yml.gz";
+                downloadFile(componentsUrl, metadataTasks);
+
+                for (String size : ICON_SIZES) {
+                    String iconsUrl = "dists/" + dde.getDistribution().getDist() + "/" + component + "/dep11/icons-" + size + ".tar.gz";
+                    downloadFile(iconsUrl, metadataTasks);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        /*Iterator<DebianComponent> components = Arrays.stream(DebianComponent.values()).iterator();
         Iterator<String> metaFiles = Arrays.stream(META).iterator();
 
         components.forEachRemaining((component) -> {
@@ -123,16 +184,12 @@ public class DebianMetadataDownloader extends AbstractWorkerIterator<DebianMetad
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        });*/
         this.metadataTasks = metadataTasks.iterator();
     }
 
     public static Path repositoryFile(DebianDownloadEnvironment dde, DebianComponent comp) {
         return dde.getDownloadDir().resolve(String.format(PACKAGE_REPO, dde.getDistribution().getDist(), comp.getComp(), dde.getArchitecture().getArch()));
-    }
-
-    public static Path repositoryFile(DebianDownloadEnvironment dde, String fileName) {
-        return dde.getDownloadDir().resolve(String.format(PACKAGE_META_REPO, dde.getDistribution().getDist(), fileName));
     }
 
     public List<DownloadHelper.Download> getIncompleteDownloads() {

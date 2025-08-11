@@ -1,3 +1,5 @@
+package org.example.downloader.deb;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
@@ -25,7 +27,7 @@ public class DebianIndexDownloader {
     private static final String[] ICON_SIZES = {"48x48", "64x64", "128x128"};
 
     public static void main(String[] args) {
-        try {
+        /*try {
             // Download InRelease
             downloadFile(REPO_URL + "dists/" + RELEASE + "/InRelease", "dists/" + RELEASE + "/InRelease");
 
@@ -64,7 +66,7 @@ public class DebianIndexDownloader {
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
-        }
+        }*/
     }
 
     // Reuse downloadFile and verifyChecksum from previous code
