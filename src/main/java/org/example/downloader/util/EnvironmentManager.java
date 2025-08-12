@@ -72,7 +72,7 @@ public class EnvironmentManager {
     }
 
     public void setDirectory(String property, Path someDir) {
-        if (someDir == null || !Files.isDirectory(someDir)) {
+        if (someDir == null) {
             throw new IllegalArgumentException("Download directory must be a valid directory");
         }
         set(property, someDir.toString());

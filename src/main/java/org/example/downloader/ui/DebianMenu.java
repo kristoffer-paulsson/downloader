@@ -34,6 +34,8 @@ public class DebianMenu extends Menu {
         registerOption("Metadata", option -> new DebianMetadataAction(ioc, "Metadata").runAction());
         registerOption("Downloader", option -> new DebianDownloadAction(ioc, "Downloader").runAction());
         registerOption("Blockchain Verifier", option -> new DebianVerifyAction(ioc, "Blockchain Verifier").runAction());
+        registerOption("Exporter", option -> new DebianExportAction(ioc, "Chunk Exporter").runAction());
+
     }
 
     private void reviewConfig(DebianDownloadEnvironment dde) {

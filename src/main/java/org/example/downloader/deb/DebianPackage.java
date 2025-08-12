@@ -53,6 +53,10 @@ public class DebianPackage implements BasePackage {
         return Paths.get(String.format("%s/%s", dde.getDownloadDir(), filename));
     }
 
+    public Path buildBackupPath(DebianDownloadEnvironment dde) {
+        return Paths.get(String.format("%s/%s", dde.getDownloadDir() + "-export", filename));
+    }
+
     @Override
     public String getFilename() {
         return filename;
