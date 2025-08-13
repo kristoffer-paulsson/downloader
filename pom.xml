@@ -13,7 +13,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <app.main.class>org.example.downloader.MavenDependencyDownloader</app.main.class>
+        <app.main.class>org.example.downloader.Main</app.main.class>
         <app.name>downloader</app.name>
         <app.version>1.0</app.version>
     </properties>
@@ -30,44 +30,7 @@
     </repositories>
 
     <dependencies>
-        <!-- Maven Model for parsing POM files -->
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-model</artifactId>
-            <version>3.9.6</version>
-        </dependency>
-        <!-- Aether dependencies for resolving and downloading artifacts -->
-        <dependency>
-            <groupId>org.eclipse.aether</groupId>
-            <artifactId>aether-api</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.aether</groupId>
-            <artifactId>aether-spi</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.aether</groupId>
-            <artifactId>aether-impl</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.aether</groupId>
-            <artifactId>aether-connector-basic</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.aether</groupId>
-            <artifactId>aether-transport-http</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-        <!-- HTTP client for Aether HTTP transport -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.14</version>
-        </dependency>
+        <!-- No dependencies needed; javax.smartcardio is in JDK -->
     </dependencies>
 
     <build>

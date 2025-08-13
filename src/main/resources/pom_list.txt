@@ -2,6 +2,7 @@ https://repo.maven.apache.org/maven2/org/apache/maven/maven-model/3.9.6/maven-mo
 https://repo.maven.apache.org/maven2/org/eclipse/aether/aether-api/1.1.0/aether-api-1.1.0.pom
 https://repo.maven.apache.org/maven2/org/eclipse/aether/aether-spi/1.1.0/aether-spi-1.1.0.pom
 https://repo.maven.apache.org/maven2/org/eclipse/aether/aether-impl/1.1.0/aether-impl-1.1.0.pom
+https://repo.maven.apache.org/maven2/org/eclipse/aether/aether-util/1.1.0/aether-util-1.1.0.pom
 https://repo.maven.apache.org/maven2/org/eclipse/aether/aether-connector-basic/1.1.0/aether-connector-basic-1.1.0.pom
 https://repo.maven.apache.org/maven2/org/eclipse/aether/aether-transport-http/1.1.0/aether-transport-http-1.1.0.pom
 https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpclient/4.5.14/httpclient-4.5.14.pom
