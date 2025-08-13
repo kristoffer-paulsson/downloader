@@ -13,9 +13,11 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 
 public class MavenDependencyDownloader {
@@ -23,7 +25,9 @@ public class MavenDependencyDownloader {
     private static final String MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2/";
     private static final String OUTPUT_DIR = "downloaded-jars";
     private static final String CACHE_DIR = OUTPUT_DIR + "/custom-cache";
-    private static final Set<String> PROCESSED_ARTIFACTS = new HashSet<>(); // Track processed artifacts to avoid duplicates
+    private static final Set<String> PROCESSED_ARTIFACTS = new HashSet<>(); // Track processed artifacts
+    private static final Queue<String> POM_QUEUE = new ArrayDeque<>(); // Queue for POM files
+    private static final List<String> COMMON_EXTENSIONS = Arrays.asList("jar", "war", "zip"); // Fallback extensions
 
     public static void main(String[] args) throws Exception {
         String inputFile = "pom_list.txt";
@@ -32,22 +36,27 @@ public class MavenDependencyDownloader {
         Files.createDirectories(Paths.get(OUTPUT_DIR));
         Files.createDirectories(Paths.get(CACHE_DIR));
 
-        // Read POM file paths/URLs from input file
+        // Read initial POM file paths/URLs from input file and add to queue
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
-                processPomFile(line.trim());
+                POM_QUEUE.add(line.trim());
             }
         } catch (FileNotFoundException e) {
             System.err.println("Input file not found: " + inputFile);
             throw e;
         }
+
+        // Process POM files from queue
+        while (!POM_QUEUE.isEmpty()) {
+            processPomFile(POM_QUEUE.poll());
+        }
     }
 
     private static void processPomFile(String pomPath) {
         try {
-            // Read or download POM file
+            // Cache POM file and get its local path
             Path cachePath = cachePomFile(pomPath);
             if (cachePath == null) {
                 System.err.println("Failed to cache POM file: " + pomPath);
@@ -58,6 +67,12 @@ public class MavenDependencyDownloader {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(cachePath.toFile());
+
+            // Get packaging for the artifact
+            String packaging = getElementText(doc.getDocumentElement(), "packaging");
+            if (packaging == null) {
+                packaging = "jar"; // Default to jar if not specified
+            }
 
             // Get dependencies
             NodeList dependencyNodes = doc.getElementsByTagName("dependency");
@@ -74,59 +89,68 @@ public class MavenDependencyDownloader {
                     continue;
                 }
 
-                // Process dependency recursively
-                processDependency(groupId, artifactId, version);
+                // Process dependency
+                processDependency(groupId, artifactId, version, packaging);
             }
         } catch (Exception e) {
             System.err.println("Failed to process POM file: " + pomPath + " - " + e.getMessage());
         }
     }
 
-    private static void processDependency(String groupId, String artifactId, String version) {
+    private static void processDependency(String groupId, String artifactId, String version, String parentPackaging) {
         String artifactKey = groupId + ":" + artifactId + ":" + version;
         if (PROCESSED_ARTIFACTS.contains(artifactKey)) {
             return; // Skip already processed artifacts
         }
         PROCESSED_ARTIFACTS.add(artifactKey);
 
-        // Download JAR
-        downloadArtifact(groupId, artifactId, version);
+        // Download artifact (try packaging from parent or common extensions)
+        downloadArtifact(groupId, artifactId, version, parentPackaging);
 
-        // Download and process dependency's POM recursively
+        // Add dependency's POM to queue
         String pomUrl = constructPomUrl(groupId, artifactId, version);
-        Path pomCachePath = cachePomFile(pomUrl);
-        if (pomCachePath != null) {
-            processPomFile(pomCachePath.toString());
-        }
+        POM_QUEUE.add(pomUrl);
     }
 
     private static Path cachePomFile(String pomPath) {
         try {
-            // Determine if pomPath is a URL or local path
-            InputStream pomInputStream;
             String pomFileName;
+            String groupPath;
+            String artifactId;
+            String version;
+
             if (pomPath.startsWith("http://") || pomPath.startsWith("https://")) {
-                URL url = new URL(pomPath);
-                pomInputStream = url.openStream();
-                pomFileName = Paths.get(url.getPath()).getFileName().toString();
+                // Extract metadata from URL
+                pomFileName = Paths.get(new URL(pomPath).getPath()).getFileName().toString();
+                String[] parts = pomFileName.split("-");
+                if (parts.length < 2) {
+                    System.err.println("Invalid POM file name: " + pomFileName);
+                    return null;
+                }
+                version = parts[parts.length - 1].replace(".pom", "");
+                artifactId = parts[parts.length - 2];
+                groupPath = pomPath.substring(MAVEN_CENTRAL.length(), pomPath.lastIndexOf(artifactId + "/" + version));
             } else {
-                pomInputStream = new FileInputStream(pomPath);
-                pomFileName = Paths.get(pomPath).getFileName().toString();
+                // Parse local POM to get metadata
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                try (InputStream tempInputStream = new FileInputStream(pomPath)) {
+                    Document doc = builder.parse(tempInputStream);
+                    groupPath = getElementText(doc.getDocumentElement(), "groupId");
+                    if (groupPath != null) {
+                        groupPath = groupPath.replace('.', '/');
+                    }
+                    artifactId = getElementText(doc.getDocumentElement(), "artifactId");
+                    version = getElementText(doc.getDocumentElement(), "version");
+                    pomFileName = artifactId + "-" + version + ".pom";
+                }
+                if (groupPath == null || artifactId == null || version == null) {
+                    System.err.println("Invalid POM metadata in: " + pomPath);
+                    return null;
+                }
             }
 
-            // Extract groupId, artifactId, version from POM path (assumes Maven URL structure)
-            String[] parts = pomFileName.split("-");
-            if (parts.length < 2) {
-                System.err.println("Invalid POM file name: " + pomFileName);
-                return null;
-            }
-            String version = parts[parts.length - 1].replace(".pom", "");
-            String artifactId = parts[parts.length - 2];
-            String groupPath = pomPath.contains(MAVEN_CENTRAL) ?
-                    pomPath.substring(MAVEN_CENTRAL.length(), pomPath.lastIndexOf(artifactId + "/" + version)) :
-                    Paths.get(pomPath).getParent().toString().replace(File.separator, "/");
-
-            // Construct cache path (e.g., custom-cache/groupId/artifactId/version/artifactId-version.pom)
+            // Construct cache path
             Path cachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, pomFileName);
             Files.createDirectories(cachePath.getParent());
 
@@ -135,34 +159,48 @@ public class MavenDependencyDownloader {
                 return cachePath;
             }
 
-            // Download or copy to cache
-            try (pomInputStream; FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
+            // Download or copy POM to cache
+            try (InputStream pomInputStream = pomPath.startsWith("http://") || pomPath.startsWith("https://") ?
+                    new URL(pomPath).openStream() : new FileInputStream(pomPath);
+                 FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
                 fos.getChannel().transferFrom(Channels.newChannel(pomInputStream), 0, Long.MAX_VALUE);
             }
             return cachePath;
-        } catch (IOException e) {
+        } catch (IOException | javax.xml.parsers.ParserConfigurationException | org.xml.sax.SAXException e) {
             System.err.println("Failed to cache POM file: " + pomPath + " - " + e.getMessage());
             return null;
         }
     }
 
-    private static void downloadArtifact(String groupId, String artifactId, String version) {
+    private static void downloadArtifact(String groupId, String artifactId, String version, String packaging) {
+        // Try the specified packaging first
+        if (tryDownloadArtifact(groupId, artifactId, version, packaging)) {
+            return;
+        }
+
+        // If packaging fails, try common extensions
+        for (String extension : COMMON_EXTENSIONS) {
+            if (!extension.equals(packaging) && tryDownloadArtifact(groupId, artifactId, version, extension)) {
+                return;
+            }
+        }
+
+        System.err.println("Failed to download artifact for all attempted extensions: " + groupId + ":" + artifactId + ":" + version);
+    }
+
+    private static boolean tryDownloadArtifact(String groupId, String artifactId, String version, String extension) {
         try {
             // Construct artifact URL and cache path
             String groupPath = groupId.replace('.', '/');
             String artifactUrl = MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
-                    artifactId + "-" + version + ".jar";
-            String fileName = artifactId + "-" + version + ".jar";
-            Path outputPath = Paths.get(OUTPUT_DIR, fileName);
+                    artifactId + "-" + version + "." + extension;
+            String fileName = artifactId + "-" + version + "." + extension;
             Path cachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, fileName);
 
-            // Skip if already in output directory or cache
-            if (Files.exists(outputPath) || Files.exists(cachePath)) {
-                if (Files.exists(cachePath) && !Files.exists(outputPath)) {
-                    Files.copy(cachePath, outputPath);
-                    System.out.println("Copied from cache: " + outputPath);
-                }
-                return;
+            // Skip if already in cache
+            if (Files.exists(cachePath)) {
+                System.out.println("Already in cache: " + cachePath);
+                return true;
             }
 
             // Download to cache
@@ -171,13 +209,12 @@ public class MavenDependencyDownloader {
             try (ReadableByteChannel rbc = Channels.newChannel(url.openStream());
                  FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
                 fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                System.out.println("Downloaded to cache: " + cachePath);
+                return true;
             }
-
-            // Copy to output directory
-            Files.copy(cachePath, outputPath);
-            System.out.println("Downloaded: " + outputPath);
         } catch (IOException e) {
-            System.err.println("Failed to download " + groupId + ":" + artifactId + ":" + version + ": " + e.getMessage());
+            System.err.println("Failed to download " + groupId + ":" + artifactId + ":" + version + " with extension " + extension + ": " + e.getMessage());
+            return false;
         }
     }
 
