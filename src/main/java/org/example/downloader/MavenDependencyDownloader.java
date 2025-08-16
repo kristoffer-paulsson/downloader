@@ -49,6 +49,7 @@ public class MavenDependencyDownloader {
     private static final List<String> COMMON_EXTENSIONS = Arrays.asList("jar", "war", "zip", "bundle"); // Fallback extensions
     private static final List<String> HASH_EXTENSIONS = Arrays.asList("md5", "sha1", "asc"); // Hash and signature extensions
     private static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}"); // Matches ${property.name}
+    private static final Pattern VERSION_PATTERN = Pattern.compile("[0-9]+(\\.[0-9]+)*([-][a-zA-Z0-9]+)*"); // Matches Maven versions
 
     public static void main(String[] args) throws Exception {
         String inputFile = "pom_list.txt";
@@ -268,30 +269,28 @@ public class MavenDependencyDownloader {
                     return null;
                 }
 
-                // Extract artifactId and version from filename (e.g., guava-23.2-jre.pom)
+                // Extract artifactId and version from filename
                 String baseName = pomFileName.substring(0, pomFileName.length() - 4); // Remove .pom
-                int lastHyphen = baseName.lastIndexOf('-');
-                if (lastHyphen == -1) {
-                    System.err.println("Invalid POM file name (no version separator): " + pomFileName);
+                // Find version using Maven version pattern
+                Matcher versionMatcher = VERSION_PATTERN.matcher(baseName);
+                String candidateVersion = null;
+                int versionStart = -1;
+                while (versionMatcher.find()) {
+                    String foundVersion = versionMatcher.group();
+                    int start = versionMatcher.start();
+                    // Check if this version forms a valid filename suffix
+                    String candidateArtifactId = baseName.substring(0, start > 0 ? start - 1 : 0);
+                    if (pomFileName.equals(candidateArtifactId + "-" + foundVersion + ".pom")) {
+                        candidateVersion = foundVersion;
+                        versionStart = start;
+                    }
+                }
+                if (candidateVersion == null || versionStart == -1) {
+                    System.err.println("Failed to parse version from POM filename: " + pomFileName);
                     return null;
                 }
-
-                // Try to find version by testing suffixes
-                String[] parts = baseName.split("-");
-                version = parts[parts.length - 1];
-                artifactId = baseName.substring(0, baseName.lastIndexOf(version) - 1);
-                // Validate by reconstructing expected filename
-                if (!pomFileName.equals(artifactId + "-" + version + ".pom")) {
-                    // Handle cases like Saxon-HE-9.8.0-5
-                    if (parts.length > 2) {
-                        version = parts[parts.length - 2] + "-" + parts[parts.length - 1];
-                        artifactId = baseName.substring(0, baseName.lastIndexOf(parts[parts.length - 2]) - 1);
-                    }
-                    if (!pomFileName.equals(artifactId + "-" + version + ".pom")) {
-                        System.err.println("Failed to parse artifactId/version from: " + pomFileName);
-                        return null;
-                    }
-                }
+                version = candidateVersion;
+                artifactId = baseName.substring(0, versionStart > 0 ? versionStart - 1 : 0);
 
                 // Extract groupPath from URL
                 String expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
@@ -450,7 +449,7 @@ public class MavenDependencyDownloader {
                     System.err.println("Verification failed for " + filePath + ".md5: expected " + expectedMd5 + ", got " + computedMd5);
                 }
             } else {
-                System.err.println("MD5 file not found for: " + filePath);
+                System.out.println("MD5 file not found for: " + filePath + " (skipping verification)");
             }
 
             // Verify SHA1
@@ -463,7 +462,7 @@ public class MavenDependencyDownloader {
                     System.err.println("Verification failed for " + filePath + ".sha1: expected " + expectedSha1 + ", got " + computedSha1);
                 }
             } else {
-                System.err.println("SHA1 file not found for: " + filePath);
+                System.out.println("SHA1 file not found for: " + filePath + " (skipping verification)");
             }
 
             // Note: Skipping .asc verification (requires external GPG libraries)
