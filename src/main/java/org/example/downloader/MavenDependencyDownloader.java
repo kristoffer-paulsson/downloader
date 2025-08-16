@@ -243,14 +243,44 @@ public class MavenDependencyDownloader {
             if (pomPath.startsWith("http://") || pomPath.startsWith("https://")) {
                 // Extract metadata from URL
                 pomFileName = Paths.get(new URL(pomPath).getPath()).getFileName().toString();
-                String[] parts = pomFileName.split("-");
-                if (parts.length < 2) {
-                    System.err.println("Invalid POM file name: " + pomFileName);
+                if (!pomFileName.endsWith(".pom")) {
+                    System.err.println("Invalid POM file name (must end with .pom): " + pomFileName);
                     return null;
                 }
-                version = parts[parts.length - 1].replace(".pom", "");
-                artifactId = parts[parts.length - 2];
-                groupPath = pomPath.substring(MAVEN_CENTRAL.length(), pomPath.lastIndexOf(artifactId + "/" + version));
+
+                // Extract artifactId and version from filename (e.g., guava-23.2-jre.pom)
+                String baseName = pomFileName.substring(0, pomFileName.length() - 4); // Remove .pom
+                int lastHyphen = baseName.lastIndexOf('-');
+                if (lastHyphen == -1) {
+                    System.err.println("Invalid POM file name (no version separator): " + pomFileName);
+                    return null;
+                }
+
+                // Try to find version by testing suffixes
+                String[] parts = baseName.split("-");
+                version = parts[parts.length - 1];
+                artifactId = baseName.substring(0, baseName.lastIndexOf(version) - 1);
+                // Validate by reconstructing expected filename
+                if (!pomFileName.equals(artifactId + "-" + version + ".pom")) {
+                    // Handle cases like Saxon-HE-9.8.0-5
+                    if (parts.length > 2) {
+                        version = parts[parts.length - 2] + "-" + parts[parts.length - 1];
+                        artifactId = baseName.substring(0, baseName.lastIndexOf(parts[parts.length - 2]) - 1);
+                    }
+                    if (!pomFileName.equals(artifactId + "-" + version + ".pom")) {
+                        System.err.println("Failed to parse artifactId/version from: " + pomFileName);
+                        return null;
+                    }
+                }
+
+                // Extract groupPath from URL
+                String expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
+                int groupPathEnd = pomPath.lastIndexOf(expectedPathEnd);
+                if (groupPathEnd == -1) {
+                    System.err.println("Invalid POM URL structure: " + pomPath);
+                    return null;
+                }
+                groupPath = pomPath.substring(MAVEN_CENTRAL.length(), groupPathEnd);
             } else {
                 // Parse local POM to get metadata
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
