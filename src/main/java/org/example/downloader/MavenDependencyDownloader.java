@@ -17,9 +17,11 @@ package org.example.downloader;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -336,7 +338,7 @@ public class MavenDependencyDownloader {
 
             String pomFileName;
             String groupPath;
-            String artifactId;
+            String artifactId = "";
             String version;
             String repoBaseUrl;
 
@@ -456,7 +458,7 @@ public class MavenDependencyDownloader {
                     return new PomCacheResult(cachePath, null);
                 }
             }
-        } catch (IOException | javax.xml.parsers.ParserConfigurationException | org.xml.sax.SAXException e) {
+        } catch (IOException | ParserConfigurationException | SAXException e) {
             System.err.println("Failed to cache POM file: " + pomPath + " - " + e.getMessage());
             return null;
         }
