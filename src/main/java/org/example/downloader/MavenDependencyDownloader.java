@@ -17,11 +17,9 @@ package org.example.downloader;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -43,7 +41,13 @@ import java.util.regex.Pattern;
 
 public class MavenDependencyDownloader {
 
-    private static final String MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2/";
+    private static final List<String> REPOSITORIES = Arrays.asList(
+            "https://repo.maven.apache.org/maven2/",
+            "https://repository.jboss.org/nexus/content/groups/public/",
+            "https://oss.sonatype.org/content/repositories/releases/",
+            "https://repository.apache.org/snapshots/",
+            "https://jcenter.bintray.com/"
+    );
     private static final String OUTPUT_DIR = "downloaded-jars";
     private static final String CACHE_DIR = OUTPUT_DIR + "/custom-cache";
     private static final Set<String> PROCESSED_ARTIFACTS = new HashSet<>(); // Track processed artifacts
@@ -291,16 +295,18 @@ public class MavenDependencyDownloader {
         // Download artifact (try packaging from parent or common extensions)
         downloadArtifact(groupId, artifactId, version, parentPackaging, properties);
 
-        // Add dependency's POM to queue
-        String pomUrl = normalizeUrl(constructPomUrl(groupId, artifactId, version));
-        POM_QUEUE.add(pomUrl);
+        // Add dependency's POM to queue for each repository
+        for (String repo : REPOSITORIES) {
+            String pomUrl = normalizeUrl(constructPomUrl(repo, groupId, artifactId, version));
+            POM_QUEUE.add(pomUrl);
+        }
     }
 
     private static Path cachePomFile(String pomPath) {
         try {
             // Check for com.sun.tools:tools and skip
             if (pomPath.contains("com/sun/tools/") && pomPath.contains("/tools-")) {
-                System.err.println("Skipping com.sun.tools:tools POM (not available in Maven Central): " + pomPath);
+                System.err.println("Skipping com.sun.tools:tools POM (not available in repositories): " + pomPath);
                 return null;
             }
 
@@ -320,10 +326,24 @@ public class MavenDependencyDownloader {
 
             String pomFileName;
             String groupPath;
-            String artifactId = "";
+            String artifactId;
             String version;
+            String repoBaseUrl;
 
             if (resolvedPomPath.startsWith("http://") || resolvedPomPath.startsWith("https://")) {
+                // Determine which repository the URL belongs to
+                repoBaseUrl = null;
+                for (String repo : REPOSITORIES) {
+                    if (resolvedPomPath.startsWith(repo)) {
+                        repoBaseUrl = repo;
+                        break;
+                    }
+                }
+                if (repoBaseUrl == null) {
+                    System.err.println("POM URL does not match any known repository: " + resolvedPomPath);
+                    return null;
+                }
+
                 // Extract metadata from URL
                 pomFileName = Paths.get(new URL(resolvedPomPath).getPath()).getFileName().toString();
                 if (!pomFileName.endsWith(".pom")) {
@@ -333,7 +353,6 @@ public class MavenDependencyDownloader {
 
                 // Extract artifactId and version from filename
                 String baseName = pomFileName.substring(0, pomFileName.length() - 4); // Remove .pom
-                // Find version by splitting on last hyphen before a valid version
                 String[] parts = baseName.split("-");
                 version = null;
                 for (int i = parts.length - 1; i > 0; i--) {
@@ -359,7 +378,7 @@ public class MavenDependencyDownloader {
                     System.err.println("Invalid POM URL structure: " + resolvedPomPath + " (expected path end: " + expectedPathEnd + ")");
                     return null;
                 }
-                groupPath = resolvedPomPath.substring(MAVEN_CENTRAL.length(), groupPathEnd);
+                groupPath = resolvedPomPath.substring(repoBaseUrl.length(), groupPathEnd);
             } else {
                 // Parse local POM to get metadata
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -378,6 +397,7 @@ public class MavenDependencyDownloader {
                     System.err.println("Invalid POM metadata in: " + pomPath);
                     return null;
                 }
+                repoBaseUrl = REPOSITORIES.get(0); // Default to first repository for local POMs
             }
 
             // Construct cache path for POM
@@ -390,22 +410,26 @@ public class MavenDependencyDownloader {
                 return cachePath;
             }
 
-            // Download or copy POM to cache
-            try (InputStream pomInputStream = resolvedPomPath.startsWith("http://") || resolvedPomPath.startsWith("https://") ?
-                    new URL(resolvedPomPath).openStream() : new FileInputStream(pomPath);
-                 FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
-                fos.getChannel().transferFrom(Channels.newChannel(pomInputStream), 0, Long.MAX_VALUE);
-                System.out.println("Downloaded to cache: " + cachePath);
+            // Try downloading POM from each repository
+            for (String repo : REPOSITORIES) {
+                String url = normalizeUrl(repo + groupPath + "/" + artifactId + "/" + version + "/" + pomFileName);
+                try (InputStream pomInputStream = new URL(url).openStream();
+                     FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
+                    fos.getChannel().transferFrom(Channels.newChannel(pomInputStream), 0, Long.MAX_VALUE);
+                    System.out.println("Downloaded to cache from " + repo + ": " + cachePath);
+                    // Download hash and signature files
+                    downloadHashAndSignatureFiles(repo, groupPath, artifactId, version, pomFileName);
+                    // Verify POM file
+                    verifyFile(cachePath, groupPath, artifactId, version, pomFileName);
+                    return cachePath;
+                } catch (IOException e) {
+                    System.err.println("Failed to download POM from " + repo + ": " + url + " - " + e.getMessage());
+                }
             }
 
-            // Download hash and signature files for POM
-            downloadHashAndSignatureFiles(groupPath, artifactId, version, pomFileName);
-
-            // Verify POM file
-            verifyFile(cachePath, groupPath, artifactId, version, pomFileName);
-
-            return cachePath;
-        } catch (IOException | ParserConfigurationException | SAXException e) {
+            System.err.println("Failed to cache POM file from all repositories: " + pomPath);
+            return null;
+        } catch (IOException | javax.xml.parsers.ParserConfigurationException | org.xml.sax.SAXException e) {
             System.err.println("Failed to cache POM file: " + pomPath + " - " + e.getMessage());
             return null;
         }
@@ -422,7 +446,7 @@ public class MavenDependencyDownloader {
 
         // Handle com.sun.tools:tools specially
         if ("com.sun.tools".equals(resolvedGroupId) && "tools".equals(artifactId)) {
-            System.err.println("Skipping com.sun.tools:tools:" + resolvedVersion + " (not available in Maven Central)");
+            System.err.println("Skipping com.sun.tools:tools:" + resolvedVersion + " (not available in repositories)");
             return;
         }
 
@@ -442,48 +466,45 @@ public class MavenDependencyDownloader {
     }
 
     private static boolean tryDownloadArtifact(String groupId, String artifactId, String version, String extension) {
-        try {
-            // Construct artifact URL and cache path
-            String groupPath = groupId.replace('.', '/');
-            String artifactUrl = normalizeUrl(MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
-                    artifactId + "-" + version + "." + extension);
-            String fileName = artifactId + "-" + version + "." + extension;
-            Path cachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, fileName);
+        String groupPath = groupId.replace('.', '/');
+        String fileName = artifactId + "-" + version + "." + extension;
+        Path cachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, fileName);
 
-            // Skip if artifact is already in cache
-            if (Files.exists(cachePath)) {
-                System.out.println("Already in cache: " + cachePath);
-                verifyFile(cachePath, groupPath, artifactId, version, fileName);
-                return true;
-            }
-
-            // Download to cache
-            Files.createDirectories(cachePath.getParent());
-            URL url = new URL(artifactUrl);
-            try (ReadableByteChannel rbc = Channels.newChannel(url.openStream());
-                 FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
-                fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-                System.out.println("Downloaded to cache: " + cachePath);
-            }
-
-            // Download hash and signature files for artifact
-            downloadHashAndSignatureFiles(groupPath, artifactId, version, fileName);
-
-            // Verify artifact file
+        // Skip if artifact is already in cache
+        if (Files.exists(cachePath)) {
+            System.out.println("Already in cache: " + cachePath);
             verifyFile(cachePath, groupPath, artifactId, version, fileName);
-
             return true;
-        } catch (IOException e) {
-            System.err.println("Failed to download " + groupId + ":" + artifactId + ":" + version + " with extension " + extension + ": " + e.getMessage());
-            return false;
         }
+
+        // Try downloading from each repository
+        for (String repo : REPOSITORIES) {
+            String artifactUrl = normalizeUrl(repo + groupPath + "/" + artifactId + "/" + version + "/" + fileName);
+            try {
+                Files.createDirectories(cachePath.getParent());
+                URL url = new URL(artifactUrl);
+                try (ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+                     FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
+                    fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                    System.out.println("Downloaded to cache from " + repo + ": " + cachePath);
+                    // Download hash and signature files
+                    downloadHashAndSignatureFiles(repo, groupPath, artifactId, version, fileName);
+                    // Verify artifact file
+                    verifyFile(cachePath, groupPath, artifactId, version, fileName);
+                    return true;
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to download " + groupId + ":" + artifactId + ":" + version + " with extension " + extension +
+                        " from " + repo + ": " + e.getMessage());
+            }
+        }
+        return false;
     }
 
-    private static void downloadHashAndSignatureFiles(String groupPath, String artifactId, String version, String baseFileName) {
+    private static void downloadHashAndSignatureFiles(String repo, String groupPath, String artifactId, String version, String baseFileName) {
         for (String hashExt : HASH_EXTENSIONS) {
             try {
-                String hashUrl = normalizeUrl(MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
-                        baseFileName + "." + hashExt);
+                String hashUrl = normalizeUrl(repo + groupPath + "/" + artifactId + "/" + version + "/" + baseFileName + "." + hashExt);
                 String hashFileName = baseFileName + "." + hashExt;
                 Path hashCachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, hashFileName);
 
@@ -499,10 +520,10 @@ public class MavenDependencyDownloader {
                 try (ReadableByteChannel rbc = Channels.newChannel(url.openStream());
                      FileOutputStream fos = new FileOutputStream(hashCachePath.toFile())) {
                     fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-                    System.out.println("Downloaded to cache: " + hashCachePath);
+                    System.out.println("Downloaded to cache from " + repo + ": " + hashCachePath);
                 }
             } catch (IOException e) {
-                System.err.println("Failed to download " + hashExt + " for " + baseFileName + ": " + e.getMessage());
+                System.err.println("Failed to download " + hashExt + " for " + baseFileName + " from " + repo + ": " + e.getMessage());
             }
         }
     }
@@ -566,9 +587,9 @@ public class MavenDependencyDownloader {
         return sb.toString();
     }
 
-    private static String constructPomUrl(String groupId, String artifactId, String version) {
+    private static String constructPomUrl(String repo, String groupId, String artifactId, String version) {
         String groupPath = groupId.replace('.', '/');
-        return MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
+        return repo + groupPath + "/" + artifactId + "/" + version + "/" +
                 artifactId + "-" + version + ".pom";
     }
 
