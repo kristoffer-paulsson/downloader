@@ -17,9 +17,11 @@ package org.example.downloader;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -263,7 +265,7 @@ public class MavenDependencyDownloader {
 
             String pomFileName;
             String groupPath;
-            String artifactId;
+            String artifactId = "";
             String version;
 
             if (resolvedPomPath.startsWith("http://") || resolvedPomPath.startsWith("https://")) {
@@ -276,27 +278,24 @@ public class MavenDependencyDownloader {
 
                 // Extract artifactId and version from filename
                 String baseName = pomFileName.substring(0, pomFileName.length() - 4); // Remove .pom
-                // Find version using Maven version pattern
-                Matcher versionMatcher = VERSION_PATTERN.matcher(baseName);
-                String candidateVersion = null;
-                int versionStart = -1;
-                // Try all matching versions, prioritize longest valid match
-                while (versionMatcher.find()) {
-                    String foundVersion = versionMatcher.group();
-                    int start = versionMatcher.start();
-                    String candidateArtifactId = baseName.substring(0, start > 0 ? start - 1 : 0);
-                    if (pomFileName.equals(candidateArtifactId + "-" + foundVersion + ".pom") &&
-                            (candidateVersion == null || foundVersion.length() > candidateVersion.length())) {
-                        candidateVersion = foundVersion;
-                        versionStart = start;
+                // Find version by splitting on last hyphen before a valid version
+                String[] parts = baseName.split("-");
+                version = null;
+                for (int i = parts.length - 1; i > 0; i--) {
+                    String candidateVersion = String.join("-", Arrays.copyOfRange(parts, i, parts.length));
+                    if (VERSION_PATTERN.matcher(candidateVersion).matches()) {
+                        String candidateArtifactId = String.join("-", Arrays.copyOfRange(parts, 0, i));
+                        if (pomFileName.equals(candidateArtifactId + "-" + candidateVersion + ".pom")) {
+                            version = candidateVersion;
+                            artifactId = candidateArtifactId;
+                            break;
+                        }
                     }
                 }
-                if (candidateVersion == null || versionStart == -1) {
-                    System.err.println("Failed to parse version from POM filename: " + pomFileName);
+                if (version == null) {
+                    System.err.println("Failed to parse version from POM filename: " + pomFileName + " (parts: " + Arrays.toString(parts) + ")");
                     return null;
                 }
-                version = candidateVersion;
-                artifactId = baseName.substring(0, versionStart > 0 ? versionStart - 1 : 0);
 
                 // Extract groupPath from URL
                 String expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
@@ -351,7 +350,7 @@ public class MavenDependencyDownloader {
             verifyFile(cachePath, groupPath, artifactId, version, pomFileName);
 
             return cachePath;
-        } catch (IOException | javax.xml.parsers.ParserConfigurationException | org.xml.sax.SAXException e) {
+        } catch (IOException | ParserConfigurationException | SAXException e) {
             System.err.println("Failed to cache POM file: " + pomPath + " - " + e.getMessage());
             return null;
         }
