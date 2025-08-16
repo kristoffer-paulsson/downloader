@@ -90,6 +90,13 @@ public class MavenDependencyDownloader {
                 packaging = "jar"; // Default to jar if not specified
             }
 
+            // Get POM version (or parent version) for property resolution
+            String pomVersion = getPomVersion(doc);
+            if (pomVersion == null) {
+                System.err.println("No version found in POM or parent POM: " + pomPath);
+                return;
+            }
+
             // Get dependencies
             NodeList dependencyNodes = doc.getElementsByTagName("dependency");
             for (int i = 0; i < dependencyNodes.getLength(); i++) {
@@ -105,12 +112,40 @@ public class MavenDependencyDownloader {
                     continue;
                 }
 
+                // Resolve ${project.version} in version
+                if (version.contains("${project.version}")) {
+                    version = version.replace("${project.version}", pomVersion);
+                }
+
+                // Skip if version is still unresolved
+                if (version.contains("${")) {
+                    System.err.println("Unresolved property in version for " + groupId + ":" + artifactId + ":" + version);
+                    continue;
+                }
+
                 // Process dependency
                 processDependency(groupId, artifactId, version, packaging);
             }
         } catch (Exception e) {
             System.err.println("Failed to process POM file: " + pomPath + " - " + e.getMessage());
         }
+    }
+
+    private static String getPomVersion(Document doc) {
+        // Try to get version from the POM itself
+        String version = getElementText(doc.getDocumentElement(), "version");
+        if (version != null) {
+            return version;
+        }
+
+        // If no version, try the parent POM
+        NodeList parentNodes = doc.getElementsByTagName("parent");
+        if (parentNodes.getLength() > 0) {
+            Element parent = (Element) parentNodes.item(0);
+            return getElementText(parent, "version");
+        }
+
+        return null;
     }
 
     private static void processDependency(String groupId, String artifactId, String version, String parentPackaging) {
