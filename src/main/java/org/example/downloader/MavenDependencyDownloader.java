@@ -27,6 +27,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.List;
@@ -171,6 +172,7 @@ public class MavenDependencyDownloader {
 
             // Skip if POM is already cached
             if (Files.exists(cachePath)) {
+                verifyFile(cachePath, groupPath, artifactId, version, pomFileName);
                 return cachePath;
             }
 
@@ -184,6 +186,9 @@ public class MavenDependencyDownloader {
 
             // Download hash and signature files for POM
             downloadHashAndSignatureFiles(groupPath, artifactId, version, pomFileName);
+
+            // Verify POM file
+            verifyFile(cachePath, groupPath, artifactId, version, pomFileName);
 
             return cachePath;
         } catch (IOException | javax.xml.parsers.ParserConfigurationException | org.xml.sax.SAXException e) {
@@ -220,6 +225,7 @@ public class MavenDependencyDownloader {
             // Skip if artifact is already in cache
             if (Files.exists(cachePath)) {
                 System.out.println("Already in cache: " + cachePath);
+                verifyFile(cachePath, groupPath, artifactId, version, fileName);
                 return true;
             }
 
@@ -234,6 +240,9 @@ public class MavenDependencyDownloader {
 
             // Download hash and signature files for artifact
             downloadHashAndSignatureFiles(groupPath, artifactId, version, fileName);
+
+            // Verify artifact file
+            verifyFile(cachePath, groupPath, artifactId, version, fileName);
 
             return true;
         } catch (IOException e) {
@@ -268,6 +277,65 @@ public class MavenDependencyDownloader {
                 System.err.println("Failed to download " + hashExt + " for " + baseFileName + ": " + e.getMessage());
             }
         }
+    }
+
+    private static void verifyFile(Path filePath, String groupPath, String artifactId, String version, String fileName) {
+        try {
+            // Compute MD5 and SHA1 hashes
+            String computedMd5 = computeHash(filePath, "MD5");
+            String computedSha1 = computeHash(filePath, "SHA-1");
+
+            // Verify MD5
+            Path md5Path = Paths.get(CACHE_DIR, groupPath, artifactId, version, fileName + ".md5");
+            if (Files.exists(md5Path)) {
+                String expectedMd5 = new String(Files.readAllBytes(md5Path)).trim();
+                if (computedMd5.equalsIgnoreCase(expectedMd5)) {
+                    System.out.println("Verified MD5 for: " + filePath);
+                } else {
+                    System.err.println("Verification failed for " + filePath + ".md5: expected " + expectedMd5 + ", got " + computedMd5);
+                }
+            } else {
+                System.err.println("MD5 file not found for: " + filePath);
+            }
+
+            // Verify SHA1
+            Path sha1Path = Paths.get(CACHE_DIR, groupPath, artifactId, version, fileName + ".sha1");
+            if (Files.exists(sha1Path)) {
+                String expectedSha1 = new String(Files.readAllBytes(sha1Path)).trim();
+                if (computedSha1.equalsIgnoreCase(expectedSha1)) {
+                    System.out.println("Verified SHA1 for: " + filePath);
+                } else {
+                    System.err.println("Verification failed for " + filePath + ".sha1: expected " + expectedSha1 + ", got " + computedSha1);
+                }
+            } else {
+                System.err.println("SHA1 file not found for: " + filePath);
+            }
+
+            // Note: Skipping .asc verification (requires external GPG libraries)
+            Path ascPath = Paths.get(CACHE_DIR, groupPath, artifactId, version, fileName + ".asc");
+            if (Files.exists(ascPath)) {
+                System.out.println("ASC file present but not verified: " + ascPath);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to verify file: " + filePath + " - " + e.getMessage());
+        }
+    }
+
+    private static String computeHash(Path filePath, String algorithm) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance(algorithm);
+        try (InputStream is = Files.newInputStream(filePath)) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                digest.update(buffer, 0, bytesRead);
+            }
+        }
+        byte[] hashedBytes = digest.digest();
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hashedBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 
     private static String constructPomUrl(String groupId, String artifactId, String version) {
