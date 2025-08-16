@@ -67,6 +67,7 @@ public class DebianDownloadAction extends DebianVerifyAction {
             );
         });
 
+
         if(debianDownloader.getIncompleteDownloads().isEmpty()) {
             System.out.println("No incomplete downloads, finalizing blockchain!");
             chain.finalizeBlockchain();

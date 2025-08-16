@@ -29,10 +29,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.HashSet;
 
 public class MavenDependencyDownloader {
 
@@ -42,6 +42,7 @@ public class MavenDependencyDownloader {
     private static final Set<String> PROCESSED_ARTIFACTS = new HashSet<>(); // Track processed artifacts
     private static final Queue<String> POM_QUEUE = new ArrayDeque<>(); // Queue for POM files
     private static final List<String> COMMON_EXTENSIONS = Arrays.asList("jar", "war", "zip"); // Fallback extensions
+    private static final List<String> HASH_EXTENSIONS = Arrays.asList("md5", "sha1", "asc"); // Hash and signature extensions
 
     public static void main(String[] args) throws Exception {
         String inputFile = "pom_list.txt";
@@ -164,11 +165,11 @@ public class MavenDependencyDownloader {
                 }
             }
 
-            // Construct cache path
+            // Construct cache path for POM
             Path cachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, pomFileName);
             Files.createDirectories(cachePath.getParent());
 
-            // Skip if already cached
+            // Skip if POM is already cached
             if (Files.exists(cachePath)) {
                 return cachePath;
             }
@@ -178,7 +179,12 @@ public class MavenDependencyDownloader {
                     new URL(pomPath).openStream() : new FileInputStream(pomPath);
                  FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
                 fos.getChannel().transferFrom(Channels.newChannel(pomInputStream), 0, Long.MAX_VALUE);
+                System.out.println("Downloaded to cache: " + cachePath);
             }
+
+            // Download hash and signature files for POM
+            downloadHashAndSignatureFiles(groupPath, artifactId, version, pomFileName);
+
             return cachePath;
         } catch (IOException | javax.xml.parsers.ParserConfigurationException | org.xml.sax.SAXException e) {
             System.err.println("Failed to cache POM file: " + pomPath + " - " + e.getMessage());
@@ -211,7 +217,7 @@ public class MavenDependencyDownloader {
             String fileName = artifactId + "-" + version + "." + extension;
             Path cachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, fileName);
 
-            // Skip if already in cache
+            // Skip if artifact is already in cache
             if (Files.exists(cachePath)) {
                 System.out.println("Already in cache: " + cachePath);
                 return true;
@@ -224,11 +230,43 @@ public class MavenDependencyDownloader {
                  FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
                 fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
                 System.out.println("Downloaded to cache: " + cachePath);
-                return true;
             }
+
+            // Download hash and signature files for artifact
+            downloadHashAndSignatureFiles(groupPath, artifactId, version, fileName);
+
+            return true;
         } catch (IOException e) {
             System.err.println("Failed to download " + groupId + ":" + artifactId + ":" + version + " with extension " + extension + ": " + e.getMessage());
             return false;
+        }
+    }
+
+    private static void downloadHashAndSignatureFiles(String groupPath, String artifactId, String version, String baseFileName) {
+        for (String hashExt : HASH_EXTENSIONS) {
+            try {
+                String hashUrl = MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
+                        baseFileName + "." + hashExt;
+                String hashFileName = baseFileName + "." + hashExt;
+                Path hashCachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, hashFileName);
+
+                // Skip if hash/signature file is already in cache
+                if (Files.exists(hashCachePath)) {
+                    System.out.println("Already in cache: " + hashCachePath);
+                    continue;
+                }
+
+                // Download hash/signature file
+                Files.createDirectories(hashCachePath.getParent());
+                URL url = new URL(hashUrl);
+                try (ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+                     FileOutputStream fos = new FileOutputStream(hashCachePath.toFile())) {
+                    fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                    System.out.println("Downloaded to cache: " + hashCachePath);
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to download " + hashExt + " for " + baseFileName + ": " + e.getMessage());
+            }
         }
     }
 
