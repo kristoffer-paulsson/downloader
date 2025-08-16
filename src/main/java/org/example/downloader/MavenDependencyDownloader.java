@@ -235,14 +235,34 @@ public class MavenDependencyDownloader {
 
     private static Path cachePomFile(String pomPath) {
         try {
+            // Check for com.sun.tools:tools and skip
+            if (pomPath.contains("com/sun/tools/") && pomPath.contains("/tools-")) {
+                System.err.println("Skipping com.sun.tools:tools POM (not available in Maven Central): " + pomPath);
+                return null;
+            }
+
+            // Initialize properties for URL resolution
+            Map<String, String> properties = new HashMap<>();
+            properties.put("java.version", System.getProperty("java.version").split("\\.")[0]); // e.g., "11" from "11.0.2"
+
+            // Resolve properties in pomPath
+            String resolvedPomPath = pomPath;
+            if (pomPath.contains("${")) {
+                resolvedPomPath = resolveProperties(pomPath, properties);
+                if (resolvedPomPath == null) {
+                    System.err.println("Unresolved properties in POM URL: " + pomPath);
+                    return null;
+                }
+            }
+
             String pomFileName;
             String groupPath;
             String artifactId;
             String version;
 
-            if (pomPath.startsWith("http://") || pomPath.startsWith("https://")) {
+            if (resolvedPomPath.startsWith("http://") || resolvedPomPath.startsWith("https://")) {
                 // Extract metadata from URL
-                pomFileName = Paths.get(new URL(pomPath).getPath()).getFileName().toString();
+                pomFileName = Paths.get(new URL(resolvedPomPath).getPath()).getFileName().toString();
                 if (!pomFileName.endsWith(".pom")) {
                     System.err.println("Invalid POM file name (must end with .pom): " + pomFileName);
                     return null;
@@ -275,12 +295,12 @@ public class MavenDependencyDownloader {
 
                 // Extract groupPath from URL
                 String expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
-                int groupPathEnd = pomPath.lastIndexOf(expectedPathEnd);
+                int groupPathEnd = resolvedPomPath.lastIndexOf(expectedPathEnd);
                 if (groupPathEnd == -1) {
-                    System.err.println("Invalid POM URL structure: " + pomPath);
+                    System.err.println("Invalid POM URL structure: " + resolvedPomPath);
                     return null;
                 }
-                groupPath = pomPath.substring(MAVEN_CENTRAL.length(), groupPathEnd);
+                groupPath = resolvedPomPath.substring(MAVEN_CENTRAL.length(), groupPathEnd);
             } else {
                 // Parse local POM to get metadata
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -312,8 +332,8 @@ public class MavenDependencyDownloader {
             }
 
             // Download or copy POM to cache
-            try (InputStream pomInputStream = pomPath.startsWith("http://") || pomPath.startsWith("https://") ?
-                    new URL(pomPath).openStream() : new FileInputStream(pomPath);
+            try (InputStream pomInputStream = resolvedPomPath.startsWith("http://") || resolvedPomPath.startsWith("https://") ?
+                    new URL(resolvedPomPath).openStream() : new FileInputStream(pomPath);
                  FileOutputStream fos = new FileOutputStream(cachePath.toFile())) {
                 fos.getChannel().transferFrom(Channels.newChannel(pomInputStream), 0, Long.MAX_VALUE);
                 System.out.println("Downloaded to cache: " + cachePath);
