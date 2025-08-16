@@ -63,7 +63,7 @@ public class MavenDependencyDownloader {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
-                POM_QUEUE.add(line.trim());
+                POM_QUEUE.add(normalizeUrl(line.trim()));
             }
         } catch (FileNotFoundException e) {
             System.err.println("Input file not found: " + inputFile);
@@ -74,6 +74,11 @@ public class MavenDependencyDownloader {
         while (!POM_QUEUE.isEmpty()) {
             processPomFile(POM_QUEUE.poll());
         }
+    }
+
+    private static String normalizeUrl(String url) {
+        // Replace multiple slashes with a single slash, preserving protocol (http:// or https://)
+        return url.replaceAll("(?<!:)//+", "/");
     }
 
     private static void processPomFile(String pomPath) {
@@ -140,7 +145,7 @@ public class MavenDependencyDownloader {
                 }
 
                 // Process dependency
-                processDependency(groupId, artifactId, version, packaging);
+                processDependency(groupId, artifactId, version, packaging, properties);
             }
         } catch (Exception e) {
             System.err.println("Failed to process POM file: " + pomPath + " - " + e.getMessage());
@@ -219,7 +224,7 @@ public class MavenDependencyDownloader {
         return resolved;
     }
 
-    private static void processDependency(String groupId, String artifactId, String version, String parentPackaging) {
+    private static void processDependency(String groupId, String artifactId, String version, String parentPackaging, Map<String, String> properties) {
         String artifactKey = groupId + ":" + artifactId + ":" + version;
         if (PROCESSED_ARTIFACTS.contains(artifactKey)) {
             return; // Skip already processed artifacts
@@ -227,10 +232,10 @@ public class MavenDependencyDownloader {
         PROCESSED_ARTIFACTS.add(artifactKey);
 
         // Download artifact (try packaging from parent or common extensions)
-        downloadArtifact(groupId, artifactId, version, parentPackaging);
+        downloadArtifact(groupId, artifactId, version, parentPackaging, properties);
 
         // Add dependency's POM to queue
-        String pomUrl = constructPomUrl(groupId, artifactId, version);
+        String pomUrl = normalizeUrl(constructPomUrl(groupId, artifactId, version));
         POM_QUEUE.add(pomUrl);
     }
 
@@ -247,9 +252,9 @@ public class MavenDependencyDownloader {
             properties.put("java.version", System.getProperty("java.version").split("\\.")[0]); // e.g., "11" from "11.0.2"
 
             // Resolve properties in pomPath
-            String resolvedPomPath = pomPath;
+            String resolvedPomPath = normalizeUrl(pomPath);
             if (pomPath.contains("${")) {
-                resolvedPomPath = resolveProperties(pomPath, properties);
+                resolvedPomPath = normalizeUrl(resolveProperties(pomPath, properties));
                 if (resolvedPomPath == null) {
                     System.err.println("Unresolved properties in POM URL: " + pomPath);
                     return null;
@@ -275,12 +280,13 @@ public class MavenDependencyDownloader {
                 Matcher versionMatcher = VERSION_PATTERN.matcher(baseName);
                 String candidateVersion = null;
                 int versionStart = -1;
+                // Prioritize longest matching version
                 while (versionMatcher.find()) {
                     String foundVersion = versionMatcher.group();
                     int start = versionMatcher.start();
-                    // Check if this version forms a valid filename suffix
                     String candidateArtifactId = baseName.substring(0, start > 0 ? start - 1 : 0);
-                    if (pomFileName.equals(candidateArtifactId + "-" + foundVersion + ".pom")) {
+                    if (pomFileName.equals(candidateArtifactId + "-" + foundVersion + ".pom") &&
+                            (candidateVersion == null || foundVersion.length() > candidateVersion.length())) {
                         candidateVersion = foundVersion;
                         versionStart = start;
                     }
@@ -351,28 +357,42 @@ public class MavenDependencyDownloader {
         }
     }
 
-    private static void downloadArtifact(String groupId, String artifactId, String version, String packaging) {
+    private static void downloadArtifact(String groupId, String artifactId, String version, String parentPackaging, Map<String, String> properties) {
+        // Resolve properties in groupId and version
+        String resolvedGroupId = resolveProperties(groupId, properties);
+        String resolvedVersion = resolveProperties(version, properties);
+        if (resolvedGroupId == null || resolvedVersion == null) {
+            System.err.println("Unresolved properties in groupId/version for " + groupId + ":" + artifactId + ":" + version);
+            return;
+        }
+
+        // Handle com.sun.tools:tools specially
+        if ("com.sun.tools".equals(resolvedGroupId) && "tools".equals(artifactId)) {
+            System.err.println("Skipping com.sun.tools:tools:" + resolvedVersion + " (not available in Maven Central)");
+            return;
+        }
+
         // Try the specified packaging first
-        if (tryDownloadArtifact(groupId, artifactId, version, packaging)) {
+        if (tryDownloadArtifact(resolvedGroupId, artifactId, resolvedVersion, parentPackaging)) {
             return;
         }
 
         // If packaging fails, try common extensions
         for (String extension : COMMON_EXTENSIONS) {
-            if (!extension.equals(packaging) && tryDownloadArtifact(groupId, artifactId, version, extension)) {
+            if (!extension.equals(parentPackaging) && tryDownloadArtifact(resolvedGroupId, artifactId, resolvedVersion, extension)) {
                 return;
             }
         }
 
-        System.err.println("Failed to download artifact for all attempted extensions: " + groupId + ":" + artifactId + ":" + version);
+        System.err.println("Failed to download artifact for all attempted extensions: " + resolvedGroupId + ":" + artifactId + ":" + resolvedVersion);
     }
 
     private static boolean tryDownloadArtifact(String groupId, String artifactId, String version, String extension) {
         try {
             // Construct artifact URL and cache path
             String groupPath = groupId.replace('.', '/');
-            String artifactUrl = MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
-                    artifactId + "-" + version + "." + extension;
+            String artifactUrl = normalizeUrl(MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
+                    artifactId + "-" + version + "." + extension);
             String fileName = artifactId + "-" + version + "." + extension;
             Path cachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, fileName);
 
@@ -408,8 +428,8 @@ public class MavenDependencyDownloader {
     private static void downloadHashAndSignatureFiles(String groupPath, String artifactId, String version, String baseFileName) {
         for (String hashExt : HASH_EXTENSIONS) {
             try {
-                String hashUrl = MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
-                        baseFileName + "." + hashExt;
+                String hashUrl = normalizeUrl(MAVEN_CENTRAL + groupPath + "/" + artifactId + "/" + version + "/" +
+                        baseFileName + "." + hashExt);
                 String hashFileName = baseFileName + "." + hashExt;
                 Path hashCachePath = Paths.get(CACHE_DIR, groupPath, artifactId, version, hashFileName);
 
