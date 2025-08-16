@@ -49,7 +49,7 @@ public class MavenDependencyDownloader {
     private static final List<String> COMMON_EXTENSIONS = Arrays.asList("jar", "war", "zip", "bundle"); // Fallback extensions
     private static final List<String> HASH_EXTENSIONS = Arrays.asList("md5", "sha1", "asc"); // Hash and signature extensions
     private static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}"); // Matches ${property.name}
-    private static final Pattern VERSION_PATTERN = Pattern.compile("[0-9]+(\\.[0-9]+)*([-][a-zA-Z0-9]+)*"); // Matches Maven versions
+    private static final Pattern VERSION_PATTERN = Pattern.compile("[0-9a-zA-Z]+(\\.[0-9a-zA-Z]+)*([.-][0-9a-zA-Z-]+)*"); // Matches Maven versions
 
     public static void main(String[] args) throws Exception {
         String inputFile = "pom_list.txt";
@@ -280,7 +280,7 @@ public class MavenDependencyDownloader {
                 Matcher versionMatcher = VERSION_PATTERN.matcher(baseName);
                 String candidateVersion = null;
                 int versionStart = -1;
-                // Prioritize longest matching version
+                // Try all matching versions, prioritize longest valid match
                 while (versionMatcher.find()) {
                     String foundVersion = versionMatcher.group();
                     int start = versionMatcher.start();
@@ -302,7 +302,7 @@ public class MavenDependencyDownloader {
                 String expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
                 int groupPathEnd = resolvedPomPath.lastIndexOf(expectedPathEnd);
                 if (groupPathEnd == -1) {
-                    System.err.println("Invalid POM URL structure: " + resolvedPomPath);
+                    System.err.println("Invalid POM URL structure: " + resolvedPomPath + " (expected path end: " + expectedPathEnd + ")");
                     return null;
                 }
                 groupPath = resolvedPomPath.substring(MAVEN_CENTRAL.length(), groupPathEnd);
