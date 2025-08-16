@@ -30,10 +30,14 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MavenDependencyDownloader {
 
@@ -44,6 +48,7 @@ public class MavenDependencyDownloader {
     private static final Queue<String> POM_QUEUE = new ArrayDeque<>(); // Queue for POM files
     private static final List<String> COMMON_EXTENSIONS = Arrays.asList("jar", "war", "zip"); // Fallback extensions
     private static final List<String> HASH_EXTENSIONS = Arrays.asList("md5", "sha1", "asc"); // Hash and signature extensions
+    private static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}"); // Matches ${property.name}
 
     public static void main(String[] args) throws Exception {
         String inputFile = "pom_list.txt";
@@ -90,12 +95,16 @@ public class MavenDependencyDownloader {
                 packaging = "jar"; // Default to jar if not specified
             }
 
-            // Get POM version (or parent version) for property resolution
+            // Get POM version (or parent version) for ${project.version}
             String pomVersion = getPomVersion(doc);
             if (pomVersion == null) {
                 System.err.println("No version found in POM or parent POM: " + pomPath);
                 return;
             }
+
+            // Extract properties from <properties> section
+            Map<String, String> properties = getProperties(doc);
+            properties.put("project.version", pomVersion); // Add project.version for consistency
 
             // Get dependencies
             NodeList dependencyNodes = doc.getElementsByTagName("dependency");
@@ -112,14 +121,10 @@ public class MavenDependencyDownloader {
                     continue;
                 }
 
-                // Resolve ${project.version} in version
-                if (version.contains("${project.version}")) {
-                    version = version.replace("${project.version}", pomVersion);
-                }
-
-                // Skip if version is still unresolved
-                if (version.contains("${")) {
-                    System.err.println("Unresolved property in version for " + groupId + ":" + artifactId + ":" + version);
+                // Resolve properties in version
+                version = resolveProperties(version, properties);
+                if (version == null) {
+                    System.err.println("Unresolved properties in version for " + groupId + ":" + artifactId + ":" + version);
                     continue;
                 }
 
@@ -146,6 +151,44 @@ public class MavenDependencyDownloader {
         }
 
         return null;
+    }
+
+    private static Map<String, String> getProperties(Document doc) {
+        Map<String, String> properties = new HashMap<>();
+        NodeList propertiesNodes = doc.getElementsByTagName("properties");
+        if (propertiesNodes.getLength() > 0) {
+            Element propertiesElement = (Element) propertiesNodes.item(0);
+            NodeList propertyNodes = propertiesElement.getChildNodes();
+            for (int i = 0; i < propertyNodes.getLength(); i++) {
+                if (propertyNodes.item(i) instanceof Element) {
+                    Element prop = (Element) propertyNodes.item(i);
+                    String name = prop.getTagName();
+                    String value = prop.getTextContent().trim();
+                    if (!value.isEmpty()) {
+                        properties.put(name, value);
+                    }
+                }
+            }
+        }
+        return properties;
+    }
+
+    private static String resolveProperties(String version, Map<String, String> properties) {
+        if (!version.contains("${")) {
+            return version;
+        }
+
+        String resolved = version;
+        Matcher matcher = PROPERTY_PATTERN.matcher(version);
+        while (matcher.find()) {
+            String propName = matcher.group(1);
+            String propValue = properties.get(propName);
+            if (propValue == null) {
+                return null; // Unresolved property
+            }
+            resolved = resolved.replace("${" + propName + "}", propValue);
+        }
+        return resolved;
     }
 
     private static void processDependency(String groupId, String artifactId, String version, String parentPackaging) {
