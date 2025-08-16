@@ -17,11 +17,9 @@ package org.example.downloader;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -51,7 +49,7 @@ public class MavenDependencyDownloader {
     private static final List<String> COMMON_EXTENSIONS = Arrays.asList("jar", "war", "zip", "bundle"); // Fallback extensions
     private static final List<String> HASH_EXTENSIONS = Arrays.asList("md5", "sha1", "asc"); // Hash and signature extensions
     private static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}"); // Matches ${property.name}
-    private static final Pattern VERSION_PATTERN = Pattern.compile("[0-9a-zA-Z]+(\\.[0-9a-zA-Z]+)*([.-][0-9a-zA-Z-]+)*"); // Matches Maven versions
+    private static final Pattern VERSION_PATTERN = Pattern.compile("[0-9a-zA-Z]+(\\.[0-9a-zA-Z]+)*([._-][0-9a-zA-Z-]+)*"); // Matches Maven versions
 
     public static void main(String[] args) throws Exception {
         String inputFile = "pom_list.txt";
@@ -265,7 +263,7 @@ public class MavenDependencyDownloader {
 
             String pomFileName;
             String groupPath;
-            String artifactId = "";
+            String artifactId;
             String version;
 
             if (resolvedPomPath.startsWith("http://") || resolvedPomPath.startsWith("https://")) {
@@ -301,8 +299,13 @@ public class MavenDependencyDownloader {
                 String expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
                 int groupPathEnd = resolvedPomPath.lastIndexOf(expectedPathEnd);
                 if (groupPathEnd == -1) {
-                    System.err.println("Invalid POM URL structure: " + resolvedPomPath + " (expected path end: " + expectedPathEnd + ")");
-                    return null;
+                    // Retry with correct version path (no splitting of version)
+                    expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
+                    groupPathEnd = resolvedPomPath.lastIndexOf(expectedPathEnd);
+                    if (groupPathEnd == -1) {
+                        System.err.println("Invalid POM URL structure: " + resolvedPomPath + " (expected path end: " + expectedPathEnd + ")");
+                        return null;
+                    }
                 }
                 groupPath = resolvedPomPath.substring(MAVEN_CENTRAL.length(), groupPathEnd);
             } else {
@@ -350,7 +353,7 @@ public class MavenDependencyDownloader {
             verifyFile(cachePath, groupPath, artifactId, version, pomFileName);
 
             return cachePath;
-        } catch (IOException | ParserConfigurationException | SAXException e) {
+        } catch (IOException | javax.xml.parsers.ParserConfigurationException | org.xml.sax.SAXException e) {
             System.err.println("Failed to cache POM file: " + pomPath + " - " + e.getMessage());
             return null;
         }
