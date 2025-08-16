@@ -17,9 +17,11 @@ package org.example.downloader;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -46,7 +48,7 @@ public class MavenDependencyDownloader {
     private static final String CACHE_DIR = OUTPUT_DIR + "/custom-cache";
     private static final Set<String> PROCESSED_ARTIFACTS = new HashSet<>(); // Track processed artifacts
     private static final Queue<String> POM_QUEUE = new ArrayDeque<>(); // Queue for POM files
-    private static final List<String> COMMON_EXTENSIONS = Arrays.asList("jar", "war", "zip", "bundle"); // Fallback extensions
+    private static final List<String> COMMON_EXTENSIONS = Arrays.asList("jar", "war", "zip", "bundle", "maven-plugin"); // Fallback extensions including plugins
     private static final List<String> HASH_EXTENSIONS = Arrays.asList("md5", "sha1", "asc"); // Hash and signature extensions
     private static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}"); // Matches ${property.name}
     private static final Pattern VERSION_PATTERN = Pattern.compile("[0-9a-zA-Z]+(\\.[0-9a-zA-Z]+)*([._-][0-9a-zA-Z-]+)*"); // Matches Maven versions
@@ -115,7 +117,7 @@ public class MavenDependencyDownloader {
             properties.put("project.version", pomVersion);
             properties.putIfAbsent("java.version", System.getProperty("java.version").split("\\.")[0]); // e.g., "11" from "11.0.2"
 
-            // Get dependencies
+            // Process dependencies
             NodeList dependencyNodes = doc.getElementsByTagName("dependency");
             for (int i = 0; i < dependencyNodes.getLength(); i++) {
                 Element dep = (Element) dependencyNodes.item(i);
@@ -134,7 +136,7 @@ public class MavenDependencyDownloader {
                 groupId = resolveProperties(groupId, properties);
                 version = resolveProperties(version, properties);
                 if (groupId == null || version == null) {
-                    System.err.println("Unresolved properties in groupId/version for " + groupId + ":" + artifactId + ":" + version);
+                    System.err.println("Unresolved properties in groupId/version for dependency " + groupId + ":" + artifactId + ":" + version);
                     continue;
                 }
 
@@ -147,8 +149,63 @@ public class MavenDependencyDownloader {
                 // Process dependency
                 processDependency(groupId, artifactId, version, packaging, properties);
             }
+
+            // Process plugins from <build><plugins>
+            NodeList buildNodes = doc.getElementsByTagName("build");
+            if (buildNodes.getLength() > 0) {
+                Element build = (Element) buildNodes.item(0);
+                NodeList pluginNodes = build.getElementsByTagName("plugins");
+                if (pluginNodes.getLength() > 0) {
+                    Element plugins = (Element) pluginNodes.item(0);
+                    processPlugins(plugins, properties, packaging);
+                }
+            }
+
+            // Process plugins from <pluginManagement><plugins>
+            NodeList pluginManagementNodes = doc.getElementsByTagName("pluginManagement");
+            if (pluginManagementNodes.getLength() > 0) {
+                Element pluginManagement = (Element) pluginManagementNodes.item(0);
+                NodeList pluginNodes = pluginManagement.getElementsByTagName("plugins");
+                if (pluginNodes.getLength() > 0) {
+                    Element plugins = (Element) pluginNodes.item(0);
+                    processPlugins(plugins, properties, packaging);
+                }
+            }
+
         } catch (Exception e) {
             System.err.println("Failed to process POM file: " + pomPath + " - " + e.getMessage());
+        }
+    }
+
+    private static void processPlugins(Element pluginsElement, Map<String, String> properties, String parentPackaging) {
+        NodeList pluginNodes = pluginsElement.getElementsByTagName("plugin");
+        for (int i = 0; i < pluginNodes.getLength(); i++) {
+            Element plugin = (Element) pluginNodes.item(i);
+            String groupId = getElementText(plugin, "groupId");
+            String artifactId = getElementText(plugin, "artifactId");
+            String version = getElementText(plugin, "version");
+
+            // Default groupId for Maven plugins
+            if (groupId == null) {
+                groupId = "org.apache.maven.plugins";
+            }
+
+            // Skip invalid plugins or missing metadata
+            if (artifactId == null || version == null) {
+                System.err.println("Skipping plugin with missing artifactId/version: " + groupId + ":" + artifactId + ":" + version);
+                continue;
+            }
+
+            // Resolve properties in groupId and version
+            groupId = resolveProperties(groupId, properties);
+            version = resolveProperties(version, properties);
+            if (groupId == null || version == null) {
+                System.err.println("Unresolved properties in groupId/version for plugin " + groupId + ":" + artifactId + ":" + version);
+                continue;
+            }
+
+            // Process plugin as a dependency
+            processDependency(groupId, artifactId, version, "maven-plugin", properties);
         }
     }
 
@@ -263,7 +320,7 @@ public class MavenDependencyDownloader {
 
             String pomFileName;
             String groupPath;
-            String artifactId;
+            String artifactId = "";
             String version;
 
             if (resolvedPomPath.startsWith("http://") || resolvedPomPath.startsWith("https://")) {
@@ -299,13 +356,8 @@ public class MavenDependencyDownloader {
                 String expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
                 int groupPathEnd = resolvedPomPath.lastIndexOf(expectedPathEnd);
                 if (groupPathEnd == -1) {
-                    // Retry with correct version path (no splitting of version)
-                    expectedPathEnd = artifactId + "/" + version + "/" + pomFileName;
-                    groupPathEnd = resolvedPomPath.lastIndexOf(expectedPathEnd);
-                    if (groupPathEnd == -1) {
-                        System.err.println("Invalid POM URL structure: " + resolvedPomPath + " (expected path end: " + expectedPathEnd + ")");
-                        return null;
-                    }
+                    System.err.println("Invalid POM URL structure: " + resolvedPomPath + " (expected path end: " + expectedPathEnd + ")");
+                    return null;
                 }
                 groupPath = resolvedPomPath.substring(MAVEN_CENTRAL.length(), groupPathEnd);
             } else {
@@ -353,7 +405,7 @@ public class MavenDependencyDownloader {
             verifyFile(cachePath, groupPath, artifactId, version, pomFileName);
 
             return cachePath;
-        } catch (IOException | javax.xml.parsers.ParserConfigurationException | org.xml.sax.SAXException e) {
+        } catch (IOException | ParserConfigurationException | SAXException e) {
             System.err.println("Failed to cache POM file: " + pomPath + " - " + e.getMessage());
             return null;
         }
