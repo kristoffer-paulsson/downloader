@@ -33,11 +33,8 @@ public class WinetricksURLExtractor {
     private static final String CACHE_DIR = "cache-winetricks";
     // Multiple regex patterns for different w_download formats
     private static final Pattern[] DOWNLOAD_PATTERNS = {
-            // Standard: w_download <url> <checksum> <filename>
             Pattern.compile("w_download\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?"),
-            // w_download_to: w_download_to <path> <url> <checksum> <filename>
             Pattern.compile("w_download_to\\s+[^\\s]+\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?"),
-            // Minimal: w_download <url> <checksum>
             Pattern.compile("w_download\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s*$|\\s+[^\"'].*)")
     };
     private static final Pattern VERB_PATTERN = Pattern.compile("w_metadata\\s+([^\\s]+)\\s+([^\\s]+)");
@@ -159,7 +156,8 @@ public class WinetricksURLExtractor {
         Map<String, String> currentVerbVariables = new HashMap<>();
         String currentVerb = null;
         int loopDepth = 0;
-        List<String> loopVars = new ArrayList<>(); // Track loop iteration variables
+        List<String> loopVars = new ArrayList<>();
+        List<String> loopValues = new ArrayList<>(); // Track loop iteration values
 
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
@@ -179,6 +177,7 @@ public class WinetricksURLExtractor {
                     currentVerb = verbMatcher.group(1);
                     loopDepth = 0;
                     loopVars.clear();
+                    loopValues.clear();
                     continue;
                 }
 
@@ -186,16 +185,21 @@ public class WinetricksURLExtractor {
                 Matcher loopMatcher = LOOP_PATTERN.matcher(line);
                 if (loopMatcher.find()) {
                     loopDepth++;
-                    // Extract loop variable (e.g., "for lang in en fr ...")
                     String[] parts = line.split("\\s+");
                     if (parts.length > 2 && parts[0].equals("for")) {
                         loopVars.add(parts[1]); // e.g., "lang"
+                        if (parts.length > 4 && parts[2].equals("in")) {
+                            loopValues.addAll(Arrays.asList(Arrays.copyOfRange(parts, 3, parts.length - 1))); // e.g., "en fr de"
+                        }
                     }
                     continue;
                 } else if (END_LOOP_PATTERN.matcher(line).find()) {
                     loopDepth = Math.max(0, loopDepth - 1);
                     if (!loopVars.isEmpty()) {
                         loopVars.remove(loopVars.size() - 1);
+                    }
+                    if (!loopValues.isEmpty()) {
+                        loopValues.clear();
                     }
                     continue;
                 }
@@ -208,12 +212,12 @@ public class WinetricksURLExtractor {
                             varMatcher.group(3) != null ? varMatcher.group(3) : varMatcher.group(4);
                     if (currentVerb != null) {
                         if (loopDepth > 0) {
-                            contextVariables.computeIfAbsent(currentVerb + "_loop_" + loopDepth, k -> new HashMap<>()).put(varName, varValue);
-                            // Handle loop iteration variables (e.g., lang=en, fr)
-                            if (!loopVars.isEmpty() && varName.equals(loopVars.get(loopVars.size() - 1))) {
-                                for (String val : varValue.split("\\s+")) {
-                                    contextVariables.computeIfAbsent(currentVerb + "_loop_" + loopDepth, k -> new HashMap<>()).put(varName, val);
+                            if (!loopValues.isEmpty()) {
+                                for (String val : loopValues) {
+                                    contextVariables.computeIfAbsent(currentVerb + "_loop_" + loopDepth + "_" + val, k -> new HashMap<>()).put(varName, varValue);
                                 }
+                            } else {
+                                contextVariables.computeIfAbsent(currentVerb + "_loop_" + loopDepth, k -> new HashMap<>()).put(varName, varValue);
                             }
                         } else {
                             currentVerbVariables.put(varName, varValue);
@@ -223,7 +227,6 @@ public class WinetricksURLExtractor {
                     }
                 }
             }
-            // Save variables for the last verb
             if (currentVerb != null && !currentVerbVariables.isEmpty()) {
                 contextVariables.put(currentVerb, new HashMap<>(currentVerbVariables));
             }
@@ -245,7 +248,7 @@ public class WinetricksURLExtractor {
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                // Skip comments but track the last one for dynamic URL replacement
+                // Track comments for dynamic URL replacement
                 if (COMMENT_PATTERN.matcher(line).find()) {
                     lastComment = line.trim();
                     continue;
@@ -299,18 +302,16 @@ public class WinetricksURLExtractor {
                                     filename = extractFilenameFromURL(rawUrl);
                                 }
 
-                                // Handle dynamic URL replacement (e.g., dotnet11sp1)
                                 String resolvedUrl = resolveVariables(rawUrl, contextVariables, currentVerb, loopDepth);
                                 if (resolvedUrl == null || resolvedUrl.equals("downloads")) {
                                     if (lastComment != null && lastComment.contains("instead we change the link")) {
-                                        // Try to find the replacement URL in the next few lines
-                                        String replacementUrl = findReplacementURL(winetricksFile, reader, currentVerb);
+                                        String replacementUrl = findReplacementURL(winetricksFile, currentVerb);
                                         if (replacementUrl != null) {
                                             resolvedUrl = resolveVariables(replacementUrl, contextVariables, currentVerb, loopDepth);
                                         }
                                     }
                                     if (resolvedUrl == null || resolvedUrl.equals("downloads")) {
-                                        System.err.println("Skipping unresolved or invalid URL for verb " + currentVerb + ": " + rawUrl + " (line: " + line + ")");
+                                        System.err.println("Skipping unresolved or invalid URL for verb " + currentVerb + " at loop depth " + loopDepth + ": " + rawUrl + " (line: " + line + ")");
                                         continue;
                                     }
                                 }
@@ -330,11 +331,13 @@ public class WinetricksURLExtractor {
     }
 
     // Find replacement URL after a commented w_download
-    private static String findReplacementURL(String winetricksFile, BufferedReader currentReader, String currentVerb) throws IOException {
+    private static String findReplacementURL(String winetricksFile, String currentVerb) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
             boolean foundVerb = false;
-            while ((line = reader.readLine()) != null) {
+            int linesToCheck = 5; // Look at next 5 lines for replacement
+            int linesChecked = 0;
+            while ((line = reader.readLine()) != null && linesChecked < linesToCheck) {
                 if (line.startsWith("w_metadata " + currentVerb + " ")) {
                     foundVerb = true;
                     continue;
@@ -347,6 +350,7 @@ public class WinetricksURLExtractor {
                                     downloadMatcher.group(2) != null ? downloadMatcher.group(2) : downloadMatcher.group(3);
                         }
                     }
+                    linesChecked++;
                 }
                 if (foundVerb && line.startsWith("w_metadata ")) {
                     break;
@@ -367,7 +371,6 @@ public class WinetricksURLExtractor {
             boolean inFunction = false;
             int loopDepth = 0;
             while ((line = reader.readLine()) != null) {
-                // Skip comments
                 if (COMMENT_PATTERN.matcher(line).find()) {
                     continue;
                 }
@@ -382,7 +385,6 @@ public class WinetricksURLExtractor {
                     continue;
                 }
                 if (inFunction) {
-                    // Track loop depth in function
                     if (LOOP_PATTERN.matcher(line).find()) {
                         loopDepth++;
                         continue;
@@ -413,7 +415,7 @@ public class WinetricksURLExtractor {
 
                                 String resolvedUrl = resolveVariables(rawUrl, contextVariables, parentVerb, loopDepth);
                                 if (resolvedUrl == null || resolvedUrl.equals("downloads")) {
-                                    System.err.println("Skipping unresolved or invalid URL for verb " + parentVerb + " (called from " + calledVerb + "): " + rawUrl + " (line: " + line + ")");
+                                    System.err.println("Skipping unresolved or invalid URL for verb " + parentVerb + " (called from " + calledVerb + ") at loop depth " + loopDepth + ": " + rawUrl + " (line: " + line + ")");
                                     continue;
                                 }
 
@@ -433,10 +435,14 @@ public class WinetricksURLExtractor {
         String resolvedUrl = rawUrl.replaceAll("[\"']", "");
         // Try loop-specific variables
         for (int i = loopDepth; i > 0; i--) {
-            Map<String, String> loopVars = contextVariables.getOrDefault(verb + "_loop_" + i, new HashMap<>());
-            for (Map.Entry<String, String> entry : loopVars.entrySet()) {
-                resolvedUrl = resolvedUrl.replace("${" + entry.getKey() + "}", entry.getValue() != null ? entry.getValue() : "");
-                resolvedUrl = resolvedUrl.replace("$" + entry.getKey(), entry.getValue() != null ? entry.getValue() : "");
+            for (String key : contextVariables.keySet()) {
+                if (key.startsWith(verb + "_loop_" + i)) {
+                    Map<String, String> loopVars = contextVariables.get(key);
+                    for (Map.Entry<String, String> entry : loopVars.entrySet()) {
+                        resolvedUrl = resolvedUrl.replace("${" + entry.getKey() + "}", entry.getValue() != null ? entry.getValue() : "");
+                        resolvedUrl = resolvedUrl.replace("$" + entry.getKey(), entry.getValue() != null ? entry.getValue() : "");
+                    }
+                }
             }
         }
         // Try verb-specific variables
@@ -455,13 +461,13 @@ public class WinetricksURLExtractor {
         resolvedUrl = resolvedUrl.replace("${1}", verb).replace("$1", verb);
         // Fallback for winrar
         if (verb.equals("winrar")) {
-            // Try multiple possible filenames
+            resolvedUrl = resolvedUrl.replace("${_W_winrar_url}", "https://www.rarlab.com/rar");
             String[] possibleExeNames = {
                     "winrar-x64-511.exe", "winrar-x32-511.exe",
                     "winrar-x64-621.exe", "winrar-x32-621.exe",
-                    // Add more based on Winetricks script or common patterns
+                    "wrar621.exe", "wrar621ar.exe", "wrar621br.exe", "wrar621cn.exe", // Add language-specific versions
+                    // Add more based on Winetricks script
             };
-            resolvedUrl = resolvedUrl.replace("${_W_winrar_url}", "https://www.rarlab.com/rar");
             for (String exe : possibleExeNames) {
                 String testUrl = resolvedUrl.replace("${_W_winrar_exe}", exe);
                 try {
@@ -537,18 +543,19 @@ public class WinetricksURLExtractor {
                 attempt++;
                 try {
                     HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                    // Set Range header before connecting
+                    long existingSize = Files.exists(filePath) ? Files.size(filePath) : 0;
+                    if (existingSize > 0) {
+                        conn.setRequestProperty("Range", "bytes=" + existingSize + "-");
+                    }
+                    conn.connect();
                     long totalSize = conn.getContentLengthLong();
 
-                    long existingSize = Files.exists(filePath) ? Files.size(filePath) : 0;
                     if (existingSize > 0 && existingSize == totalSize && verifyChecksum(filePath, expectedChecksum)) {
                         System.out.println("File already exists and checksum matches: " + filename);
                         success = true;
                         downloadedURLs.add(url);
                         continue;
-                    }
-
-                    if (existingSize > 0 && existingSize < totalSize) {
-                        conn.setRequestProperty("Range", "bytes=" + existingSize + "-");
                     }
 
                     try (InputStream in = conn.getInputStream();
