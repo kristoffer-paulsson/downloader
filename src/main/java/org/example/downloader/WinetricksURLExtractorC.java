@@ -33,10 +33,12 @@ public class WinetricksURLExtractorC {
     private static final String CACHE_DIR = "cache-winetricks";
     // Multiple regex patterns for different w_download formats
     private static final Pattern[] DOWNLOAD_PATTERNS = {
-            // Standard: w_download <url> <checksum> <filename>
-            Pattern.compile("w_download\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?"),
             // w_download_to: w_download_to <path> <url> <checksum> <filename>
             Pattern.compile("w_download_to\\s+[^\\s]+\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?"),
+            // Standard: w_download_to <url> <checksum> <filename>
+            Pattern.compile("w_download_to\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?"),
+            // Standard: w_download <url> <checksum> <filename>
+            Pattern.compile("w_download\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?"),
             // Minimal: w_download <url> <checksum>
             Pattern.compile("w_download\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s*$|\\s+[^\"'].*)")
     };
