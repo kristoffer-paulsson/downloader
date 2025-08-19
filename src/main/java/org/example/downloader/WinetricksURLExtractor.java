@@ -32,11 +32,6 @@ public class WinetricksURLExtractor {
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
 
-    // Enum to differentiate URL strategies
-    private enum UrlStrategy {
-        DOWNLOAD, DOWNLOAD_TO
-    }
-
     // Patterns for w_download and w_download_to
     private static final Pattern DOWNLOAD_PATTERN = Pattern.compile(
             "w_download\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?");
@@ -276,6 +271,7 @@ public class WinetricksURLExtractor {
         Set<String[]> urlData = new HashSet<>();
         String currentVerb = null;
         String currentFunction = null;
+        String currentParentVerb = null; // Track parent verb for w_call
         int downloadCount = 0;
         int downloadToCount = 0;
         int loopDepth = 0;
@@ -303,6 +299,7 @@ public class WinetricksURLExtractor {
                 if (verbMatcher.find()) {
                     currentVerb = verbMatcher.group(1);
                     currentFunction = null;
+                    currentParentVerb = currentVerb; // Set parent verb for w_call
                     loopDepth = 0;
                     lastComment = null;
                     continue;
@@ -321,14 +318,16 @@ public class WinetricksURLExtractor {
                 Matcher funcMatcher = FUNCTION_PATTERN.matcher(line);
                 if (funcMatcher.find() && currentVerb != null) {
                     String calledVerb = funcMatcher.group(1);
+                    System.out.println("Processing w_call to " + calledVerb + " in verb " + currentVerb);
                     urlData.addAll(extractFunctionURLs(winetricksFile, calledVerb, currentVerb, targetVerbs, targetCategories, verbCategories, contextVariables, processAll));
                 }
 
                 // Check for download calls
                 String context = currentFunction != null ? currentFunction : currentVerb;
+                String verbToUse = currentParentVerb != null ? currentParentVerb : context != null ? context : "unknown";
                 if (context != null) {
-                    boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
-                    boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
+                    boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(verbToUse);
+                    boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(verbToUse, ""));
                     if (verbMatch && categoryMatch) {
                         // Try w_download_to
                         Matcher downloadToMatcher = DOWNLOAD_TO_PATTERN.matcher(line);
@@ -352,19 +351,18 @@ public class WinetricksURLExtractor {
                             String resolvedUrl = resolveVariables(rawUrl, contextVariables, context, loopDepth);
                             if (resolvedUrl == null || resolvedUrl.equals("downloads")) {
                                 if (lastComment != null && lastComment.contains("instead we change the link")) {
-                                    String replacementUrl = findReplacementURL(winetricksFile, currentVerb != null ? currentVerb : currentFunction);
+                                    String replacementUrl = findReplacementURL(winetricksFile, verbToUse);
                                     if (replacementUrl != null) {
                                         resolvedUrl = resolveVariables(replacementUrl, contextVariables, context, loopDepth);
                                     }
                                 }
                                 if (resolvedUrl == null || resolvedUrl.equals("downloads")) {
-                                    System.err.println("Skipping unresolved or invalid URL for " + (currentVerb != null ? "verb " + currentVerb : "function " + currentFunction) + " at loop depth " + loopDepth + ": " + rawUrl + " (line: " + line + ")");
+                                    System.err.println("Skipping unresolved or invalid URL for verb " + verbToUse + " (context: " + context + ") at loop depth " + loopDepth + ": " + rawUrl + " (line: " + line + ")");
                                     continue;
                                 }
                             }
 
-                            filename = sanitizeFilename(filename, resolvedUrl, currentVerb != null ? currentVerb : currentFunction);
-                            String verbToUse = currentVerb != null ? currentVerb : context; // Use parent verb or function name as fallback
+                            filename = sanitizeFilename(filename, resolvedUrl, verbToUse);
                             urlData.add(new String[]{resolvedUrl, filename, checksum, verbToUse, cacheDir});
                             System.out.println("Processed w_download_to: Verb=" + verbToUse + ", CacheDir=" + cacheDir + ", URL=" + resolvedUrl);
                             continue;
@@ -391,20 +389,19 @@ public class WinetricksURLExtractor {
                             String resolvedUrl = resolveVariables(rawUrl, contextVariables, context, loopDepth);
                             if (resolvedUrl == null || resolvedUrl.equals("downloads")) {
                                 if (lastComment != null && lastComment.contains("instead we change the link")) {
-                                    String replacementUrl = findReplacementURL(winetricksFile, currentVerb != null ? currentVerb : currentFunction);
+                                    String replacementUrl = findReplacementURL(winetricksFile, verbToUse);
                                     if (replacementUrl != null) {
                                         resolvedUrl = resolveVariables(replacementUrl, contextVariables, context, loopDepth);
                                     }
                                 }
                                 if (resolvedUrl == null || resolvedUrl.equals("downloads")) {
-                                    System.err.println("Skipping unresolved or invalid URL for " + (currentVerb != null ? "verb " + currentVerb : "function " + currentFunction) + " at loop depth " + loopDepth + ": " + rawUrl + " (line: " + line + ")");
+                                    System.err.println("Skipping unresolved or invalid URL for verb " + verbToUse + " (context: " + context + ") at loop depth " + loopDepth + ": " + rawUrl + " (line: " + line + ")");
                                     continue;
                                 }
                             }
 
-                            filename = sanitizeFilename(filename, resolvedUrl, currentVerb != null ? currentVerb : currentFunction);
-                            String verbToUse = currentVerb != null ? currentVerb : context; // Use parent verb or function name as fallback
-                            urlData.add(new String[]{resolvedUrl, filename, checksum, verbToUse, null}); // No cacheDir for w_download
+                            filename = sanitizeFilename(filename, resolvedUrl, verbToUse);
+                            urlData.add(new String[]{resolvedUrl, filename, checksum, verbToUse, null});
                             System.out.println("Processed w_download: Verb=" + verbToUse + ", URL=" + resolvedUrl);
                         }
                     }
@@ -424,7 +421,7 @@ public class WinetricksURLExtractor {
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
             boolean foundContext = false;
-            int linesToCheck = 15; // Extended to 15 lines
+            int linesToCheck = 15;
             int linesChecked = 0;
             while ((line = reader.readLine()) != null && linesChecked < linesToCheck) {
                 if (line.startsWith("w_metadata " + context + " ") || line.startsWith(context + "()")) {
