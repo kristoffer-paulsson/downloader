@@ -17,6 +17,7 @@ package org.example.downloader;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
@@ -30,7 +31,8 @@ import java.util.regex.Pattern;
 public class WinetricksURLExtractor {
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
-    private static final Pattern DOWNLOAD_PATTERN = Pattern.compile("w_download\\s+(https?://[^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)");
+    // Updated regex to handle quoted filenames and variables
+    private static final Pattern DOWNLOAD_PATTERN = Pattern.compile("w_download\\s+(https?://[^\\s]+)\\s+([^\\s]+)\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))");
     private static final Pattern VERB_PATTERN = Pattern.compile("w_metadata\\s+([^\\s]+)\\s+([^\\s]+)");
 
     public static void main(String[] args) {
@@ -45,6 +47,7 @@ public class WinetricksURLExtractor {
 
             // Step 2: Extract verb categories and URL data
             Map<String, String> verbCategories = extractVerbCategories(winetricksFile);
+            validateArguments(targetVerbs, targetCategories, verbCategories);
             Set<String[]> urlData = extractURLsAndChecksums(winetricksFile, targetVerbs, targetCategories, verbCategories);
 
             // Step 3: Download files to Winetricks cache directory
@@ -69,6 +72,21 @@ public class WinetricksURLExtractor {
             } else if (args[i].equals("--categories") && i + 1 < args.length) {
                 String[] categories = args[++i].split(",");
                 targetCategories.addAll(Arrays.asList(categories));
+            }
+        }
+    }
+
+    // Validate verbs and categories
+    private static void validateArguments(Set<String> targetVerbs, Set<String> targetCategories, Map<String, String> verbCategories) {
+        for (String verb : targetVerbs) {
+            if (!verbCategories.containsKey(verb)) {
+                System.err.println("Warning: Verb '" + verb + "' not found in Winetricks script.");
+            }
+        }
+        Set<String> validCategories = new HashSet<>(verbCategories.values());
+        for (String category : targetCategories) {
+            if (!validCategories.contains(category)) {
+                System.err.println("Warning: Category '" + category + "' not found in Winetricks script.");
             }
         }
     }
@@ -123,17 +141,36 @@ public class WinetricksURLExtractor {
                     // Apply verb and category filters
                     boolean verbMatch = targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
                     boolean categoryMatch = targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
-
                     if (verbMatch && categoryMatch) {
                         String url = downloadMatcher.group(1);
                         String checksum = downloadMatcher.group(2);
-                        String filename = downloadMatcher.group(3);
+                        String filename = downloadMatcher.group(3) != null ? downloadMatcher.group(3) :
+                                downloadMatcher.group(4) != null ? downloadMatcher.group(4) : downloadMatcher.group(5);
+                        // Decode URL-encoded characters and remove quotes/variables
+                        filename = sanitizeFilename(filename);
                         urlData.add(new String[]{url, filename, checksum, currentVerb});
                     }
                 }
             }
         }
         return urlData;
+    }
+
+    // Sanitize filename by decoding URL-encoded characters and removing quotes/variables
+    private static String sanitizeFilename(String filename) {
+        try {
+            // Decode URL-encoded characters (e.g., %20 to space)
+            filename = URLDecoder.decode(filename, "UTF-8");
+            // Remove quotes and invalid characters
+            filename = filename.replaceAll("[\"']", "").replaceAll("[^a-zA-Z0-9._-]", "_");
+            // Handle variable placeholders (e.g., ${file1})
+            if (filename.contains("$")) {
+                filename = filename.replaceAll("\\$\\{[^}]+\\}", "file");
+            }
+            return filename;
+        } catch (UnsupportedEncodingException e) {
+            return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+        }
     }
 
     // Download files to the Winetricks cache directory with progress, resume, and checksum verification
@@ -155,47 +192,62 @@ public class WinetricksURLExtractor {
             Path filePath = categoryPath.resolve(filename);
             System.out.println("Downloading " + url + " to " + filePath);
 
-            // Check if file exists and is complete
-            long existingSize = Files.exists(filePath) ? Files.size(filePath) : 0;
-            try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-                long totalSize = conn.getContentLengthLong();
+            // Retry logic (up to 3 attempts)
+            int maxRetries = 3;
+            int attempt = 0;
+            boolean success = false;
 
-                // Resume download if file is incomplete
-                if (existingSize > 0 && existingSize < totalSize) {
-                    conn.setRequestProperty("Range", "bytes=" + existingSize + "-");
-                } else if (existingSize == totalSize && verifyChecksum(filePath, expectedChecksum)) {
-                    System.out.println("File already exists and checksum matches: " + filename);
-                    continue;
-                }
+            while (attempt < maxRetries && !success) {
+                attempt++;
+                try {
+                    HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                    long totalSize = conn.getContentLengthLong();
 
-                // Download with progress feedback
-                try (InputStream in = conn.getInputStream();
-                     FileOutputStream fos = new FileOutputStream(filePath.toString(), existingSize > 0)) {
-                    byte[] buffer = new byte[8192];
-                    long downloaded = existingSize;
-                    int bytesRead;
-
-                    while ((bytesRead = in.read(buffer)) != -1) {
-                        fos.write(buffer, 0, bytesRead);
-                        downloaded += bytesRead;
-                        if (totalSize > 0) {
-                            int progress = (int) ((downloaded * 100) / totalSize);
-                            System.out.print("\rProgress: " + progress + "%");
-                        }
+                    // Check if file exists and is complete
+                    long existingSize = Files.exists(filePath) ? Files.size(filePath) : 0;
+                    if (existingSize > 0 && existingSize == totalSize && verifyChecksum(filePath, expectedChecksum)) {
+                        System.out.println("File already exists and checksum matches: " + filename);
+                        success = true;
+                        continue;
                     }
-                    System.out.println(); // Newline after progress
-                }
 
-                // Verify checksum
-                if (!verifyChecksum(filePath, expectedChecksum)) {
-                    System.err.println("Checksum mismatch for " + filename + ". Deleting file.");
-                    Files.deleteIfExists(filePath);
-                } else {
-                    System.out.println("Checksum verified for " + filename);
+                    // Resume download if file is incomplete
+                    if (existingSize > 0 && existingSize < totalSize) {
+                        conn.setRequestProperty("Range", "bytes=" + existingSize + "-");
+                    }
+
+                    // Download with progress feedback
+                    try (InputStream in = conn.getInputStream();
+                         FileOutputStream fos = new FileOutputStream(filePath.toString(), existingSize > 0)) {
+                        byte[] buffer = new byte[8192];
+                        long downloaded = existingSize;
+                        int bytesRead;
+
+                        while ((bytesRead = in.read(buffer)) != -1) {
+                            fos.write(buffer, 0, bytesRead);
+                            downloaded += bytesRead;
+                            if (totalSize > 0) {
+                                int progress = (int) ((downloaded * 100) / totalSize);
+                                System.out.print("\rProgress: " + progress + "%");
+                            }
+                        }
+                        System.out.println(); // Newline after progress
+                    }
+
+                    // Verify checksum
+                    if (!verifyChecksum(filePath, expectedChecksum)) {
+                        System.err.println("Checksum mismatch for " + filename + ". Deleting file.");
+                        Files.deleteIfExists(filePath);
+                    } else {
+                        System.out.println("Checksum verified for " + filename);
+                        success = true;
+                    }
+                } catch (IOException e) {
+                    System.err.println("Attempt " + attempt + " failed for " + url + ": " + e.getMessage());
+                    if (attempt == maxRetries) {
+                        System.err.println("Max retries reached for " + url + ". Skipping.");
+                    }
                 }
-            } catch (IOException e) {
-                System.err.println("Failed to download " + url + ": " + e.getMessage());
             }
         }
     }
