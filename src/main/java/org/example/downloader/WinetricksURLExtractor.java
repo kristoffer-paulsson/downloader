@@ -31,7 +31,8 @@ import java.util.regex.Pattern;
 public class WinetricksURLExtractor {
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
-    private static final Pattern DOWNLOAD_PATTERN = Pattern.compile("w_download\\s+(https?://[^\\s]+)\\s+([^\\s]+)\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))");
+    // Updated regex to handle more w_download variations
+    private static final Pattern DOWNLOAD_PATTERN = Pattern.compile("w_download(?:_to)?\\s+([^\\s]+)\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?");
     private static final Pattern VERB_PATTERN = Pattern.compile("w_metadata\\s+([^\\s]+)\\s+([^\\s]+)");
 
     public static void main(String[] args) {
@@ -61,10 +62,12 @@ public class WinetricksURLExtractor {
 
             // Step 2: Extract verb categories and URL data
             Map<String, String> verbCategories = extractVerbCategories(winetricksFile);
+            System.out.println("Parsed " + verbCategories.size() + " verbs.");
             if (!downloadAll && !listAll) {
                 validateArguments(targetVerbs, targetCategories, verbCategories);
             }
             Set<String[]> urlData = extractURLsAndChecksums(winetricksFile, targetVerbs, targetCategories, verbCategories, downloadAll || listAll);
+            System.out.println("Extracted " + urlData.size() + " URLs.");
 
             // Step 3: Process based on arguments
             if (urlData.isEmpty()) {
@@ -140,6 +143,7 @@ public class WinetricksURLExtractor {
                                                          Set<String> targetCategories, Map<String, String> verbCategories, boolean processAll) throws IOException {
         Set<String[]> urlData = new HashSet<>();
         String currentVerb = null;
+        int downloadCount = 0;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
@@ -153,25 +157,37 @@ public class WinetricksURLExtractor {
 
                 // Check for download calls
                 Matcher downloadMatcher = DOWNLOAD_PATTERN.matcher(line);
-                if (downloadMatcher.find() && currentVerb != null) {
-                    // Apply verb and category filters unless processing all
-                    boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
-                    boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
-                    if (verbMatch && categoryMatch) {
-                        String url = downloadMatcher.group(1);
-                        String checksum = downloadMatcher.group(2);
-                        String filename = downloadMatcher.group(3) != null ? downloadMatcher.group(3) :
-                                downloadMatcher.group(4) != null ? downloadMatcher.group(4) : downloadMatcher.group(5);
-                        filename = sanitizeFilename(filename);
-                        urlData.add(new String[]{url, filename, checksum, currentVerb});
+                if (downloadMatcher.find()) {
+                    downloadCount++;
+                    if (currentVerb != null) {
+                        // Apply verb and category filters unless processing all
+                        boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
+                        boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
+                        if (verbMatch && categoryMatch) {
+                            String url = downloadMatcher.group(1);
+                            String checksum = downloadMatcher.group(2);
+                            String filename = downloadMatcher.group(3) != null ? downloadMatcher.group(3) :
+                                    downloadMatcher.group(4) != null ? downloadMatcher.group(4) :
+                                            downloadMatcher.group(5) != null ? downloadMatcher.group(5) : extractFilenameFromURL(url);
+                            filename = sanitizeFilename(filename);
+                            urlData.add(new String[]{url, filename, checksum, currentVerb});
+                        }
                     }
                 }
             }
         }
+        System.out.println("Found " + downloadCount + " w_download calls in script.");
         return urlData;
     }
 
-    // Sanitize filename by decoding URL-encoded characters and removing quotes/variables
+    // Extract filename from URL as a fallback
+    private static String extractFilenameFromURL(String url) {
+        String[] parts = url.split("/");
+        String lastPart = parts[parts.length - 1];
+        return lastPart.contains("?") ? lastPart.substring(0, lastPart.indexOf("?")) : lastPart;
+    }
+
+    // Sanitize filename by decoding URL-encoded characters and handling variables
     private static String sanitizeFilename(String filename) {
         try {
             // Decode URL-encoded characters (e.g., %20 to space)
@@ -182,9 +198,10 @@ public class WinetricksURLExtractor {
             if (filename.contains("$")) {
                 filename = filename.replaceAll("\\$\\{[^}]+\\}", "file");
             }
-            return filename;
+            // Ensure non-empty filename
+            return filename.isEmpty() ? "downloaded_file" : filename;
         } catch (UnsupportedEncodingException e) {
-            return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+            return filename.replaceAll("[^a-zA-Z0-9._-]", "_").isEmpty() ? "downloaded_file" : filename;
         }
     }
 
@@ -193,11 +210,19 @@ public class WinetricksURLExtractor {
         Path cachePath = Paths.get(CACHE_DIR);
         Files.createDirectories(cachePath);
 
+        // Track unique URLs to avoid duplicate downloads
+        Set<String> downloadedURLs = new HashSet<>();
+
         for (String[] data : urlData) {
             String url = data[0];
             String filename = data[1];
             String expectedChecksum = data[2];
             String verb = data[3];
+
+            if (downloadedURLs.contains(url)) {
+                System.out.println("Skipping duplicate URL: " + url);
+                continue;
+            }
 
             // Get category from verb, default to "misc" if not found
             String category = verbCategories.getOrDefault(verb, "misc");
@@ -223,6 +248,7 @@ public class WinetricksURLExtractor {
                     if (existingSize > 0 && existingSize == totalSize && verifyChecksum(filePath, expectedChecksum)) {
                         System.out.println("File already exists and checksum matches: " + filename);
                         success = true;
+                        downloadedURLs.add(url);
                         continue;
                     }
 
@@ -256,6 +282,7 @@ public class WinetricksURLExtractor {
                     } else {
                         System.out.println("Checksum verified for " + filename);
                         success = true;
+                        downloadedURLs.add(url);
                     }
                 } catch (IOException e) {
                     System.err.println("Attempt " + attempt + " failed for " + url + ": " + e.getMessage());
