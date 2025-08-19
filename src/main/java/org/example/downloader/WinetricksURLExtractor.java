@@ -39,22 +39,50 @@ public class WinetricksURLExtractor {
             // Parse command-line arguments
             Set<String> targetVerbs = new HashSet<>();
             Set<String> targetCategories = new HashSet<>();
-            boolean downloadAll = parseArguments(args, targetVerbs, targetCategories);
+            boolean downloadAll = false;
+            boolean listAll = false;
+
+            for (int i = 0; i < args.length; i++) {
+                if (args[i].equals("--all")) {
+                    downloadAll = true;
+                } else if (args[i].equals("--list-all")) {
+                    listAll = true;
+                } else if (args[i].equals("--verbs") && i + 1 < args.length) {
+                    String[] verbs = args[++i].split(",");
+                    targetVerbs.addAll(Arrays.asList(verbs));
+                } else if (args[i].equals("--categories") && i + 1 < args.length) {
+                    String[] categories = args[++i].split(",");
+                    targetCategories.addAll(Arrays.asList(categories));
+                }
+            }
 
             // Step 1: Download the Winetricks script
             String winetricksFile = downloadWinetricksScript();
 
             // Step 2: Extract verb categories and URL data
             Map<String, String> verbCategories = extractVerbCategories(winetricksFile);
-            if (!downloadAll) {
+            if (!downloadAll && !listAll) {
                 validateArguments(targetVerbs, targetCategories, verbCategories);
             }
-            Set<String[]> urlData = extractURLsAndChecksums(winetricksFile, targetVerbs, targetCategories, verbCategories, downloadAll);
+            Set<String[]> urlData = extractURLsAndChecksums(winetricksFile, targetVerbs, targetCategories, verbCategories, downloadAll || listAll);
 
-            // Step 3: Download files to Winetricks cache directory
+            // Step 3: Process based on arguments
             if (urlData.isEmpty()) {
-                System.out.println("No matching verbs or categories found to download.");
+                System.out.println("No matching verbs or categories found.");
+            } else if (listAll) {
+                // List all URLs
+                System.out.println("Extracted URLs:");
+                for (String[] data : urlData) {
+                    String url = data[0];
+                    String filename = data[1];
+                    String checksum = data[2];
+                    String verb = data[3];
+                    String category = verbCategories.getOrDefault(verb, "misc");
+                    System.out.printf("Verb: %s, Category: %s, Filename: %s, URL: %s, Checksum: %s%n",
+                            verb, category, filename, url, checksum);
+                }
             } else {
+                // Download files
                 downloadFiles(urlData, verbCategories);
                 System.out.println("All URLs extracted and files downloaded to " + CACHE_DIR);
             }
@@ -62,23 +90,6 @@ public class WinetricksURLExtractor {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
         }
-    }
-
-    // Parse command-line arguments for verbs, categories, and all
-    private static boolean parseArguments(String[] args, Set<String> targetVerbs, Set<String> targetCategories) {
-        boolean downloadAll = false;
-        for (int i = 0; i < args.length; i++) {
-            if (args[i].equals("--all")) {
-                downloadAll = true;
-            } else if (args[i].equals("--verbs") && i + 1 < args.length) {
-                String[] verbs = args[++i].split(",");
-                targetVerbs.addAll(Arrays.asList(verbs));
-            } else if (args[i].equals("--categories") && i + 1 < args.length) {
-                String[] categories = args[++i].split(",");
-                targetCategories.addAll(Arrays.asList(categories));
-            }
-        }
-        return downloadAll;
     }
 
     // Validate verbs and categories
@@ -126,7 +137,7 @@ public class WinetricksURLExtractor {
 
     // Extract URLs, filenames, and checksums, filtered by verbs, categories, or all
     private static Set<String[]> extractURLsAndChecksums(String winetricksFile, Set<String> targetVerbs,
-                                                         Set<String> targetCategories, Map<String, String> verbCategories, boolean downloadAll) throws IOException {
+                                                         Set<String> targetCategories, Map<String, String> verbCategories, boolean processAll) throws IOException {
         Set<String[]> urlData = new HashSet<>();
         String currentVerb = null;
 
@@ -143,9 +154,9 @@ public class WinetricksURLExtractor {
                 // Check for download calls
                 Matcher downloadMatcher = DOWNLOAD_PATTERN.matcher(line);
                 if (downloadMatcher.find() && currentVerb != null) {
-                    // Apply verb and category filters unless --all is specified
-                    boolean verbMatch = downloadAll || targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
-                    boolean categoryMatch = downloadAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
+                    // Apply verb and category filters unless processing all
+                    boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
+                    boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
                     if (verbMatch && categoryMatch) {
                         String url = downloadMatcher.group(1);
                         String checksum = downloadMatcher.group(2);
