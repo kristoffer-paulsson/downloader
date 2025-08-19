@@ -188,7 +188,6 @@ public class WinetricksURLExtractor {
                 contextVariables.put(currentVerb, new HashMap<>(currentVerbVariables));
             }
         }
-        // Add global variables as a fallback context
         contextVariables.put("global", globalVariables);
         return contextVariables;
     }
@@ -215,7 +214,6 @@ public class WinetricksURLExtractor {
                 Matcher funcMatcher = FUNCTION_PATTERN.matcher(line);
                 if (funcMatcher.find() && currentVerb != null) {
                     String calledVerb = funcMatcher.group(1);
-                    // Add URLs from called verbs
                     urlData.addAll(extractFunctionURLs(winetricksFile, calledVerb, currentVerb, targetVerbs, targetCategories, verbCategories, contextVariables, processAll));
                 }
 
@@ -225,30 +223,34 @@ public class WinetricksURLExtractor {
                     if (downloadMatcher.find()) {
                         downloadCount++;
                         if (currentVerb != null) {
-                            // Apply verb and category filters
                             boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
                             boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
                             if (verbMatch && categoryMatch) {
                                 String rawUrl = downloadMatcher.group(1) != null ? downloadMatcher.group(1) :
                                         downloadMatcher.group(2) != null ? downloadMatcher.group(2) : downloadMatcher.group(3);
                                 String checksum = downloadMatcher.group(4);
-                                String filename = downloadMatcher.group(5) != null ? downloadMatcher.group(5) :
-                                        downloadMatcher.group(6) != null ? downloadMatcher.group(6) :
-                                                downloadMatcher.group(7) != null ? downloadMatcher.group(7) : extractFilenameFromURL(rawUrl);
+                                String filename = null;
+                                if (downloadMatcher.groupCount() >= 5 && downloadMatcher.group(5) != null) {
+                                    filename = downloadMatcher.group(5);
+                                } else if (downloadMatcher.groupCount() >= 6 && downloadMatcher.group(6) != null) {
+                                    filename = downloadMatcher.group(6);
+                                } else if (downloadMatcher.groupCount() >= 7 && downloadMatcher.group(7) != null) {
+                                    filename = downloadMatcher.group(7);
+                                } else {
+                                    filename = extractFilenameFromURL(rawUrl);
+                                }
 
-                                // Resolve variables in URL
                                 String resolvedUrl = resolveVariables(rawUrl, contextVariables, currentVerb);
                                 if (resolvedUrl == null) {
                                     System.err.println("Skipping unresolved URL for verb " + currentVerb + ": " + rawUrl);
                                     continue;
                                 }
 
-                                // Sanitize filename
                                 filename = sanitizeFilename(filename, resolvedUrl, currentVerb);
                                 urlData.add(new String[]{resolvedUrl, filename, checksum, currentVerb});
                             }
                         }
-                        break; // Stop checking patterns once one matches
+                        break;
                     }
                 }
             }
@@ -285,9 +287,16 @@ public class WinetricksURLExtractor {
                                 String rawUrl = downloadMatcher.group(1) != null ? downloadMatcher.group(1) :
                                         downloadMatcher.group(2) != null ? downloadMatcher.group(2) : downloadMatcher.group(3);
                                 String checksum = downloadMatcher.group(4);
-                                String filename = downloadMatcher.group(5) != null ? downloadMatcher.group(5) :
-                                        downloadMatcher.group(6) != null ? downloadMatcher.group(6) :
-                                                downloadMatcher.group(7) != null ? downloadMatcher.group(7) : extractFilenameFromURL(rawUrl);
+                                String filename = null;
+                                if (downloadMatcher.groupCount() >= 5 && downloadMatcher.group(5) != null) {
+                                    filename = downloadMatcher.group(5);
+                                } else if (downloadMatcher.groupCount() >= 6 && downloadMatcher.group(6) != null) {
+                                    filename = downloadMatcher.group(6);
+                                } else if (downloadMatcher.groupCount() >= 7 && downloadMatcher.group(7) != null) {
+                                    filename = downloadMatcher.group(7);
+                                } else {
+                                    filename = extractFilenameFromURL(rawUrl);
+                                }
 
                                 String resolvedUrl = resolveVariables(rawUrl, contextVariables, parentVerb);
                                 if (resolvedUrl == null) {
@@ -308,25 +317,21 @@ public class WinetricksURLExtractor {
 
     // Resolve variables in URLs
     private static String resolveVariables(String rawUrl, Map<String, Map<String, String>> contextVariables, String verb) {
-        String resolvedUrl = rawUrl.replaceAll("[\"']", ""); // Remove quotes
-        // Try verb-specific variables first
+        String resolvedUrl = rawUrl.replaceAll("[\"']", "");
         Map<String, String> verbVars = contextVariables.getOrDefault(verb, new HashMap<>());
         for (Map.Entry<String, String> entry : verbVars.entrySet()) {
             resolvedUrl = resolvedUrl.replace("${" + entry.getKey() + "}", entry.getValue() != null ? entry.getValue() : "");
         }
-        // Fall back to global variables
         Map<String, String> globalVars = contextVariables.getOrDefault("global", new HashMap<>());
         for (Map.Entry<String, String> entry : globalVars.entrySet()) {
             resolvedUrl = resolvedUrl.replace("${" + entry.getKey() + "}", entry.getValue() != null ? entry.getValue() : "");
         }
-        // Handle positional parameters (e.g., $1)
         resolvedUrl = resolvedUrl.replace("${1}", verb).replace("$1", verb);
-        // Check if URL is valid
         try {
             new URL(resolvedUrl).toURI();
             return resolvedUrl;
         } catch (Exception e) {
-            return null; // Skip invalid URLs
+            return null;
         }
     }
 
