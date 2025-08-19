@@ -31,10 +31,18 @@ import java.util.regex.Pattern;
 public class WinetricksURLExtractor {
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
-    // Updated regex to handle w_download calls with variables
-    private static final Pattern DOWNLOAD_PATTERN = Pattern.compile("w_download(?:_to)?\\s+([^\\s]+)\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?");
+    // Multiple regex patterns for different w_download formats
+    private static final Pattern[] DOWNLOAD_PATTERNS = {
+            // Standard: w_download <url> <checksum> <filename>
+            Pattern.compile("w_download\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?"),
+            // w_download_to: w_download_to <path> <url> <checksum> <filename>
+            Pattern.compile("w_download_to\\s+[^\\s]+\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+)))?(?:\\s+.*)?"),
+            // Minimal: w_download <url> <checksum>
+            Pattern.compile("w_download\\s+(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))\\s+([^\\s]+)(?:\\s*$|\\s+[^\"'].*)")
+    };
     private static final Pattern VERB_PATTERN = Pattern.compile("w_metadata\\s+([^\\s]+)\\s+([^\\s]+)");
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("(\\w+)=(?:\"([^\"]+)\"|'([^']+)'|([^\\s]+))");
+    private static final Pattern FUNCTION_PATTERN = Pattern.compile("w_call\\s+([^\\s]+)");
 
     public static void main(String[] args) {
         try {
@@ -63,13 +71,13 @@ public class WinetricksURLExtractor {
 
             // Step 2: Extract verb categories, variables, and URL data
             Map<String, String> verbCategories = extractVerbCategories(winetricksFile);
-            Map<String, String> variables = extractVariables(winetricksFile);
+            Map<String, Map<String, String>> contextVariables = extractContextVariables(winetricksFile, verbCategories.keySet());
             System.out.println("Parsed " + verbCategories.size() + " verbs.");
-            System.out.println("Parsed " + variables.size() + " variables.");
+            System.out.println("Parsed variables for " + contextVariables.size() + " contexts.");
             if (!downloadAll && !listAll) {
                 validateArguments(targetVerbs, targetCategories, verbCategories);
             }
-            Set<String[]> urlData = extractURLsAndChecksums(winetricksFile, targetVerbs, targetCategories, verbCategories, variables, downloadAll || listAll);
+            Set<String[]> urlData = extractURLsAndChecksums(winetricksFile, targetVerbs, targetCategories, verbCategories, contextVariables, downloadAll || listAll);
             System.out.println("Extracted " + urlData.size() + " URLs.");
 
             // Step 3: Process based on arguments
@@ -141,28 +149,54 @@ public class WinetricksURLExtractor {
         return verbCategories;
     }
 
-    // Extract variables from the script
-    private static Map<String, String> extractVariables(String winetricksFile) throws IOException {
-        Map<String, String> variables = new HashMap<>();
+    // Extract variables with context (global and per-verb)
+    private static Map<String, Map<String, String>> extractContextVariables(String winetricksFile, Set<String> verbs) throws IOException {
+        Map<String, Map<String, String>> contextVariables = new HashMap<>();
+        Map<String, String> globalVariables = new HashMap<>();
+        Map<String, String> currentVerbVariables = new HashMap<>();
+        String currentVerb = null;
+
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                Matcher matcher = VARIABLE_PATTERN.matcher(line);
-                if (matcher.find()) {
-                    String varName = matcher.group(1);
-                    String varValue = matcher.group(2) != null ? matcher.group(2) :
-                            matcher.group(3) != null ? matcher.group(3) : matcher.group(4);
-                    variables.put(varName, varValue);
+                // Check for verb definition
+                Matcher verbMatcher = VERB_PATTERN.matcher(line);
+                if (verbMatcher.find()) {
+                    if (currentVerb != null) {
+                        contextVariables.put(currentVerb, new HashMap<>(currentVerbVariables));
+                        currentVerbVariables.clear();
+                    }
+                    currentVerb = verbMatcher.group(1);
+                    continue;
+                }
+
+                // Check for variable assignments
+                Matcher varMatcher = VARIABLE_PATTERN.matcher(line);
+                if (varMatcher.find()) {
+                    String varName = varMatcher.group(1);
+                    String varValue = varMatcher.group(2) != null ? varMatcher.group(2) :
+                            varMatcher.group(3) != null ? varMatcher.group(3) : varMatcher.group(4);
+                    if (currentVerb != null) {
+                        currentVerbVariables.put(varName, varValue);
+                    } else {
+                        globalVariables.put(varName, varValue);
+                    }
                 }
             }
+            // Save variables for the last verb
+            if (currentVerb != null) {
+                contextVariables.put(currentVerb, new HashMap<>(currentVerbVariables));
+            }
         }
-        return variables;
+        // Add global variables as a fallback context
+        contextVariables.put("global", globalVariables);
+        return contextVariables;
     }
 
-    // Extract URLs, filenames, and checksums, filtered by verbs, categories, or all
+    // Extract URLs, filenames, and checksums
     private static Set<String[]> extractURLsAndChecksums(String winetricksFile, Set<String> targetVerbs,
                                                          Set<String> targetCategories, Map<String, String> verbCategories,
-                                                         Map<String, String> variables, boolean processAll) throws IOException {
+                                                         Map<String, Map<String, String>> contextVariables, boolean processAll) throws IOException {
         Set<String[]> urlData = new HashSet<>();
         String currentVerb = null;
         int downloadCount = 0;
@@ -177,32 +211,44 @@ public class WinetricksURLExtractor {
                     continue;
                 }
 
+                // Check for function calls (e.g., w_call)
+                Matcher funcMatcher = FUNCTION_PATTERN.matcher(line);
+                if (funcMatcher.find() && currentVerb != null) {
+                    String calledVerb = funcMatcher.group(1);
+                    // Add URLs from called verbs
+                    urlData.addAll(extractFunctionURLs(winetricksFile, calledVerb, currentVerb, targetVerbs, targetCategories, verbCategories, contextVariables, processAll));
+                }
+
                 // Check for download calls
-                Matcher downloadMatcher = DOWNLOAD_PATTERN.matcher(line);
-                if (downloadMatcher.find()) {
-                    downloadCount++;
-                    if (currentVerb != null) {
-                        // Apply verb and category filters unless processing all
-                        boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
-                        boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
-                        if (verbMatch && categoryMatch) {
-                            String rawUrl = downloadMatcher.group(1);
-                            String checksum = downloadMatcher.group(2);
-                            String filename = downloadMatcher.group(3) != null ? downloadMatcher.group(3) :
-                                    downloadMatcher.group(4) != null ? downloadMatcher.group(4) :
-                                            downloadMatcher.group(5) != null ? downloadMatcher.group(5) : extractFilenameFromURL(rawUrl);
+                for (Pattern pattern : DOWNLOAD_PATTERNS) {
+                    Matcher downloadMatcher = pattern.matcher(line);
+                    if (downloadMatcher.find()) {
+                        downloadCount++;
+                        if (currentVerb != null) {
+                            // Apply verb and category filters
+                            boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(currentVerb);
+                            boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(currentVerb, ""));
+                            if (verbMatch && categoryMatch) {
+                                String rawUrl = downloadMatcher.group(1) != null ? downloadMatcher.group(1) :
+                                        downloadMatcher.group(2) != null ? downloadMatcher.group(2) : downloadMatcher.group(3);
+                                String checksum = downloadMatcher.group(4);
+                                String filename = downloadMatcher.group(5) != null ? downloadMatcher.group(5) :
+                                        downloadMatcher.group(6) != null ? downloadMatcher.group(6) :
+                                                downloadMatcher.group(7) != null ? downloadMatcher.group(7) : extractFilenameFromURL(rawUrl);
 
-                            // Resolve variables in URL
-                            String resolvedUrl = resolveVariables(rawUrl, variables, currentVerb);
-                            if (resolvedUrl == null) {
-                                System.err.println("Skipping unresolved URL for verb " + currentVerb + ": " + rawUrl);
-                                continue;
+                                // Resolve variables in URL
+                                String resolvedUrl = resolveVariables(rawUrl, contextVariables, currentVerb);
+                                if (resolvedUrl == null) {
+                                    System.err.println("Skipping unresolved URL for verb " + currentVerb + ": " + rawUrl);
+                                    continue;
+                                }
+
+                                // Sanitize filename
+                                filename = sanitizeFilename(filename, resolvedUrl, currentVerb);
+                                urlData.add(new String[]{resolvedUrl, filename, checksum, currentVerb});
                             }
-
-                            // Sanitize filename
-                            filename = sanitizeFilename(filename, resolvedUrl, currentVerb);
-                            urlData.add(new String[]{resolvedUrl, filename, checksum, currentVerb});
                         }
+                        break; // Stop checking patterns once one matches
                     }
                 }
             }
@@ -211,15 +257,70 @@ public class WinetricksURLExtractor {
         return urlData;
     }
 
+    // Extract URLs from function calls (w_call)
+    private static Set<String[]> extractFunctionURLs(String winetricksFile, String calledVerb, String parentVerb,
+                                                     Set<String> targetVerbs, Set<String> targetCategories,
+                                                     Map<String, String> verbCategories, Map<String, Map<String, String>> contextVariables,
+                                                     boolean processAll) throws IOException {
+        Set<String[]> urlData = new HashSet<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
+            String line;
+            boolean inFunction = false;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("w_metadata " + calledVerb + " ")) {
+                    inFunction = true;
+                    continue;
+                }
+                if (inFunction && line.startsWith("w_metadata ")) {
+                    inFunction = false;
+                    continue;
+                }
+                if (inFunction) {
+                    for (Pattern pattern : DOWNLOAD_PATTERNS) {
+                        Matcher downloadMatcher = pattern.matcher(line);
+                        if (downloadMatcher.find()) {
+                            boolean verbMatch = processAll || targetVerbs.isEmpty() || targetVerbs.contains(parentVerb);
+                            boolean categoryMatch = processAll || targetCategories.isEmpty() || targetCategories.contains(verbCategories.getOrDefault(parentVerb, ""));
+                            if (verbMatch && categoryMatch) {
+                                String rawUrl = downloadMatcher.group(1) != null ? downloadMatcher.group(1) :
+                                        downloadMatcher.group(2) != null ? downloadMatcher.group(2) : downloadMatcher.group(3);
+                                String checksum = downloadMatcher.group(4);
+                                String filename = downloadMatcher.group(5) != null ? downloadMatcher.group(5) :
+                                        downloadMatcher.group(6) != null ? downloadMatcher.group(6) :
+                                                downloadMatcher.group(7) != null ? downloadMatcher.group(7) : extractFilenameFromURL(rawUrl);
+
+                                String resolvedUrl = resolveVariables(rawUrl, contextVariables, parentVerb);
+                                if (resolvedUrl == null) {
+                                    System.err.println("Skipping unresolved URL for verb " + parentVerb + " (called from " + calledVerb + "): " + rawUrl);
+                                    continue;
+                                }
+
+                                filename = sanitizeFilename(filename, resolvedUrl, parentVerb);
+                                urlData.add(new String[]{resolvedUrl, filename, checksum, parentVerb});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return urlData;
+    }
+
     // Resolve variables in URLs
-    private static String resolveVariables(String rawUrl, Map<String, String> variables, String verb) {
-        String resolvedUrl = rawUrl;
-        // Handle simple variable substitutions (e.g., _W_droid_url)
-        for (Map.Entry<String, String> entry : variables.entrySet()) {
+    private static String resolveVariables(String rawUrl, Map<String, Map<String, String>> contextVariables, String verb) {
+        String resolvedUrl = rawUrl.replaceAll("[\"']", ""); // Remove quotes
+        // Try verb-specific variables first
+        Map<String, String> verbVars = contextVariables.getOrDefault(verb, new HashMap<>());
+        for (Map.Entry<String, String> entry : verbVars.entrySet()) {
             resolvedUrl = resolvedUrl.replace("${" + entry.getKey() + "}", entry.getValue() != null ? entry.getValue() : "");
         }
-        // Handle positional parameters (e.g., $1) with a fallback
-        resolvedUrl = resolvedUrl.replace("${1}", verb); // Fallback: use verb name
+        // Fall back to global variables
+        Map<String, String> globalVars = contextVariables.getOrDefault("global", new HashMap<>());
+        for (Map.Entry<String, String> entry : globalVars.entrySet()) {
+            resolvedUrl = resolvedUrl.replace("${" + entry.getKey() + "}", entry.getValue() != null ? entry.getValue() : "");
+        }
+        // Handle positional parameters (e.g., $1)
+        resolvedUrl = resolvedUrl.replace("${1}", verb).replace("$1", verb);
         // Check if URL is valid
         try {
             new URL(resolvedUrl).toURI();
@@ -236,21 +337,17 @@ public class WinetricksURLExtractor {
         return lastPart.contains("?") ? lastPart.substring(0, lastPart.indexOf("?")) : lastPart;
     }
 
-    // Sanitize filename by decoding URL-encoded characters and handling variables
+    // Sanitize filename
     private static String sanitizeFilename(String filename, String url, String verb) {
         try {
-            // Decode URL-encoded characters
             filename = URLDecoder.decode(filename, "UTF-8");
-            // Remove quotes and invalid characters
             filename = filename.replaceAll("[\"']", "").replaceAll("[^a-zA-Z0-9._-]", "_");
-            // Handle variable placeholders (e.g., ${file1}, $1)
-            if (filename.contains("$") || filename.equals("_1")) {
+            if (filename.contains("$") || filename.equals("_1") || filename.isEmpty()) {
                 filename = extractFilenameFromURL(url);
                 if (filename.isEmpty()) {
-                    filename = verb + "_file"; // Fallback to verb-based name
+                    filename = verb + "_file";
                 }
             }
-            // Ensure non-empty filename
             return filename.isEmpty() ? verb + "_file" : filename;
         } catch (UnsupportedEncodingException e) {
             filename = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
@@ -263,7 +360,6 @@ public class WinetricksURLExtractor {
         Path cachePath = Paths.get(CACHE_DIR);
         Files.createDirectories(cachePath);
 
-        // Track unique URLs to avoid duplicate downloads
         Set<String> downloadedURLs = new HashSet<>();
 
         for (String[] data : urlData) {
@@ -277,7 +373,6 @@ public class WinetricksURLExtractor {
                 continue;
             }
 
-            // Get category from verb
             String category = verbCategories.getOrDefault(verb, "misc");
             Path categoryPath = cachePath.resolve(category);
             Files.createDirectories(categoryPath);
@@ -285,7 +380,6 @@ public class WinetricksURLExtractor {
             Path filePath = categoryPath.resolve(filename);
             System.out.println("Downloading " + url + " to " + filePath);
 
-            // Retry logic (up to 3 attempts)
             int maxRetries = 3;
             int attempt = 0;
             boolean success = false;
@@ -296,7 +390,6 @@ public class WinetricksURLExtractor {
                     HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
                     long totalSize = conn.getContentLengthLong();
 
-                    // Check if file exists and is complete
                     long existingSize = Files.exists(filePath) ? Files.size(filePath) : 0;
                     if (existingSize > 0 && existingSize == totalSize && verifyChecksum(filePath, expectedChecksum)) {
                         System.out.println("File already exists and checksum matches: " + filename);
@@ -305,12 +398,10 @@ public class WinetricksURLExtractor {
                         continue;
                     }
 
-                    // Resume download if file is incomplete
                     if (existingSize > 0 && existingSize < totalSize) {
                         conn.setRequestProperty("Range", "bytes=" + existingSize + "-");
                     }
 
-                    // Download with progress feedback
                     try (InputStream in = conn.getInputStream();
                          FileOutputStream fos = new FileOutputStream(filePath.toString(), existingSize > 0)) {
                         byte[] buffer = new byte[8192];
@@ -325,10 +416,9 @@ public class WinetricksURLExtractor {
                                 System.out.print("\rProgress: " + progress + "%");
                             }
                         }
-                        System.out.println(); // Newline after progress
+                        System.out.println();
                     }
 
-                    // Verify checksum
                     if (!verifyChecksum(filePath, expectedChecksum)) {
                         System.err.println("Checksum mismatch for " + filename + ". Deleting file.");
                         Files.deleteIfExists(filePath);
@@ -347,7 +437,7 @@ public class WinetricksURLExtractor {
         }
     }
 
-    // Verify SHA256 checksum of a file
+    // Verify SHA256 checksum
     private static boolean verifyChecksum(Path filePath, String expectedChecksum) throws IOException {
         if (!Files.exists(filePath)) {
             return false;
