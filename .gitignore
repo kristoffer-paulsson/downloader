@@ -20,5 +20,6 @@ runtime-*/
 package-*/
 java-downloads/
 downloaded-jars/
+cache-winetricks/
 
 config.properties
