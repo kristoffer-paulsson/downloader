@@ -310,6 +310,47 @@ public class DownloadHelper {
         }
     }
 
+    public static HttpURLConnection followRedirects(URL url) throws IOException {
+        Set<String> visitedUrls = new HashSet<>(); // Track visited URLs to prevent circular redirects
+        int maxRedirects = 8;
+        int redirectCount = 0;
+
+        while (true) {
+            HttpURLConnection connection = setupConnection(url, "HEAD", null);
+            connection.setInstanceFollowRedirects(false); // Disable automatic redirect following
+            int responseCode = connection.getResponseCode();
+
+            if (!isRedirect(responseCode)) {
+                return connection;
+            } else {
+                redirectCount++;
+                if (redirectCount > maxRedirects) {
+                    connection.disconnect(); // Close the current connection
+                    throw new IOException("Maximum redirect limit (" + maxRedirects + ") exceeded for URL: " + url);
+                }
+
+                // Get the redirect location
+                String location = connection.getHeaderField("Location");
+                if (location == null || location.isEmpty()) {
+                    connection.disconnect(); // Close the current connection
+                    throw new IOException("Redirect response code " + responseCode + " but no Location header found for URL: " + url);
+                }
+
+                // Resolve the new URL relative to the current URL
+                url = new URL(url, location);
+
+                // Check for circular redirects
+                String urlString = url.toString();
+                if (!visitedUrls.add(urlString)) {
+                    connection.disconnect(); // Close the current connection
+                    throw new IOException("Circular redirect detected for URL: " + urlString);
+                }
+
+                connection.disconnect(); // Close the current connection
+            }
+        }
+    }
+
     public static long queryUrlFileDownloadSizeWithRedirect(URL url) {
         Set<String> visitedUrls = new HashSet<>(); // Track visited URLs to prevent circular redirects
         int maxRedirects = 8;
