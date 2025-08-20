@@ -199,6 +199,10 @@ public class WinetricksURLExtractor {
         }
     }
 
+    private static String extractVerbCategory(String verb) {
+        return verbCategories.getOrDefault(verb, "misc");
+    }
+
     /**
      * # Usage: w_download url [shasum [filename [cookie jar]]]
      * */
@@ -216,7 +220,8 @@ public class WinetricksURLExtractor {
         } else {
             filename = extractFilename(extractValue(fields,3), url);
         }
-        System.out.println(String.format("%s, %s, %s, %s", currentVerb, filename, sha256Digest, url));
+        String category = extractVerbCategory(currentVerb);
+        System.out.println(String.format("%s, %s, %s, %s, %s", category, currentVerb, filename, sha256Digest, url));
     }
 
     /**
@@ -243,7 +248,8 @@ public class WinetricksURLExtractor {
         String sha256Digest = extractSha256(extractValue(fields,fieldIdx));
         fieldIdx++;
         String filename = extractFilename(extractValue(fields, fieldIdx), url);
-        System.out.println(String.format("%s, %s, %s, %s", pkgName, filename, sha256Digest, url));
+        String category = extractVerbCategory(pkgName);
+        System.out.println(String.format("%s, %s, %s, %s, %s", category, pkgName, filename, sha256Digest, url));
         //System.out.println(String.format("%s", currentVerb));
     }
 
@@ -262,7 +268,8 @@ public class WinetricksURLExtractor {
             sha256Digest = extractSha256(extractValue(fields,3));
             filename = extractFilename(fields.get(2), url);
         }
-        System.out.println(String.format("%s, %s, %s, %s", currentVerb, filename, sha256Digest, url));
+        String category = extractVerbCategory(currentVerb);
+        System.out.println(String.format("%s, %s, %s, %s, %s", category, currentVerb, filename, sha256Digest, url));
     }
 
     private static void doDroid(List<String> fields, String currentVerb) {
