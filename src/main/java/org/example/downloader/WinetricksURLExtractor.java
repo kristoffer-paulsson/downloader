@@ -36,6 +36,7 @@ public class WinetricksURLExtractor {
 
     private static final String[] SKIP = {
             "47113b285253a1ebce04527a31d734c0dfce5724e8d2643c6c1b822a940e7073",
+            "f9640f69c2b8c012b97720ce0a9aac483989563908fc19446b9d1ba16e7239d6", // cnc_ddraw
     };
 
     private static final String WINRAR_URL = "https://www.win-rar.com/fileadmin/winrar-versions";
@@ -191,7 +192,7 @@ public class WinetricksURLExtractor {
      * */
     private static void wDownloadToHandler(List<String> fields) {
         //System.out.println(String.join(" ", fields));
-        if(fields.size() < 2) {
+        if(fields.size() < 3) {
             System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
             return;
         }
@@ -215,7 +216,7 @@ public class WinetricksURLExtractor {
 
     private static void wDownloadManualHandler(List<String> fields) {
         //System.out.println(String.join(" ", fields));
-        if(fields.size() < 2) {
+        if(fields.size() < 3) {
             System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
             return;
         }
