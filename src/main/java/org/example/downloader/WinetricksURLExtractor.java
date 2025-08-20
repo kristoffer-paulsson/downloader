@@ -91,7 +91,7 @@ public class WinetricksURLExtractor {
                             wDownloadManualHandler(fields);
                         }
                     } else if(line.startsWith("w_download_to")) {
-                        if(line.contains("W_PACKAGE") || line.contains("_W_tmpdir")) {
+                        if(line.contains("W_PACKAGE") || line.contains("_W_tmpdir") || line.contains("W_TMP_EARLY")) {
                             System.out.println(line);
                         } else {
                             wDownloadToHandler(fields);
@@ -152,13 +152,19 @@ public class WinetricksURLExtractor {
      * # Usage: w_download url [shasum [filename [cookie jar]]]
      * */
     private static void wDownloadHandler(List<String> fields) {
-        if(fields.size() < 2) {
+        //System.out.println(String.join(" ", fields));
+        if(fields.size() < 3) {
             System.out.println(String.join(" ", fields));
             return;
         }
         URL url = extractURL(fields.get(1));
         String sha256Digest = extractSha256(extractValue(fields,2));
-        String filename = extractFilename(extractValue(fields,3), url);
+        String filename = "";
+        if(fields.size() <= 4) {
+            filename = extractFilename(filename, url);
+        } else {
+            filename = extractFilename(extractValue(fields,3), url);
+        }
         System.out.println(String.format("%s, %s, %s", filename, sha256Digest, url));
     }
 
@@ -166,6 +172,7 @@ public class WinetricksURLExtractor {
      * # Usage: w_download_to (packagename|path to download file) url [shasum [filename [cookie jar]]]
      * */
     private static void wDownloadToHandler(List<String> fields) {
+        //System.out.println(String.join(" ", fields));
         if(fields.size() < 2) {
             System.out.println(String.join(" ", fields));
             return;
@@ -189,6 +196,7 @@ public class WinetricksURLExtractor {
     }
 
     private static void wDownloadManualHandler(List<String> fields) {
+        //System.out.println(String.join(" ", fields));
         if(fields.size() < 2) {
             System.out.println(String.join(" ", fields));
             return;
@@ -202,7 +210,7 @@ public class WinetricksURLExtractor {
             sha256Digest = extractSha256(extractValue(fields,3));
             filename = extractFilename(fields.get(2), url);
         }
-        System.out.println(String.format("%s, %s, %s, %s", filename, sha256Digest, url));
+        System.out.println(String.format("%s, %s, %s", filename, sha256Digest, url));
     }
 
     private static void doDroid(List<String> fields) {
