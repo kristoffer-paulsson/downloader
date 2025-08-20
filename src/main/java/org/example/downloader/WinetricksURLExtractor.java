@@ -35,7 +35,8 @@ public class WinetricksURLExtractor {
     private static final String CACHE_DIR = "cache-winetricks";
 
     private static final String[] SKIP = {
-            "47113b285253a1ebce04527a31d734c0dfce5724e8d2643c6c1b822a940e7073"
+            "47113b285253a1ebce04527a31d734c0dfce5724e8d2643c6c1b822a940e7073",
+            "bf4ee47d0df1870104f4fada8a68c2fb29e94fea9284c7bb6a6b385a718d8a18" // utorrent
     };
 
     private static final String WINRAR_URL = "https://www.win-rar.com/fileadmin/winrar-versions";
