@@ -86,13 +86,13 @@ public class WinetricksURLExtractor {
 
                     if(line.startsWith("w_download_manual")) {
                         if(line.contains("W_PACKAGE")) {
-                            System.out.println(line);
+                            // System.out.println(line);
                         } else {
                             wDownloadManualHandler(fields);
                         }
                     } else if(line.startsWith("w_download_to")) {
                         if(line.contains("W_PACKAGE") || line.contains("_W_tmpdir") || line.contains("W_TMP_EARLY")) {
-                            System.out.println(line);
+                            // System.out.println(line);
                         } else {
                             wDownloadToHandler(fields);
                         }
@@ -154,7 +154,7 @@ public class WinetricksURLExtractor {
     private static void wDownloadHandler(List<String> fields) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 3) {
-            System.out.println(String.join(" ", fields));
+            //System.out.println(String.join(" ", fields));
             return;
         }
         URL url = extractURL(fields.get(1));
@@ -174,7 +174,7 @@ public class WinetricksURLExtractor {
     private static void wDownloadToHandler(List<String> fields) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 2) {
-            System.out.println(String.join(" ", fields));
+            //System.out.println(String.join(" ", fields));
             return;
         }
         int fieldIdx = 1;
@@ -198,7 +198,7 @@ public class WinetricksURLExtractor {
     private static void wDownloadManualHandler(List<String> fields) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 2) {
-            System.out.println(String.join(" ", fields));
+            //System.out.println(String.join(" ", fields));
             return;
         }
         URL url = extractURL(fields.get(1));
