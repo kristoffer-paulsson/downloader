@@ -86,7 +86,7 @@ public class WinetricksURLExtractor {
     private static void extractFromWinetricks(String winetricksFile) throws IOException, URISyntaxException {
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
-            String currentVerb;
+            String currentVerb = "misc";
             int lineCount = 0;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
@@ -106,7 +106,7 @@ public class WinetricksURLExtractor {
                     lineCount++;
 
                     List<String> fields = List.of(line.split(" "));
-                    doDroid(fields);
+                    doDroid(fields, currentVerb);
                 } else if(line.contains("w_download")) {
                     lineCount++;
 
@@ -121,20 +121,20 @@ public class WinetricksURLExtractor {
                         if(line.contains("W_PACKAGE")) {
                             // System.out.println(line);
                         } else {
-                            wDownloadManualHandler(fields);
+                            wDownloadManualHandler(fields, currentVerb);
                         }
                     } else if(line.startsWith("w_download_to")) {
                         if(line.contains("W_PACKAGE") || line.contains("_W_tmpdir") || line.contains("W_TMP_EARLY")) {
                             // System.out.println(line);
                         } else {
-                            wDownloadToHandler(fields);
+                            wDownloadToHandler(fields, currentVerb);
                         }
                     } else if(line.startsWith("w_download")) {
                         if(line.contains("_W_droid_url")) {
                             // Implemented
                             //System.out.println(line);
                         } else {
-                            wDownloadHandler(fields);
+                            wDownloadHandler(fields, currentVerb);
                         }
                     } else {
                         lineCount--;
@@ -184,7 +184,7 @@ public class WinetricksURLExtractor {
     /**
      * # Usage: w_download url [shasum [filename [cookie jar]]]
      * */
-    private static void wDownloadHandler(List<String> fields) {
+    private static void wDownloadHandler(List<String> fields, String currentVerb) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 3) {
             System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
@@ -198,13 +198,13 @@ public class WinetricksURLExtractor {
         } else {
             filename = extractFilename(extractValue(fields,3), url);
         }
-        System.out.println(String.format("%s, %s, %s", filename, sha256Digest, url));
+        System.out.println(String.format("%s, %s, %s, %s", currentVerb, filename, sha256Digest, url));
     }
 
     /**
      * # Usage: w_download_to (packagename|path to download file) url [shasum [filename [cookie jar]]]
      * */
-    private static void wDownloadToHandler(List<String> fields) {
+    private static void wDownloadToHandler(List<String> fields, String currentVerb) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 3) {
             System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
@@ -226,9 +226,10 @@ public class WinetricksURLExtractor {
         fieldIdx++;
         String filename = extractFilename(extractValue(fields, fieldIdx), url);
         System.out.println(String.format("%s, %s, %s, %s", filename, sha256Digest, url, pkgName));
+        System.out.println(String.format("%s", currentVerb));
     }
 
-    private static void wDownloadManualHandler(List<String> fields) {
+    private static void wDownloadManualHandler(List<String> fields, String currentVerb) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 3) {
             System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
@@ -243,15 +244,15 @@ public class WinetricksURLExtractor {
             sha256Digest = extractSha256(extractValue(fields,3));
             filename = extractFilename(fields.get(2), url);
         }
-        System.out.println(String.format("%s, %s, %s", filename, sha256Digest, url));
+        System.out.println(String.format("%s, %s, %s, %s", currentVerb, filename, sha256Digest, url));
     }
 
-    private static void doDroid(List<String> fields) {
+    private static void doDroid(List<String> fields, String currentVerb) {
         //System.out.println(String.join(",", fields));
         String value = String.format("w_download %s%s?raw=true %s %s", DROID_URL, fields.get(1), fields.get(fields.size()-1), fields.get(1));
         //System.out.println(value);
         List<String> fields2 = List.of(value.split(" "));
-        wDownloadHandler(fields2);
+        wDownloadHandler(fields2, currentVerb);
     }
 
 
