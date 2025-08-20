@@ -88,6 +88,7 @@ public class WinetricksURLExtractorC {
             } else if (listAll) {
                 // List all URLs
                 System.out.println("Extracted URLs:");
+                Set<String> checksums = new HashSet<>();
                 for (String[] data : urlData) {
                     String url = data[0];
                     String filename = data[1];
@@ -96,7 +97,10 @@ public class WinetricksURLExtractorC {
                     String category = verbCategories.getOrDefault(verb, "misc");
                     System.out.printf("Verb: %s, Category: %s, Filename: %s, URL: %s, Checksum: %s%n",
                             verb, category, filename, url, checksum);
+                    checksums.add(checksum);
                 }
+                System.out.println("Total URLs listed: " + urlData.size());
+                System.out.println("Unique checksums: " + checksums.size());
             } else {
                 // Download files
                 downloadFiles(urlData, verbCategories);

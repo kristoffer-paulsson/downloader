@@ -352,7 +352,8 @@ public class DownloadHelper {
         } catch (SocketTimeoutException e) {
             throw new RuntimeException("Timeout while querying file size: " + url, e);
         } catch (IOException e) {
-            throw new RuntimeException("Error querying file size: " + url, e);
+            return -1;
+            //throw new RuntimeException("Error querying file size: " + url, e);
         }
         //throw new IOException("Unexpected error while querying file size: " + url);
         return -1; // Return -1 if no valid size could be determined

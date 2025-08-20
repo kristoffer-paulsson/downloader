@@ -14,6 +14,7 @@
  */
 package org.example.downloader;
 
+import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.PrintHelper;
 import org.example.downloader.util.Sha256Helper;
 
@@ -38,7 +39,6 @@ public class WinetricksURLExtractor {
 
     private static final Pattern VERB_PATTERN = Pattern.compile("w_metadata\\s+([^\\s]+)\\s+([^\\s]+)");
 
-
     private static final String[] SKIP = {
             "47113b285253a1ebce04527a31d734c0dfce5724e8d2643c6c1b822a940e7073", // Unigine_Heaven
             "f9640f69c2b8c012b97720ce0a9aac483989563908fc19446b9d1ba16e7239d6", // cnc_ddraw
@@ -53,6 +53,8 @@ public class WinetricksURLExtractor {
 
     private static final List<String> WINRAR_NAMES = new ArrayList<>();
     private static Iterator<String> WINRAR_ITER;
+
+    private static Set<String> uniqueSha256 = new HashSet<>();
 
     public static void buldWinrarNames() {
         for (String lang: WINRAR_LANG) {
@@ -72,6 +74,8 @@ public class WinetricksURLExtractor {
 
         Map<String, String> verbCategories = verbCategories = extractVerbCategories(winetricksFile);
         extractFromWinetricks(winetricksFile, verbCategories);
+
+        System.out.println("Unique SHA-256 checksums found: " + uniqueSha256.size());
     }
 
     private static Map<String, String> extractVerbCategories(String winetricksFile) throws IOException {
@@ -293,7 +297,9 @@ public class WinetricksURLExtractor {
     }
 
     private static void printPackage(String category, String verb, String filename, String checksum, URL url) {
-        System.out.printf("Verb: %s, Category: %s, Filename: %s, URL: %s, Checksum: %s%n",
-                verb, category, filename, url, checksum);
+        uniqueSha256.add(checksum);
+        long size = DownloadHelper.queryUrlFileDownloadSizeWithRedirect(url);
+        System.out.printf("Size: %s, Verb: %s, Category: %s, Filename: %s, URL: %s, Checksum: %s%n",
+                size, verb, category, filename, url, checksum);
     }
 }
