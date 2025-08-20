@@ -14,6 +14,7 @@
  */
 package org.example.downloader;
 
+import org.example.downloader.util.PrintHelper;
 import org.example.downloader.util.Sha256Helper;
 
 import java.io.*;
@@ -80,19 +81,18 @@ public class WinetricksURLExtractor {
             String line;
             int lineCount = 0;
             while ((line = reader.readLine()) != null) {
+                line = line.trim();
                 if(isSkip(line)) {
                     // Skip this line
-                    System.out.println("Skipping line: " + line);
+                    System.out.println("Skipping line: " + PrintHelper.coloredMessage(line, PrintHelper.ANSI_YELLOW));
                     continue;
                 }
                 if(line.contains("do_droid ")) {
-                    line = line.trim();
                     lineCount++;
 
                     List<String> fields = List.of(line.split(" "));
                     doDroid(fields);
                 } else if(line.contains("w_download")) {
-                    line = line.trim();
                     lineCount++;
 
                     if(line.contains("_W_winrar_url")){
