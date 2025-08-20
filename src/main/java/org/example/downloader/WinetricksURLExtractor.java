@@ -36,7 +36,6 @@ public class WinetricksURLExtractor {
 
     private static final String[] SKIP = {
             "47113b285253a1ebce04527a31d734c0dfce5724e8d2643c6c1b822a940e7073",
-            "630c86a202c40cbcd430701977d4f1fefa6151624ef9a4870040dff45e547dea", // server2020
     };
 
     private static final String WINRAR_URL = "https://www.win-rar.com/fileadmin/winrar-versions";
