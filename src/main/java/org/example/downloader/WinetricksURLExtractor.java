@@ -33,6 +33,8 @@ import java.util.regex.Pattern;
  * w_download()
  * */
 public class WinetricksURLExtractor {
+    private static Map<String, String> verbCategories;
+
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
 
@@ -65,13 +67,29 @@ public class WinetricksURLExtractor {
 
     private static final String DROID_URL = "https://github.com/android/platform_frameworks_base/blob/feef9887e8f8eb6f64fc1b4552c02efb5755cdc1/data/fonts/";
 
-
     public static void main(String[] args) throws IOException, URISyntaxException {
         String winetricksFile = downloadWinetricksScript();
 
         buldWinrarNames();
 
+        verbCategories = extractVerbCategories(winetricksFile);
         extractFromWinetricks(winetricksFile);
+    }
+
+    private static Map<String, String> extractVerbCategories(String winetricksFile) throws IOException {
+        Map<String, String> verbCategories = new HashMap<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Matcher matcher = VERB_PATTERN.matcher(line);
+                if (matcher.find()) {
+                    String verb = matcher.group(1);
+                    String category = matcher.group(2);
+                    verbCategories.put(verb, category);
+                }
+            }
+        }
+        return verbCategories;
     }
 
     private static boolean isSkip(String line) {
@@ -225,8 +243,8 @@ public class WinetricksURLExtractor {
         String sha256Digest = extractSha256(extractValue(fields,fieldIdx));
         fieldIdx++;
         String filename = extractFilename(extractValue(fields, fieldIdx), url);
-        System.out.println(String.format("%s, %s, %s, %s", filename, sha256Digest, url, pkgName));
-        System.out.println(String.format("%s", currentVerb));
+        System.out.println(String.format("%s, %s, %s, %s", pkgName, filename, sha256Digest, url));
+        //System.out.println(String.format("%s", currentVerb));
     }
 
     private static void wDownloadManualHandler(List<String> fields, String currentVerb) {
