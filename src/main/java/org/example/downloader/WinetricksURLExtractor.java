@@ -33,6 +33,10 @@ public class WinetricksURLExtractor {
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
 
+    private static final String[] SKIP = {
+            "47113b285253a1ebce04527a31d734c0dfce5724e8d2643c6c1b822a940e7073"
+    };
+
     private static final String WINRAR_URL = "https://www.win-rar.com/fileadmin/winrar-versions";
     private static final String WINRAR_EXE = "winrar-%s-%s%s.exe"; // ARCH, VERSION, LANG
     private static final String WINRAR_VERSION = "713";
@@ -62,11 +66,25 @@ public class WinetricksURLExtractor {
         extractFromWinetricks(winetricksFile);
     }
 
+    private static boolean isSkip(String line) {
+        for (String sha256 : SKIP) {
+            if (line.contains(sha256)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void extractFromWinetricks(String winetricksFile) throws IOException, URISyntaxException {
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
             int lineCount = 0;
             while ((line = reader.readLine()) != null) {
+                if(isSkip(line)) {
+                    // Skip this line
+                    System.out.println("Skipping line: " + line);
+                    continue;
+                }
                 if(line.contains("do_droid ")) {
                     line = line.trim();
                     lineCount++;
