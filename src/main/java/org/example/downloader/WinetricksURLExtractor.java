@@ -192,7 +192,7 @@ public class WinetricksURLExtractor {
     private static void wDownloadToHandler(List<String> fields) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 2) {
-            //System.out.println(String.join(" ", fields));
+            System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
             return;
         }
         int fieldIdx = 1;
@@ -216,7 +216,7 @@ public class WinetricksURLExtractor {
     private static void wDownloadManualHandler(List<String> fields) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 2) {
-            //System.out.println(String.join(" ", fields));
+            System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
             return;
         }
         URL url = extractURL(fields.get(1));
