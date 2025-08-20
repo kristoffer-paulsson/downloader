@@ -221,7 +221,8 @@ public class WinetricksURLExtractor {
             filename = extractFilename(extractValue(fields,3), url);
         }
         String category = extractVerbCategory(currentVerb);
-        System.out.println(String.format("%s, %s, %s, %s, %s", category, currentVerb, filename, sha256Digest, url));
+        printPackage(category, currentVerb, filename, sha256Digest, url);
+        //System.out.println(String.format("%s, %s, %s, %s, %s", category, currentVerb, filename, sha256Digest, url));
     }
 
     /**
@@ -249,7 +250,8 @@ public class WinetricksURLExtractor {
         fieldIdx++;
         String filename = extractFilename(extractValue(fields, fieldIdx), url);
         String category = extractVerbCategory(pkgName);
-        System.out.println(String.format("%s, %s, %s, %s, %s", category, pkgName, filename, sha256Digest, url));
+        printPackage(category, pkgName, filename, sha256Digest, url);
+        //System.out.println(String.format("%s, %s, %s, %s, %s", category, pkgName, filename, sha256Digest, url));
         //System.out.println(String.format("%s", currentVerb));
     }
 
@@ -269,7 +271,8 @@ public class WinetricksURLExtractor {
             filename = extractFilename(fields.get(2), url);
         }
         String category = extractVerbCategory(currentVerb);
-        System.out.println(String.format("%s, %s, %s, %s, %s", category, currentVerb, filename, sha256Digest, url));
+        printPackage(category, currentVerb, filename, sha256Digest, url);
+        //System.out.println(String.format("%s, %s, %s, %s, %s", category, currentVerb, filename, sha256Digest, url));
     }
 
     private static void doDroid(List<String> fields, String currentVerb) {
@@ -289,5 +292,10 @@ public class WinetricksURLExtractor {
             fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
         }
         return tempFile;
+    }
+
+    private static void printPackage(String category, String verb, String filename, String checksum, URL url) {
+        System.out.printf("Verb: %s, Category: %s, Filename: %s, URL: %s, Checksum: %s%n",
+                verb, category, filename, url, checksum);
     }
 }
