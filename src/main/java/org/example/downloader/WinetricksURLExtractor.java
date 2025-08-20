@@ -36,7 +36,6 @@ public class WinetricksURLExtractor {
 
     private static final String[] SKIP = {
             "47113b285253a1ebce04527a31d734c0dfce5724e8d2643c6c1b822a940e7073",
-            "bf4ee47d0df1870104f4fada8a68c2fb29e94fea9284c7bb6a6b385a718d8a18", // utorrent
             "630c86a202c40cbcd430701977d4f1fefa6151624ef9a4870040dff45e547dea", // server2020
             "0f0cc11f000593a064d419462a8467b529fed8075b21a605a40785baa3d2f611", // aka.ms
     };
@@ -175,13 +174,13 @@ public class WinetricksURLExtractor {
     private static void wDownloadHandler(List<String> fields) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 3) {
-            //System.out.println(String.join(" ", fields));
+            System.out.println(PrintHelper.coloredMessage(String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
             return;
         }
         URL url = extractURL(fields.get(1));
         String sha256Digest = extractSha256(extractValue(fields,2));
         String filename = "";
-        if(fields.size() <= 4) {
+        if(fields.size() <= 3) {
             filename = extractFilename(filename, url);
         } else {
             filename = extractFilename(extractValue(fields,3), url);
