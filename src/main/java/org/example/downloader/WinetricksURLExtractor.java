@@ -20,13 +20,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * # Usage: w_download_to (packagename|path to download file) url [shasum [filename [cookie jar]]]
@@ -90,12 +85,21 @@ public class WinetricksURLExtractor {
                     List<String> fields = List.of(line.split(" "));
 
                     if(line.startsWith("w_download_manual")) {
-                        System.out.println(line);
+                        if(line.contains("W_PACKAGE")) {
+                            System.out.println(line);
+                        } else {
+                            wDownloadManualHandler(fields);
+                        }
                     } else if(line.startsWith("w_download_to")) {
-                        System.out.println(line);
+                        if(line.contains("W_PACKAGE") || line.contains("_W_tmpdir")) {
+                            System.out.println(line);
+                        } else {
+                            wDownloadToHandler(fields);
+                        }
                     } else if(line.startsWith("w_download")) {
                         if(line.contains("_W_droid_url")) {
-                            System.out.println(line);
+                            // Implemented
+                            //System.out.println(line);
                         } else {
                             wDownloadHandler(fields);
                         }
@@ -116,14 +120,14 @@ public class WinetricksURLExtractor {
         try {
             return new URI(value).toURL();
         } catch (MalformedURLException | URISyntaxException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
-    private static String extractSha245(String value) {
+    private static String extractSha256(String value) {
         if(!Sha256Helper.isValid64CharHex(value)) {
-            return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-            //throw new RuntimeException("Value not a 64 letter hex sha256");
+            //return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+            throw new IllegalArgumentException("Value not a 64 letter hex sha256");
         }
         return value;
     }
@@ -153,17 +157,52 @@ public class WinetricksURLExtractor {
             return;
         }
         URL url = extractURL(fields.get(1));
-        String sha256Digest = extractSha245(extractValue(fields,2));
+        String sha256Digest = extractSha256(extractValue(fields,2));
         String filename = extractFilename(extractValue(fields,3), url);
         System.out.println(String.format("%s, %s, %s", filename, sha256Digest, url));
     }
 
-    private static void wDownloadToHandler() throws IOException {
-
+    /**
+     * # Usage: w_download_to (packagename|path to download file) url [shasum [filename [cookie jar]]]
+     * */
+    private static void wDownloadToHandler(List<String> fields) {
+        if(fields.size() < 2) {
+            System.out.println(String.join(" ", fields));
+            return;
+        }
+        int fieldIdx = 1;
+        URL url;
+        String pkgName = "";
+        try {
+            url = extractURL(fields.get(fieldIdx));
+            fieldIdx++;
+        } catch (IllegalArgumentException e) {
+            pkgName = fields.get(fieldIdx);
+            fieldIdx++;
+            url = extractURL(fields.get(fieldIdx));
+            fieldIdx++;
+        }
+        String sha256Digest = extractSha256(extractValue(fields,fieldIdx));
+        fieldIdx++;
+        String filename = extractFilename(extractValue(fields, fieldIdx), url);
+        System.out.println(String.format("%s, %s, %s, %s", filename, sha256Digest, url, pkgName));
     }
 
-    private static void wDownloadManualHandler() throws IOException {
-
+    private static void wDownloadManualHandler(List<String> fields) {
+        if(fields.size() < 2) {
+            System.out.println(String.join(" ", fields));
+            return;
+        }
+        URL url = extractURL(fields.get(1));
+        String sha256Digest;
+        String filename = "";
+        try {
+            sha256Digest = extractSha256(extractValue(fields,2));
+        } catch (IllegalArgumentException e) {
+            sha256Digest = extractSha256(extractValue(fields,3));
+            filename = extractFilename(fields.get(2), url);
+        }
+        System.out.println(String.format("%s, %s, %s, %s", filename, sha256Digest, url));
     }
 
     private static void doDroid(List<String> fields) {
