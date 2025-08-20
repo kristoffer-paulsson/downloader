@@ -23,6 +23,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * # Usage: w_download_to (packagename|path to download file) url [shasum [filename [cookie jar]]]
@@ -33,6 +35,9 @@ import java.util.*;
 public class WinetricksURLExtractor {
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
+
+    private static final Pattern VERB_PATTERN = Pattern.compile("w_metadata\\s+([^\\s]+)\\s+([^\\s]+)");
+
 
     private static final String[] SKIP = {
             "47113b285253a1ebce04527a31d734c0dfce5724e8d2643c6c1b822a940e7073", // Unigine_Heaven
@@ -81,6 +86,7 @@ public class WinetricksURLExtractor {
     private static void extractFromWinetricks(String winetricksFile) throws IOException, URISyntaxException {
         try (BufferedReader reader = new BufferedReader(new FileReader(winetricksFile))) {
             String line;
+            String currentVerb;
             int lineCount = 0;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
@@ -89,6 +95,13 @@ public class WinetricksURLExtractor {
                     System.out.println("Skipping line: " + PrintHelper.coloredMessage(line, PrintHelper.ANSI_YELLOW));
                     continue;
                 }
+
+                Matcher verbMatcher = VERB_PATTERN.matcher(line);
+                if (verbMatcher.find()) {
+                    currentVerb = verbMatcher.group(1);
+                    continue;
+                }
+
                 if(line.contains("do_droid ")) {
                     lineCount++;
 
