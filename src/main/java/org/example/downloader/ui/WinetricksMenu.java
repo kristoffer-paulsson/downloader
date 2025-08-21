@@ -15,7 +15,6 @@
 package org.example.downloader.ui;
 
 import org.example.downloader.GeneralEnvironment;
-import org.example.downloader.java.JavaDownloadEnvironment;
 import org.example.downloader.util.InversionOfControl;
 import org.example.downloader.util.Menu;
 import org.example.downloader.wtx.WinetricksDownloadEnvironment;
@@ -32,8 +31,8 @@ public class WinetricksMenu extends Menu {
     protected void setupMenu() {
         registerOption("Setup environment", option -> new WinetricksForm(ioc.resolve(WinetricksDownloadEnvironment.class), ioc).runForm());
         registerOption("View environment", option -> reviewConfig(ioc.resolve(WinetricksDownloadEnvironment.class)));
-        registerOption("Downloader", option -> new JavaDownloadAction(ioc, "Downloader").runAction());
-        registerOption("Blockchain Verifier", option -> new JavaVerifyAction(ioc, "Blockchain Verifier").runAction());
+        registerOption("Downloader", option -> new WinetricksDownloadAction(ioc, "Downloader").runAction());
+        registerOption("Blockchain Verifier", option -> new WinetricksVerifyAction(ioc, "Blockchain Verifier").runAction());
     }
 
     private void reviewConfig(WinetricksDownloadEnvironment wds) {

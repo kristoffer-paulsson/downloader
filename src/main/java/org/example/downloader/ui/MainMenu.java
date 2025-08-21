@@ -27,5 +27,6 @@ public class MainMenu extends Menu {
         registerOption("Configuration", option -> new ConfigMenu(ioc).runMenu());
         registerOption("Java Downloading", option -> new JavaMenu(ioc).runMenu());
         registerOption("Debian Downloading", option -> new DebianMenu(ioc).runMenu());
+        registerOption("Winetricks Downloading", option -> new WinetricksMenu(ioc).runMenu());
     }
 }
