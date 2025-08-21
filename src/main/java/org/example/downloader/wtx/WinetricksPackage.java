@@ -31,7 +31,7 @@ public class WinetricksPackage implements BasePackage {
     private final String url;
 
     private final String verb;
-    private final String category;
+    private final WinetricksCategory category;
 
     /**
      * "Filename: %s\nUrl: %s\nSha256: %s\nSize: %s\nVerb: %s\nCategory: %s\n\n"
@@ -49,7 +49,7 @@ public class WinetricksPackage implements BasePackage {
         this.sha256Digest = sha256Digest;
         this.size = size;
         this.verb = verb;
-        this.category = category;
+        this.category = WinetricksCategory.fromString(category);
     }
 
     public String getUrl() {
@@ -75,7 +75,7 @@ public class WinetricksPackage implements BasePackage {
         return verb;
     }
 
-    public String getCategory() {
+    public WinetricksCategory getCategory() {
         return category;
     }
 

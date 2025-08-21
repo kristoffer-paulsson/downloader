@@ -60,30 +60,22 @@ public class WinetricksParser extends AbstractFileParser<WinetricksPackage> {
     public static class Filter {
         WinetricksDownloadEnvironment wde;
 
-        List<JavaArchitecture> archFilter;
-        List<JavaImage> imageFilter;
+        List<WinetricksCategory> categoryFilter;
 
         Filter(WinetricksDownloadEnvironment wde) {
             this.wde = wde;
 
-            /*archFilter = wde.getArchitectures();
-            if(archFilter.get(0) == JavaArchitecture.UNKNOWN)
-                archFilter = List.of(JavaArchitecture.values());
+            categoryFilter = wde.getCategories();
+            if(categoryFilter.get(0) == WinetricksCategory.UNKNOWN)
+                categoryFilter = List.of(WinetricksCategory.values());
 
-            imageFilter = wde.getImages();
-            if(imageFilter.get(0) == JavaImage.UNKNOWN)
-                imageFilter = List.of(JavaImage.values());*/
         }
 
         public boolean filterPackage(WinetricksPackage pkg) {
             boolean add = true;
 
-            if(pkg.getSize().equals("-1")) {
-                add = false;
-            }
-
-            /*add = archFilter.contains(pkg.getArch()) && add;
-            add = imageFilter.contains(pkg.getImage()) && add;*/
+            add = !pkg.getSize().equals("-1") && add;
+            add = categoryFilter.contains(pkg.getCategory()) && add;
 
             return add;
         }

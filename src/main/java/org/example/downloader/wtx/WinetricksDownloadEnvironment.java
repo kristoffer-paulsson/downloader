@@ -50,6 +50,14 @@ public class WinetricksDownloadEnvironment extends EnvironmentManager {
         return getDownloadDir("winetricks-cache");
     }
 
+    public void setCategories(List<WinetricksCategory> categories) {
+        setMulti(EnvironmentKey.CATEGORY.getKey(), categories, WinetricksCategory::getCategory);
+    }
+
+    public List<WinetricksCategory> getCategories() {
+        return getMulti(EnvironmentKey.CATEGORY.getKey(), WinetricksCategory::fromString);
+    }
+
     public String hashOfConfiguration() {
         List<String> config = new ArrayList<>();
 
