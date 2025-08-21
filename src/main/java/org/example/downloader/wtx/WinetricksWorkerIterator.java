@@ -64,7 +64,7 @@ public class WinetricksWorkerIterator extends WorkerIterator<WinetricksPackage> 
     protected WinetricksWorker createWorker() {
         WinetricksPackage pkg = packageIterator.next();
         try {
-            Path downloadPath = wde.getDownloadDir().resolve(pkg.getCategory().getCategory()).resolve(pkg.getFilename());
+            Path downloadPath = wde.getDownloadDir().resolve(pkg.getVerb()).resolve(pkg.getFilename());
             return new WinetricksWorker(pkg, new DownloadHelper.Download(pkg.getRealUrl(), downloadPath), chain, logger);
         } catch (MalformedURLException | URISyntaxException e) {
             throw new RuntimeException(e);
