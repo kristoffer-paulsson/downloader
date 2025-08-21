@@ -14,7 +14,6 @@
  */
 package org.example.downloader.wtx;
 
-import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.PrintHelper;
 import org.example.downloader.util.Sha256Helper;
 
@@ -33,7 +32,7 @@ import java.util.regex.Pattern;
  * # Usage: w_download url [shasum [filename [cookie jar]]]
  * w_download()
  * */
-public class WinetricksURLExtractor {
+public class WinetricksGenerator {
     private static boolean DEBUG = false;
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
@@ -315,7 +314,7 @@ public class WinetricksURLExtractor {
         uniqueSha256.add(checksum);
         //long size = DownloadHelper.queryUrlFileDownloadSizeWithRedirect(url);
         long size = 100;
-        System.out.printf("Filename: %s\nUrl: %s\nChecksum: %s\nSize: %s\nVerb: %s\nCategory: %s\n\n",
+        System.out.printf("Filename: %s\nUrl: %s\nSha256: %s\nSize: %s\nVerb: %s\nCategory: %s\n\n",
                 filename, url, checksum, size, verb, category);
     }
 }
