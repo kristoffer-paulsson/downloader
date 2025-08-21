@@ -31,8 +31,8 @@ public class JavaMenu extends Menu {
     protected void setupMenu() {
         registerOption("Setup environment", option -> new JavaForm(ioc.resolve(JavaDownloadEnvironment.class), ioc).runForm());
         registerOption("View environment", option -> reviewConfig(ioc.resolve(JavaDownloadEnvironment.class)));
-        registerOption("Downloader", option -> new JavaDownloadAction(ioc, "Downloader").runAction());
-        registerOption("Blockchain Verifier", option -> new JavaVerifyAction(ioc, "Blockchain Verifier").runAction());
+        registerOption("Downloader", option -> new WinetricksDownloadAction(ioc, "Downloader").runAction());
+        registerOption("Blockchain Verifier", option -> new WinetricksVerifyAction(ioc, "Blockchain Verifier").runAction());
     }
 
     private void reviewConfig(JavaDownloadEnvironment jds) {
