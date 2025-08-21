@@ -15,6 +15,7 @@
 package org.example.downloader.java;
 
 import org.example.downloader.util.AbstractFileParser;
+import org.example.downloader.util.PrintHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -203,9 +204,11 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
 
     public static void main(String[] args) {
         try {
+            long totalSize = 0;
             JavaParser parser = new JavaParser("Java.gz");
             while (parser.hasNext()) {
                 JavaPackage pkg = parser.next();
+                totalSize += pkg.getByteSize();
                 System.out.println("Parsed package: " + pkg.toString());
             }
             parser.close();
@@ -213,6 +216,9 @@ public class JavaParser extends AbstractFileParser<JavaPackage> {
             parser.statistics.forEach((key, value) -> {
                 System.out.println(key + ": " + value);
             });
+
+            System.out.println("Total size of all packages: " + totalSize + " bytes");
+            System.out.println("Total size of all packages: " + PrintHelper.formatByteSize(totalSize));
         } catch (IOException e) {
             e.printStackTrace();
         }
