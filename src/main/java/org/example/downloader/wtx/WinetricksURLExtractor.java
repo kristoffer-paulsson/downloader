@@ -12,7 +12,7 @@
  * Contributors:
  *      Kristoffer Paulsson - initial implementation
  */
-package org.example.downloader;
+package org.example.downloader.wtx;
 
 import org.example.downloader.util.DownloadHelper;
 import org.example.downloader.util.PrintHelper;
@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
  * w_download()
  * */
 public class WinetricksURLExtractor {
+    private static boolean DEBUG = false;
     private static final String WINETRICKS_URL = "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks";
     private static final String CACHE_DIR = "cache-winetricks";
 
@@ -75,7 +76,11 @@ public class WinetricksURLExtractor {
         Map<String, String> verbCategories = verbCategories = extractVerbCategories(winetricksFile);
         extractFromWinetricks(winetricksFile, verbCategories);
 
-        System.out.println("Unique SHA-256 checksums found: " + uniqueSha256.size());
+        if(DEBUG) {
+            System.out.println("Debug mode is ON");
+            System.out.println("Winetricks file: " + winetricksFile);
+            System.out.println("Verb categories: " + verbCategories);
+        }
     }
 
     private static Map<String, String> extractVerbCategories(String winetricksFile) throws IOException {
@@ -112,7 +117,8 @@ public class WinetricksURLExtractor {
                 line = line.trim();
                 if(isSkip(line)) {
                     // Skip this line
-                    System.out.println("Skipping line: " + PrintHelper.coloredMessage(line, PrintHelper.ANSI_YELLOW));
+                    if(DEBUG)
+                        System.out.println("Skipping line: " + PrintHelper.coloredMessage(line, PrintHelper.ANSI_YELLOW));
                     continue;
                 }
 
@@ -131,8 +137,9 @@ public class WinetricksURLExtractor {
                     lineCount++;
 
                     if(line.contains("_W_winrar_url")){
-                        line = line.replace("${_W_winrar_url}", WINRAR_URL);
-                        line = line.replace("${_W_winrar_exe}", WINRAR_ITER.next());
+                        continue;
+                        //line = line.replace("${_W_winrar_url}", WINRAR_URL);
+                        //line = line.replace("${_W_winrar_exe}", WINRAR_ITER.next());
                     }
 
                     List<String> fields = List.of(line.split(" "));
@@ -162,7 +169,9 @@ public class WinetricksURLExtractor {
                     }
                 }
             }
-            System.out.println("Total number of lines: " + lineCount);
+            if(DEBUG) {
+                System.out.println("Total lines processed: " + lineCount);
+            }
         }
     }
 
@@ -211,7 +220,9 @@ public class WinetricksURLExtractor {
     private static void wDownloadHandler(List<String> fields, String currentVerb, Map<String, String> verbCategories) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 3) {
-            System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
+            if(DEBUG) {
+                System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
+            }
             return;
         }
         URL url = extractURL(fields.get(1));
@@ -233,7 +244,9 @@ public class WinetricksURLExtractor {
     private static void wDownloadToHandler(List<String> fields, String currentVerb, Map<String, String> verbCategories) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 3) {
-            System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
+            if (DEBUG) {
+                System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
+            }
             return;
         }
         int fieldIdx = 1;
@@ -260,7 +273,9 @@ public class WinetricksURLExtractor {
     private static void wDownloadManualHandler(List<String> fields, String currentVerb, Map<String, String> verbCategories) {
         //System.out.println(String.join(" ", fields));
         if(fields.size() < 3) {
-            System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
+            if (DEBUG) {
+                System.out.println(PrintHelper.coloredMessage("Missing: " + String.join(" ", fields), PrintHelper.ANSI_MAGENTA));
+            }
             return;
         }
         URL url = extractURL(fields.get(1));
@@ -298,8 +313,9 @@ public class WinetricksURLExtractor {
 
     private static void printPackage(String category, String verb, String filename, String checksum, URL url) {
         uniqueSha256.add(checksum);
-        long size = DownloadHelper.queryUrlFileDownloadSizeWithRedirect(url);
-        System.out.printf("Size: %s, Verb: %s, Category: %s, Filename: %s, URL: %s, Checksum: %s%n",
-                size, verb, category, filename, url, checksum);
+        //long size = DownloadHelper.queryUrlFileDownloadSizeWithRedirect(url);
+        long size = 100;
+        System.out.printf("Filename: %s\nUrl: %s\nChecksum: %s\nSize: %s\nVerb: %s\nCategory: %s\n\n",
+                filename, url, checksum, size, verb, category);
     }
 }
