@@ -391,7 +391,8 @@ public class DownloadHelper {
                 }
             }
         } catch (SocketTimeoutException e) {
-            throw new RuntimeException("Timeout while querying file size: " + url, e);
+            return -1;
+            //throw new RuntimeException("Timeout while querying file size: " + url, e);
         } catch (IOException e) {
             return -1;
             //throw new RuntimeException("Error querying file size: " + url, e);

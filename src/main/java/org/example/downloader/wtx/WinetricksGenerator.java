@@ -16,6 +16,7 @@ package org.example.downloader.wtx;
 
 import org.example.downloader.util.PrintHelper;
 import org.example.downloader.util.Sha256Helper;
+import org.example.downloader.util.DownloadHelper;
 
 import java.io.*;
 import java.net.*;
@@ -312,8 +313,8 @@ public class WinetricksGenerator {
 
     private static void printPackage(String category, String verb, String filename, String checksum, URL url) {
         uniqueSha256.add(checksum);
-        //long size = DownloadHelper.queryUrlFileDownloadSizeWithRedirect(url);
-        long size = 100;
+        long size = DownloadHelper.queryUrlFileDownloadSizeWithRedirect(url);
+        //long size = 100;
         System.out.printf("Filename: %s\nUrl: %s\nSha256: %s\nSize: %s\nVerb: %s\nCategory: %s\n\n",
                 filename, url, checksum, size, verb, category);
     }
