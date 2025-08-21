@@ -57,6 +57,64 @@ public class WinetricksParser extends AbstractFileParser<WinetricksPackage> {
         );
     }
 
+    public static class Filter {
+        WinetricksDownloadEnvironment wde;
+
+        List<JavaArchitecture> archFilter;
+        List<JavaImage> imageFilter;
+
+        Filter(WinetricksDownloadEnvironment wde) {
+            this.wde = wde;
+
+            /*archFilter = wde.getArchitectures();
+            if(archFilter.get(0) == JavaArchitecture.UNKNOWN)
+                archFilter = List.of(JavaArchitecture.values());
+
+            imageFilter = wde.getImages();
+            if(imageFilter.get(0) == JavaImage.UNKNOWN)
+                imageFilter = List.of(JavaImage.values());*/
+        }
+
+        public boolean filterPackage(WinetricksPackage pkg) {
+            boolean add = true;
+
+            if(pkg.getSize().equals("-1")) {
+                add = false;
+            }
+
+            /*add = archFilter.contains(pkg.getArch()) && add;
+            add = imageFilter.contains(pkg.getImage()) && add;*/
+
+            return add;
+        }
+    }
+
+    public static WinetricksParser.Filter createFilter(WinetricksDownloadEnvironment wde) {
+        return new Filter(wde);
+    }
+
+    public static List<WinetricksPackage> filterPackages(WinetricksDownloadEnvironment wde) {
+        HashMap<String, WinetricksPackage> filteredPackages = new HashMap<>();
+        WinetricksParser.Filter filter = createFilter(wde);
+
+        try {
+            WinetricksParser parser = new WinetricksParser(ClassLoader.getSystemResourceAsStream("Winetricks.gz"));
+
+            while (parser.hasNext()) {
+                WinetricksPackage pkg = parser.next();
+                if(filter.filterPackage(pkg)){
+                    filteredPackages.put(pkg.uniqueKey(), pkg);
+                }
+            }
+
+            parser.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return List.copyOf(filteredPackages.values());
+    }
+
     public static void main(String[] args) {
         try {
             WinetricksParser parser = new WinetricksParser("Winetricks.gz");
