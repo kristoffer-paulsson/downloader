@@ -56,7 +56,7 @@ public class WinetricksGenerator {
 
     private static Set<String> uniqueSha256 = new HashSet<>();
 
-    public static void buldWinrarNames() {
+    public static void buildWinrarNames() {
         for (String lang: WINRAR_LANG) {
             for (String arch: WINRAR_ARCH) {
                 WINRAR_NAMES.add(String.format(WINRAR_EXE, arch, WINRAR_VERSION, lang));
@@ -70,7 +70,7 @@ public class WinetricksGenerator {
     public static void main(String[] args) throws IOException, URISyntaxException {
         String winetricksFile = downloadWinetricksScript();
 
-        buldWinrarNames();
+        buildWinrarNames();
 
         Map<String, String> verbCategories = verbCategories = extractVerbCategories(winetricksFile);
         extractFromWinetricks(winetricksFile, verbCategories);
