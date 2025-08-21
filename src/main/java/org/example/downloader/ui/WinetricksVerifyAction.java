@@ -17,6 +17,7 @@ package org.example.downloader.ui;
 import org.example.downloader.util.BlockChainHelper;
 import org.example.downloader.util.BlockchainVerifier;
 import org.example.downloader.util.InversionOfControl;
+import org.example.downloader.util.PrintHelper;
 import org.example.downloader.wtx.WinetricksDownloadEnvironment;
 import org.example.downloader.wtx.WinetricksPackage;
 import org.example.downloader.wtx.WinetricksParser;

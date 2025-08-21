@@ -19,7 +19,6 @@ import org.example.downloader.util.AbstractFileParser;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.module.ModuleDescriptor;
 import java.util.*;
 
 public class WinetricksParser extends AbstractFileParser<WinetricksPackage> {

@@ -24,7 +24,7 @@ import java.util.List;
 
 public class WinetricksDownloadEnvironment extends EnvironmentManager {
 
-    public static final String ENVIRONMENT_FILE = "java-download.properties";
+    public static final String ENVIRONMENT_FILE = "winetricks-download.properties";
 
     public enum EnvironmentKey {
         VERB("wtx_verb"),
